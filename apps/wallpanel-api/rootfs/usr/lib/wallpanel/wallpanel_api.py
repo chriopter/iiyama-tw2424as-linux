@@ -788,6 +788,7 @@ def uptime():
 
 def state():
     return {'display': display.state(), 'volume': volume.get(), 'url': browser.url(),
+            'playing': playing(),
             'home_url': home_url(), 'home_after': home_after(), 'auto_update': auto_update(),
             'auto_off': int(SETTINGS.get('auto_off', 5)), 'fade_ms': int(SETTINGS.get('fade_ms', 400)),
             'touch_fade_ms': int(SETTINGS.get('touch_fade_ms', 100)),
@@ -934,6 +935,9 @@ class Mqtt:
                                    'supported_color_modes': ['color_temp'], 'color_temp_kelvin': True,
                                    'min_kelvin': Display.KELVIN[0], 'max_kelvin': Display.KELVIN[1],
                                    'command_topic': f'{BASE}/display/set', 'state_topic': f'{BASE}/display/state'},
+            ('binary_sensor', 'playing'): {'name': 'Wiedergabe', 'icon': 'mdi:waveform', 'device_class': 'sound',
+                                           'state_topic': f'{BASE}/state',
+                                           'value_template': "{{ 'ON' if value_json.playing else 'OFF' }}"},
             ('number', 'volume'): {'name': 'Lautstärke', 'min': 0, 'max': 100, 'unit_of_measurement': '%',
                                    'command_topic': f'{BASE}/volume/set', 'state_topic': f'{BASE}/state',
                                    'value_template': '{{ value_json.volume }}', 'icon': 'mdi:volume-high'},
@@ -1157,14 +1161,21 @@ def auto_off_loop():
                 MQ.publish_state()
 
 
+def playing():
+    """True while any audio plays on the panel (AirPlay, HA announcements, the browser): the
+    playback PCM of the sound card is running."""
+    return any('RUNNING' in read(f) for f in glob.glob('/proc/asound/card0/pcm*p/sub*/status'))
+
+
 def volume_watch():
-    """AirPlay (shairport-sync) sets the same DAC control: report outside changes to HA within ~2 s."""
-    last = volume.get()
+    """Report outside volume changes (AirPlay sets the same DAC control) and playback start/stop to
+    HA within ~2 s."""
+    last = (volume.get(), playing())
     while True:
         time.sleep(2)
-        v = volume.get()
-        if v != last:
-            last = v
+        now = (volume.get(), playing())
+        if now != last:
+            last = now
             if MQ:
                 MQ.publish_state()
 
