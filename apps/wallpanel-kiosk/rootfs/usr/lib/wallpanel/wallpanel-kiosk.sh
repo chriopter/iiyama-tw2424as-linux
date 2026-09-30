@@ -49,9 +49,12 @@ done
 # Extension with the configured home URL (navigation lock + paint containment)
 cp /usr/lib/wallpanel/extension/* "$EXT/"
 printf 'const WALLPANEL_HOME = %s;\n' "\"$URL\"" > "$EXT/config.js"
-# tweaks for the content scripts (update page / MQTT "HA-Kopfleiste ausblenden")
+# tweaks for the content scripts (update page / MQTT "HA-Kopfleiste ausblenden", "Assist sofort zuhören")
 [ "$(st hide_header)" = True ] && HIDE_HEADER=true || HIDE_HEADER=false
-printf 'const WALLPANEL_TWEAKS = { hideHeader: %s };\n' "$HIDE_HEADER" > "$EXT/settings.js"
+[ "$(st assist_listen)" = False ] && ASSIST_LISTEN=false || ASSIST_LISTEN=true  # default on
+printf 'globalThis.WALLPANEL_TWEAKS = { hideHeader: %s, assistListen: %s };\n' "$HIDE_HEADER" "$ASSIST_LISTEN" > "$EXT/settings.js"
+# the same for the MAIN-world script (fixes.js): Chromium injects a file only once per page, so a second copy
+cp "$EXT/settings.js" "$EXT/settings-main.js"
 # Chromium caches the extension service worker's importScripts (config.js) in the profile and keeps
 # using it across restarts. When the extension or home URL changed (kiosk restart after an update),
 # drop the service worker storage (Home Assistant registers its own worker again on the next load).

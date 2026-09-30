@@ -22,7 +22,9 @@ wallpanel-gamma [-o NAME] [-f MS] [-v]      # also -V (version), -h (help)
 - `-o NAME`: only this output (`wl_output` v4 name, kiosk `DSI-1`); default all outputs present at start.
 - `-f MS`: fade to each new value over MS ms in integer-Kelvin steps every 20 ms (default 0 = jump).
   A new value during a fade fades on from the current step.
-- stdin: one integer Kelvin value per line, 1000–25000 (`\n`, surrounding blanks/`\r` ignored).
+- stdin: one integer Kelvin value per line, 1000–25000 (`\n`, surrounding blanks/`\r` ignored), optionally
+  followed by a red and a blue gain in % (50–100, e.g. `3300 92 96`): the white is scaled per channel below
+  4000 K, fading out towards 6500 K (neutral stays the identity ramp); a changed gain is applied at once.
   Applied on receipt; several lines arriving together: only the last one counts. Empty lines are
   ignored, invalid ones are logged and ignored (the program keeps running). 6500 = identity ramp
   (control still held, so the VOP LUT stays enabled with an identity table).
@@ -40,7 +42,7 @@ wallpanel-gamma [-o NAME] [-f MS] [-v]      # also -V (version), -h (help)
   SIGTERM: the compositor releases the control when the client dies (identity).
 
 Intended use (`apps/wallpanel-api`): start once per compositor session, keep its stdin as a pipe,
-write `"K\n"` for every new temperature, restart it when it exits, close stdin to stop.
+write `"K R B\n"` for every new temperature or colour balance, restart it when it exits, close stdin to stop.
 
 ## Build, install, pin
 

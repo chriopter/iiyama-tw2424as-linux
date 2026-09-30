@@ -23,4 +23,4 @@ in CI the secret `KERNEL_SIGNING_KEY`).
 | `init-test.sh` | init of the RAM installer |
 | `lib.sh` | shared functions (keys, applying files, root password, installing our apks: cage, wallpanel-gamma) |
 | `70-rockchip.rules` | udev rule for Rockusb/maskrom access on the PC |
-| `debug/` | development and measurement tools |
+| `debug/` | development and measurement tools; `debug/ct-sync.py`: bulb and panel step through 10 colour temperatures in sync (`--white`: plain white panel) to check the colour calibration by eye |

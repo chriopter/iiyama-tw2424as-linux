@@ -263,6 +263,11 @@ HA_PASS=
 SHELLY_IP=
 # directory of the camera snapshots (tools/debug/snap.sh)
 CAM_DIR=
+# colour check bulb vs. panel (tools/debug/ct-sync.py): HA long-lived access token, the bulb, and entities
+# paused meanwhile (Adaptive Lighting switches, motion automations)
+HA_TOKEN=
+CT_LAMP=light.hallway
+CT_PAUSE='switch.adaptive_lighting_hallway automation.hallway_light_off'
 ```
 </details>
 
@@ -276,10 +281,13 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 {
   "auto_off": 5,
   "auto_update": false,
-  "ct_scale": 83,
+  "ct_scale": 85,
+  "ct_red": 92,
+  "ct_blue": 96,
   "display_lock": false,
   "fade_ms": 400,
   "hide_header": true,
+  "assist_listen": true,
   "home_after": 60,
   "home_url": "https://192.168.1.10:8123/lovelace/0",
   "reboot_enabled": true,
@@ -298,9 +306,10 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 | `auto_off` | Bildschirm aus nach | minutes, 0 = never |
 | `auto_update`, `update_time` | Update täglich, Update-Zeit | true/false; `HH:MM` in 30-min steps (03:30) |
 | `ct_scale` | Farbton-Kalibrierung | 50–150 (%) |
+| `ct_red`, `ct_blue` | Weißabgleich Rot, Weißabgleich Blau | 50–100 (%) |
 | `display_lock`, `standby` | Bildschirm gesperrt, Bildschirm an/aus | true/false |
 | `fade_ms`, `touch_fade_ms` | Bildschirm-Überblendung (bei Berührung) | 0–3000 ms |
-| `hide_header` | HA-Kopfleiste ausblenden | true/false |
+| `hide_header`, `assist_listen` | HA-Kopfleiste ausblenden, Assist sofort zuhören | true/false (off, on) |
 | `home_after`, `home_url` | Startseite laden nach, Startseite | minutes (0 = never); URL, missing = `KIOSK_URL` |
 | `reboot_enabled`, `reboot_time` | Neustart täglich, Neustart-Zeit | true/false; `HH:MM` in 30-min steps (04:00) |
 | `scale` | Skalierung | 75, 80, 90, 100, 110, 125, 150, 175, 200 |

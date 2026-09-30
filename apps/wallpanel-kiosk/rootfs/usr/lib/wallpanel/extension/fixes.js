@@ -16,9 +16,10 @@
     }
   }, 5000);
 
-  // Assist: tapping the Assist button starts listening right away (no second tap on the mic) –
-  // the frontend's own start_listening parameter of the voice command dialog.
-  customElements.whenDefined('ha-voice-command-dialog').then((c) => {
+  // Tweak "Assist sofort zuhören" (settings.js, WALLPANEL_TWEAKS.assistListen): tapping the Assist button
+  // starts listening right away (no second tap on the mic) – the frontend's own start_listening parameter
+  // of the voice command dialog.
+  if (typeof WALLPANEL_TWEAKS !== 'undefined' && WALLPANEL_TWEAKS.assistListen) customElements.whenDefined('ha-voice-command-dialog').then((c) => {
     const show = c.prototype.showDialog;
     if (show.__wallpanel) return;
     c.prototype.showDialog = function (params) {

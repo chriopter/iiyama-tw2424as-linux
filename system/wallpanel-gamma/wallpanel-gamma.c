@@ -56,6 +56,7 @@
 #define KELVIN_MAX 25000
 #define IDENTITY_K 6500
 #define FADE_STEP_MS 20
+#define GAIN_MIN 50  /* %, red/blue gain */
 
 /* ---- colour math: wlsunset 0.4.0 color_math.c (calc_whitepoint and helpers), unchanged ---- */
 
@@ -149,11 +150,21 @@ static struct rgb whitepoint(int temp)
 	return wp_rgb;
 }
 
+/* Colour balance ("K R B" on stdin, % of red and blue, 50-100): matches the panel's white to a bulb of the
+ * same temperature (LED bulbs are greener than this panel's white). Full below 4000 K, fading out towards
+ * 6500 K, so neutral stays the identity ramp. */
+static int gain_r = 100, gain_b = 100;
+
 /* wlsunset main.c fill_gamma_table(), gamma fixed to 1.0 (wlsunset's default) */
 static void fill_ramp(uint16_t *table, uint32_t size, int temp)
 {
 	const double gamma = 1.0;
 	struct rgb wp = whitepoint(temp);
+	if ((gain_r < 100 || gain_b < 100) && temp < IDENTITY_K) {
+		double f = temp <= 4000 ? 1.0 : (IDENTITY_K - temp) / (double)(IDENTITY_K - 4000);
+		wp.r *= 1.0 - (100 - gain_r) / 100.0 * f;
+		wp.b *= 1.0 - (100 - gain_b) / 100.0 * f;
+	}
 	uint16_t *r = table, *g = table + size, *b = table + 2 * size;
 	for (uint32_t i = 0; i < size; ++i) {
 		double val = (double)i / (size - 1);
@@ -350,8 +361,9 @@ static void release_and_exit(void)
 	exit(0);
 }
 
-/* parse one input line: returns K, 0 for an empty line, -1 if invalid */
-static int parse_line(char *s)
+/* parse one input line "K" or "K R B" (red/blue gain in %, sets *r, *b): returns K, 0 for an empty line,
+ * -1 if invalid */
+static int parse_line(char *s, int *r, int *b)
 {
 	while (*s == ' ' || *s == '\t' || *s == '\r')
 		s++;
@@ -363,8 +375,17 @@ static int parse_line(char *s)
 	char *end;
 	errno = 0;
 	long k = strtol(s, &end, 10);
-	if (errno || *end || k < KELVIN_MIN || k > KELVIN_MAX)
+	if (errno || k < KELVIN_MIN || k > KELVIN_MAX)
 		return -1;
+	if (*end) {
+		char *e2, *e3;
+		long vr = strtol(end, &e2, 10);
+		long vb = strtol(e2, &e3, 10);
+		if (errno || *e3 || e2 == end || e3 == e2 || vr < GAIN_MIN || vr > 100 || vb < GAIN_MIN || vb > 100)
+			return -1;
+		*r = (int)vr;
+		*b = (int)vb;
+	}
 	return (int)k;
 }
 
@@ -372,13 +393,14 @@ static void usage(FILE *f)
 {
 	fprintf(f,
 		"usage: wallpanel-gamma [-o NAME] [-f MS] [-v]\n"
-		"  reads colour temperatures (integer Kelvin %d-%d, one per line) from stdin and\n"
-		"  sets the gamma ramp (wlsunset colour math, %d K = identity); exits 0 on EOF.\n"
+		"  reads colour temperatures (integer Kelvin %d-%d, one per line, optionally followed by red\n"
+		"  and blue gain %d-100 %%, e.g. \"3300 85 100\") from stdin and sets the gamma ramp (wlsunset\n"
+		"  colour math, %d K = identity); exits 0 on EOF.\n"
 		"  -o NAME  only this output (wl_output name, e.g. DSI-1); default: all outputs\n"
 		"  -f MS    fade to each new temperature over MS milliseconds (default 0: jump)\n"
 		"  -v       log every applied step\n"
 		"  -V       print the version\n",
-		KELVIN_MIN, KELVIN_MAX, IDENTITY_K);
+		KELVIN_MIN, KELVIN_MAX, GAIN_MIN, IDENTITY_K);
 }
 
 int main(int argc, char **argv)
@@ -454,12 +476,13 @@ int main(int argc, char **argv)
 	bool eof = false, discard = false;
 	/* cur: temperature on screen. Before our first set_gamma the compositor shows identity. */
 	int cur = IDENTITY_K, from = IDENTITY_K, target = IDENTITY_K;
+	bool reapply = false;  /* the colour balance changed */
 	int64_t fade_start = 0;
 
 	for (;;) {
 		/* fade step or jump */
 		int timeout = -1;
-		if (target != cur) {
+		if (target != cur || reapply) {
 			int k = target;
 			if (fade_ms > 0) {
 				int64_t t = now_ms() - fade_start;
@@ -468,9 +491,10 @@ int main(int argc, char **argv)
 					timeout = FADE_STEP_MS;
 				}
 			}
-			if (k != cur) {
+			if (k != cur || reapply) {
 				apply(k);
 				cur = k;
+				reapply = false;
 				if (verbose)
 					msg("applied %d K", k);
 			}
@@ -526,11 +550,20 @@ int main(int argc, char **argv)
 			if (discard) {
 				discard = false;
 			} else {
-				int k = parse_line(line);
-				if (k < 0)
-					msg("ignoring invalid line \"%s\" (want an integer %d-%d)", line, KELVIN_MIN, KELVIN_MAX);
-				else if (k > 0)
-					newest = k;
+				int r = gain_r, b = gain_b;
+				int k = parse_line(line, &r, &b);
+				if (k < 0) {
+					msg("ignoring invalid line \"%s\" (want Kelvin %d-%d, optionally red/blue %d-100)", line,
+					    KELVIN_MIN, KELVIN_MAX, GAIN_MIN);
+				} else {
+					if (r != gain_r || b != gain_b) {  /* balance changed: re-apply what is on screen */
+						gain_r = r;
+						gain_b = b;
+						reapply = true;
+					}
+					if (k > 0)
+						newest = k;
+				}
 			}
 			line = nl + 1;
 		}

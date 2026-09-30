@@ -7,7 +7,7 @@ names (*config*/*diagnostic* = HA's entity category); English meaning and values
 
 | HA name | English | Type | Values (default) |
 |---|---|---|---|
-| **Bildschirm & Ton** | | | |
+| **Bildschirm** | | | |
 | **Bildschirm-Beleuchtung** | screen light: the screen as a bulb (on/off = standby) – works with Adaptive Lighting | `light` | brightness 0–100 %, colour temperature 1000–6500 K (6500 K = neutral) |
 | **Bildschirm an/aus** | screen on/off; off = standby (backlight off, animations paused, touch wakes) | `switch` | on/off |
 | **Bildschirm gesperrt** | screen locked: off, HA on-commands and touch wake ignored (power key still works) | `switch` | on/off (off) |
@@ -15,14 +15,16 @@ names (*config*/*diagnostic* = HA's entity category); English meaning and values
 | *config* **Bildschirm-Überblendung** | screen fade | `number` | 0–3000 ms (400) |
 | *config* **Bildschirm-Überblendung bei Berührung** | screen fade when woken by touch | `number` | 0–3000 ms (100) |
 | *config* **Farbton-Kalibrierung** | tint calibration against real bulbs | `number` | 50–150 % (83) |
+| *config* **Weißabgleich Rot**, **Weißabgleich Blau** | red/blue balance of the panel's white against the bulbs (below 4000 K, fading out towards 6500 K) | `number` | 50–100 % (100) |
+| **Browser & Ton** | | | |
 | **Lautstärke** | volume | `number` | 0–100 % (30 after a restart) |
 | **Wiedergabe** | playback: sound is playing (AirPlay, browser) | `binary_sensor` | on/off |
-| **Browser** | | | |
 | **Seitenadresse** | page address (the page shown now) | `text` | http(s) URL |
 | *config* **Startseite** | home page | `text` | http(s) URL (`KIOSK_URL`) |
 | *config* **Startseite laden nach** | load the home page after … dark | `number` | 0–1440 min, 0 = never (60) |
 | *config* **Skalierung** | scaling: page zoom of Home Assistant (restarts the browser) | `select` | 75, 80, 90, 100, 110, 125, 150, 175, 200 % (100) |
 | *config* **HA-Kopfleiste ausblenden** | hide HA's top bar; search and Assist move next to the badges (restarts the browser) | `switch` | on/off (off) |
+| *config* **Assist sofort zuhören** | tapping Assist starts speech recognition at once (restarts the browser) | `switch` | on/off (on) |
 | **Seite neu laden** | reload page | `button` | – |
 | *config* **Browser neu starten** | restart browser | `button` | – |
 | **Update-Seite anzeigen** | show the on-screen update page | `switch` | on/off |
@@ -48,7 +50,11 @@ Colour temperature ("night shift"): the compositor's gamma ramp via `wallpanel-g
 restarted when it or the compositor exits), applied by the VOP's hardware LUT – no rendering cost; 6500 K
 = neutral (no gamma client). **Farbton-Kalibrierung** calibrates the tint against real bulbs in the mired domain,
 keeping 6500 K neutral: `mired_eff = 153.85 + (1e6/K − 153.85) × s`. The default 83 % comes from "3000 K on
-the panel looks like a 2700 K bulb" (3000 K is sent as ~3300 K); HA keeps seeing the requested Kelvin. Needs our cage build ([`system/cage/`](../../system/cage/)): Alpine's cage 0.3.0 only
+the panel looks like a 2700 K bulb" (3000 K is sent as ~3300 K); HA keeps seeing the requested Kelvin.
+**Weißabgleich Rot/Blau** scale the panel's red and blue on top (LED bulbs are greener than the panel's white).
+Calibrated once with a camera (fixed white balance/exposure) looking at the panel (white page) next to the
+hallway bulb, bulb and panel at the same Kelvin: 85 % / red 92 % / blue 96 % brought the mean deviation of R/G and
+B/G from 18 % to 12 % (R/G within ±9 % over 2200–4000 K; the panel's blue still rises a bit faster with Kelvin). Needs our cage build ([`system/cage/`](../../system/cage/)): Alpine's cage 0.3.0 only
 advertises the protocol and drops the ramps.
 Opens no network port (MQTT client only); the update page listens on **127.0.0.1:8099** only. Diagnostics on the device: `python3 /usr/lib/wallpanel/wallpanel_api.py --state`.
 
@@ -71,15 +77,15 @@ additionally requires a real finger-down from the touchscreen within the last 20
 The api looks for a new kernel release on GitHub once a day (and whenever the page opens or *Erneut prüfen* is
 tapped), so the page already shows it; installing still needs that touch.
 Second tab **Einstellungen & Service**, grouped by topic; the three sections marked *auch in Home Assistant*
-mirror the HA entities with the same names – **Bildschirm & Ton** (Helligkeit, Farbtemperatur, Farbton-Kalibrierung,
-Überblendung (+ bei Berührung), Bildschirm aus nach, Bildschirm gesperrt, Lautstärke), **Browser** (Skalierung,
-HA-Kopfleiste ausblenden, Startseite laden nach; Seite neu laden, Browser neu starten) and **System** (Neustart
+mirror the HA entities with the same names – **Bildschirm** (Helligkeit, Farbtemperatur, Farbton-Kalibrierung,
+Weißabgleich Rot/Blau, Überblendung (+ bei Berührung), Bildschirm aus nach, Bildschirm gesperrt), **Browser & Ton** (Lautstärke, Skalierung,
+HA-Kopfleiste ausblenden, Assist sofort zuhören, Startseite laden nach; Seite neu laden, Browser neu starten) and **System** (Neustart
 täglich, Neustart-Zeit, Update täglich, Update-Zeit; Apps aktualisieren, Neu starten) – and a dashed box **Nur am Gerät**
 (Herunterfahren). URLs are set from HA only. **Skalierung** shows the resulting resolution
 (e.g. 125 % = 1536×864); *Anpassen* opens a live preview of the dashboard in a frame – *Übernehmen* restarts the
 browser, the update page itself stays at 100 %.
 They run through the same `command()` as the MQTT messages (HA state follows at once); settings need the page
-token, anything that restarts or reboots (also *Skalierung*, *HA-Kopfleiste ausblenden* and *Jetzt aktualisieren*) also the recent real touch.
+token, anything that restarts or reboots (also *Skalierung*, *HA-Kopfleiste ausblenden*, *Assist sofort zuhören* and *Jetzt aktualisieren*) also the recent real touch.
 A row above the columns shows current values with small graphs (1 h / 24 h): CPU, SoC temperature, memory,
 WiFi signal, backlight (0 = off), plus uptime and kernel. The api samples them every 10 s into a 24 h ring
 buffer in RAM (~0.3 MB, lost on restart, nothing written to the eMMC); the page polls every 5 s while open.

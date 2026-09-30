@@ -5,7 +5,7 @@
 # pkgver = meson.build project version; bump pkgrel for packaging-only changes, reset it to 0 with a
 # new pkgver. Build with ./build.sh wallpanel-gamma (refreshes sha512sums).
 pkgname=wallpanel-gamma
-pkgver=1.0.0
+pkgver=1.1.0
 pkgrel=0
 pkgdesc="Flicker-free colour temperature for the wallpanel kiosk (wlr-gamma-control from stdin)"
 url="https://github.com/chriopter/iiyama-tw2424as-linux"
@@ -30,6 +30,6 @@ package() {
 }
 
 sha512sums="
-a76479d01511beac8d9a991d95e208463f2239d20aed303098f9ac6c9afaa460c809dfc7b85ed007265f1909c2cb1337884b84d93f08612fd35080f8a60d5a1e  meson.build
-d7674e0b7fc8761f8a21aa9f68124fad38453457077a8ee42296b01c0fa103db86231ebf0519d26520f8c0097fd3a0d0e06f6110f62ce2ccfc3084f25c7d9cb9  wallpanel-gamma.c
+2d3d5dc90f99ab506252cec6452daa02c5e29b517ba14f2f2b7aa095224ab083214a8870ddc39110a886f3f6f409b5bb47fd5ae5995a279e051c2a09d37c3c0f  meson.build
+28ef20a47b1f558b3fef84f075ee94bb445736ac00539444e212fd5352a7ab928eb185dd09dd91a1515eeceee815f3824d0adc4ae68415f512142288fdd66ce9  wallpanel-gamma.c
 "

@@ -68,7 +68,7 @@ def save_settings():
 
 
 SETTINGS = load_settings()
-for _k in ('brightness', 'color_temp', 'volume'):  # older versions persisted these; RAM only now
+for _k in ('brightness', 'color_temp', 'volume', 'ct_tint'):  # older versions persisted these (ct_tint: replaced by ct_red/ct_blue)
     SETTINGS.pop(_k, None)
 NAME = CONF.get('DEVICE_NAME', 'Wallpanel')
 NODE = re.sub(r'[^a-z0-9_]', '_', CONF.get('DEVICE_ID', socket.gethostname()).lower())
@@ -245,6 +245,19 @@ class Display:
         save_settings()
         self.ensure_gamma()  # re-applied right away
 
+    CT_GAIN = (50, 100, 100)  # %, min/max/default of the red/blue balance (wallpanel-gamma "K R B")
+
+    def ct_gain(self, ch):
+        return int(SETTINGS.get(f'ct_{ch}', self.CT_GAIN[2]))
+
+    def set_ct_gain(self, ch, value):
+        """HA numbers "Weißabgleich Rot/Blau": the panel's white vs. a bulb of the same temperature (measured
+        with a camera next to the hallway bulb); red/blue are scaled below 4000 K, fading out towards 6500 K,
+        so neutral stays neutral."""
+        SETTINGS[f'ct_{ch}'] = max(self.CT_GAIN[0], min(self.CT_GAIN[1], int(float(value))))
+        save_settings()
+        self.ensure_gamma()
+
     def effective_kelvin(self):
         """Colour calibration (HA number "Farbton-Kalibrierung"): the panel's tint looked warmer than a bulb of
         the same nominal temperature (3000 K like 2700 K), so the distance from neutral is scaled in the mired
@@ -273,12 +286,14 @@ class Display:
                                               stdin=subprocess.PIPE, text=True, env=env, user='wallpanel',
                                               stdout=subprocess.DEVNULL)  # errors to our log
                 self.gamma_k = None
-            if self.gamma_k != k:
+            r, b = self.ct_gain('red'), self.ct_gain('blue')
+            if self.gamma_k != (k, r, b):
                 try:
-                    self.gamma.stdin.write(f'{k}\n')
+                    self.gamma.stdin.write(f'{k} {r} {b}\n')
                     self.gamma.stdin.flush()
-                    self.gamma_k = k
-                    print(f'night shift: {self.kelvin} K (effective {k} K, calibration {self.ct_scale()} %)', flush=True)
+                    self.gamma_k = (k, r, b)
+                    print(f'night shift: {self.kelvin} K (effective {k} K, calibration {self.ct_scale()} %, '
+                          f'red {r} %, blue {b} %)', flush=True)
                 except OSError:
                     self._stop_gamma()
 
@@ -296,6 +311,7 @@ class Display:
                 'brightness': self.brightness, 'max_brightness': self.max,
                 'brightness_pct': round(100 * self.brightness / self.max) if self.backlight_on else 0,
                 'color_temp': self.kelvin, 'color_temp_effective': self.effective_kelvin(), 'ct_scale': self.ct_scale(),
+                'ct_red': self.ct_gain('red'), 'ct_blue': self.ct_gain('blue'),
                 'night_shift': bool(self.gamma and self.gamma.poll() is None)}
 
 
@@ -620,6 +636,20 @@ def set_hide_header(on):
         restart_kiosk_soon()
 
 
+def assist_listen():
+    """Tweak "Assist sofort zuhören": tapping Assist starts speech recognition at once (kiosk extension,
+    read at kiosk start). On by default."""
+    return bool(SETTINGS.get('assist_listen', True))
+
+
+def set_assist_listen(on):
+    if on != assist_listen():
+        SETTINGS['assist_listen'] = on
+        save_settings()
+        print(f'assist listen {on}: restarting the kiosk', flush=True)
+        restart_kiosk_soon()
+
+
 _restart_timer = None
 
 
@@ -906,7 +936,7 @@ def state():
             'playing': playing(),
             'home_url': home_url(), 'home_after': home_after(), 'auto_update': auto_update(),
             'auto_off': int(SETTINGS.get('auto_off', 5)), 'fade_ms': int(SETTINGS.get('fade_ms', 400)), 'scale': scale(),
-            'hide_header': hide_header(),
+            'hide_header': hide_header(), 'assist_listen': assist_listen(),
             'touch_fade_ms': int(SETTINGS.get('touch_fade_ms', 100)),
             'updates_pending': UPDATE['pending'], 'last_update': UPDATE['last'],
             'last_update_result': UPDATE['result'], 'update_page': update_page.on,
@@ -951,6 +981,10 @@ def command(topic, payload):
             display.set_standby(payload.strip().upper() == 'OFF')  # ON also resets the auto-off timer
     elif topic.endswith('/ct_scale/set'):
         display.set_ct_scale(payload)
+    elif topic.endswith('/ct_red/set'):
+        display.set_ct_gain('red', payload)
+    elif topic.endswith('/ct_blue/set'):
+        display.set_ct_gain('blue', payload)
     elif topic.endswith('/touch_fade_ms/set'):
         SETTINGS['touch_fade_ms'] = max(0, min(3000, int(float(payload))))
         save_settings()
@@ -970,6 +1004,8 @@ def command(topic, payload):
     elif topic.endswith('/home_after/set'):
         SETTINGS['home_after'] = max(0, int(float(payload)))
         save_settings()
+    elif topic.endswith('/assist_listen/set'):
+        set_assist_listen(payload.strip().upper() == 'ON')
     elif topic.endswith('/hide_header/set'):
         set_hide_header(payload.strip().upper() == 'ON')
     elif topic.endswith('/scale/set'):
@@ -1055,6 +1091,14 @@ class Mqtt:
                                      'step': 1, 'unit_of_measurement': '%', 'icon': 'mdi:palette-swatch',
                                      'command_topic': f'{BASE}/ct_scale/set', 'state_topic': f'{BASE}/state',
                                      'value_template': '{{ value_json.display.ct_scale }}', 'entity_category': 'config'},
+            ('number', 'ct_red'): {'name': 'Weißabgleich Rot', 'min': Display.CT_GAIN[0], 'max': Display.CT_GAIN[1],
+                                   'step': 1, 'unit_of_measurement': '%', 'icon': 'mdi:palette',
+                                   'command_topic': f'{BASE}/ct_red/set', 'state_topic': f'{BASE}/state',
+                                   'value_template': '{{ value_json.display.ct_red }}', 'entity_category': 'config'},
+            ('number', 'ct_blue'): {'name': 'Weißabgleich Blau', 'min': Display.CT_GAIN[0], 'max': Display.CT_GAIN[1],
+                                    'step': 1, 'unit_of_measurement': '%', 'icon': 'mdi:palette',
+                                    'command_topic': f'{BASE}/ct_blue/set', 'state_topic': f'{BASE}/state',
+                                    'value_template': '{{ value_json.display.ct_blue }}', 'entity_category': 'config'},
             ('number', 'auto_off'): {'name': 'Bildschirm aus nach', 'min': 0, 'max': 240, 'step': 1,
                                      'unit_of_measurement': 'min', 'mode': 'box', 'icon': 'mdi:timer-outline',
                                      'command_topic': f'{BASE}/auto_off/set', 'state_topic': f'{BASE}/state',
@@ -1097,6 +1141,10 @@ class Mqtt:
                                         'command_topic': f'{BASE}/hide_header/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.hide_header else 'OFF' }}",
                                         'entity_category': 'config'},
+            ('switch', 'assist_listen'): {'name': 'Assist sofort zuhören', 'icon': 'mdi:microphone-message',
+                                          'command_topic': f'{BASE}/assist_listen/set', 'state_topic': f'{BASE}/state',
+                                          'value_template': "{{ 'ON' if value_json.assist_listen else 'OFF' }}",
+                                          'entity_category': 'config'},
             ('select', 'scale'): {'name': 'Skalierung', 'options': [f'{v} %' for v in SCALES],
                                   'command_topic': f'{BASE}/scale/set', 'state_topic': f'{BASE}/state',
                                   'value_template': '{{ value_json.scale }} %',
@@ -1152,7 +1200,8 @@ class Mqtt:
             c.update(common, unique_id=f'wallpanel_{NODE}_{obj}',
                      default_entity_id=f'{comp}.{NODE}_{ENTITY_IDS.get(obj, obj)}')
             self.c.publish(f'homeassistant/{comp}/{NODE}/{obj}/config', json.dumps(c), retain=True)
-        for comp, obj in (('text', 'reboot_time'), ('number', 'brightness'), ('number', 'color_temp')):  # earlier versions
+        for comp, obj in (('text', 'reboot_time'), ('number', 'brightness'), ('number', 'color_temp'),
+                          ('number', 'ct_tint')):  # earlier versions
             self.c.publish(f'homeassistant/{comp}/{NODE}/{obj}/config', '', retain=True)
 
     def on_connect(self, c, userdata, flags, rc, props=None):
@@ -1430,8 +1479,8 @@ class UpdatePage:
 
     # "Einstellungen & Service": what MQTT can do, minus URLs (Seitenadresse/Startseite only shown) and
     # "Bildschirm an/aus" (the page is on screen anyway). Values go through command() like MQTT messages.
-    SETTABLE = ('display', 'display_lock', 'volume', 'ct_scale', 'fade_ms', 'touch_fade_ms', 'auto_off', 'home_after',
-                'reboot_enabled', 'reboot_time', 'auto_update', 'update_time', 'scale', 'hide_header')
+    SETTABLE = ('display', 'display_lock', 'volume', 'ct_scale', 'ct_red', 'ct_blue', 'fade_ms', 'touch_fade_ms', 'auto_off', 'home_after',
+                'reboot_enabled', 'reboot_time', 'auto_update', 'update_time', 'scale', 'hide_header', 'assist_listen')
     ACTIONS = ('reload', 'restart_kiosk', 'reboot', 'shutdown', 'install_updates')  # restart/stop something: touch only
 
     def touched(self):
@@ -1442,6 +1491,7 @@ class UpdatePage:
         d = display.state()
         return {'brightness': d['brightness'], 'max_brightness': d['max_brightness'], 'color_temp': d['color_temp'],
                 'kelvin_range': list(Display.KELVIN), 'ct_scale': d['ct_scale'], 'ct_scale_range': list(Display.CT_SCALE),
+                'ct_red': d['ct_red'], 'ct_blue': d['ct_blue'],
                 'locked': d['locked'], 'standby': d['standby'], 'volume': volume.get(),
                 'fade_ms': int(SETTINGS.get('fade_ms', 400)), 'touch_fade_ms': int(SETTINGS.get('touch_fade_ms', 100)),
                 'auto_off': int(SETTINGS.get('auto_off', 5)), 'home_after': home_after(),
@@ -1449,7 +1499,8 @@ class UpdatePage:
                 'update_time': update_time(),
                 'auto_update': auto_update(), 'auto_packages': list(AUTO_PACKAGES), 'updating': UPDATE['running'],
                 'url': self.back or home_url(), 'home_url': home_url(),
-                'scale': scale(), 'scales': list(SCALES), 'panel_res': panel_resolution(), 'hide_header': hide_header()}
+                'scale': scale(), 'scales': list(SCALES), 'panel_res': panel_resolution(), 'hide_header': hide_header(),
+                'assist_listen': assist_listen()}
 
     def command(self, cmd, value):
         """-> (http code, message)"""
@@ -1471,7 +1522,7 @@ class UpdatePage:
                          'install_updates': 'Apps werden aktualisiert …'}[cmd]
         if cmd not in self.SETTABLE:
             return 400, 'Unbekannte Einstellung.'
-        if cmd in ('scale', 'hide_header') and not self.touched():  # restart the browser
+        if cmd in ('scale', 'hide_header', 'assist_listen') and not self.touched():  # restart the browser
             return 403, 'Nur per Berührung am Bildschirm möglich.'
         try:
             if cmd == 'display':  # brightness / colour temperature only, never on/off
@@ -1918,23 +1969,26 @@ const ms = (v) => `${num(v)} ms`, min = (v) => v ? `${num(v)} min` : 'nie';
 const scaleFmt = (v) => `${v} % · ${Math.round(V.panel_res[0] * 100 / v)}×${Math.round(V.panel_res[1] * 100 / v)}`;
 const TIMES = Array.from({length: 48}, (_, i) => `${String(i >> 1).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 // Sections marked HA mirror the Home Assistant entities (same names, same command() as MQTT); "Nur am Gerät"
-// exists only here. Columns by topic: [Bildschirm & Ton] [Browser] [System + Nur am Gerät].
+// exists only here. Columns by topic: [Bildschirm] [Browser & Ton] [System + Nur am Gerät].
 const SVC = [
-  {h: 'Bildschirm & Ton', ha: true, col: 0, xs: [
+  {h: 'Bildschirm', ha: true, col: 0, xs: [
     {t: 'range', k: 'brightness', label: 'Helligkeit', sub: 'Bildschirm-Beleuchtung', min: 1, max: () => V.max_brightness,
       fmt: (v) => `${Math.round(100 * v / V.max_brightness)} %`, send: (v) => cmd('display', {brightness: v})},
     {t: 'range', k: 'color_temp', label: 'Farbtemperatur', sub: 'Bildschirm-Beleuchtung', min: 1000, max: () => 6500, step: 50,
       fmt: (v) => `${v} K`, send: (v) => cmd('display', {color_temp: v})},
     {t: 'range', k: 'ct_scale', label: 'Farbton-Kalibrierung', min: 50, max: () => 150, fmt: (v) => `${v} %`},
+    {t: 'range', k: 'ct_red', label: 'Weißabgleich Rot', min: 50, max: () => 100, fmt: (v) => `${v} %`},
+    {t: 'range', k: 'ct_blue', label: 'Weißabgleich Blau', min: 50, max: () => 100, fmt: (v) => `${v} %`},
     {t: 'range', k: 'fade_ms', label: 'Bildschirm-Überblendung', min: 0, max: () => 3000, step: 50, fmt: ms},
     {t: 'range', k: 'touch_fade_ms', label: 'Bildschirm-Überblendung bei Berührung', min: 0, max: () => 3000, step: 10, fmt: ms},
     {t: 'step', k: 'auto_off', label: 'Bildschirm aus nach', list: [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240], fmt: min},
     {t: 'switch', k: 'locked', c: 'display_lock', label: 'Bildschirm gesperrt', sub: 'aus, nur die Ein/Aus-Taste weckt'},
-    {t: 'range', k: 'volume', label: 'Lautstärke', min: 0, max: () => 100, fmt: (v) => `${v} %`},
   ]},
-  {h: 'Browser', ha: true, col: 1, xs: [
+  {h: 'Browser & Ton', ha: true, col: 1, xs: [
+    {t: 'range', k: 'volume', label: 'Lautstärke', min: 0, max: () => 100, fmt: (v) => `${v} %`},
     {t: 'scale', k: 'scale', label: 'Skalierung', sub: 'Home Assistant größer oder kleiner', fmt: scaleFmt},
     {t: 'switch', k: 'hide_header', label: 'HA-Kopfleiste ausblenden', sub: 'Suche & Assist neben die Status-Pillen'},
+    {t: 'switch', k: 'assist_listen', label: 'Assist sofort zuhören', sub: 'Tippen auf Assist startet die Spracherkennung'},
     {t: 'step', k: 'home_after', label: 'Startseite laden nach', sub: 'wenn der Bildschirm so lange aus ist',
       list: [0, 5, 10, 15, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1440], fmt: min},
     {t: 'act', c: 'reload', label: 'Seite neu laden', sub: 'schließt diese Seite'},
