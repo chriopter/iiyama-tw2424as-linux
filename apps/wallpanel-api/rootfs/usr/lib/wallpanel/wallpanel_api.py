@@ -772,13 +772,21 @@ def kernel_status():
 
 
 def update_checker():
-    """Check for pending updates every 6 hours (sensor in HA)."""
+    """Check for pending package updates every 6 hours (sensor in HA) and for a new kernel release on
+    GitHub once a day, so the update page already knows about it (installing still needs a touch)."""
     time.sleep(300)
+    last_kernel = 0.0
     while True:
         try:
             check_updates()
         except Exception as e:
             print('update check:', e, flush=True)
+        if time.time() - last_kernel >= 86400:
+            last_kernel = time.time()
+            try:
+                check_kernel()
+            except Exception as e:
+                print('kernel check:', e, flush=True)
         time.sleep(6 * 3600)
 
 

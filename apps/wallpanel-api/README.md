@@ -43,11 +43,13 @@ confirmation, then `wallpanel-update install-release` detached, output in `/var/
 A kernel install can only be started by touch on this page: no MQTT topic or HA entity triggers it, the POST
 needs a per-start random token that only the served page contains (and our `Host` header), and the api
 additionally requires a real finger-down from the touchscreen within the last 20 s.
+The api looks for a new kernel release on GitHub once a day (and whenever the page opens or *Erneut prüfen* is
+tapped), so the page already shows it; installing still needs that touch.
 Second tab **Einstellungen & Service**: on-screen controls for everything MQTT offers except URLs
 (*Seitenadresse*/*Startseite* are shown read-only; *Bildschirm an/aus* as info), labelled like the HA entities:
 brightness + colour temperature, Farbton-Abgleich, Überblendung (+ bei Berührung), Bildschirm aus nach,
 Bildschirm gesperrt, Lautstärke, Startseite laden nach, Neustart täglich, Wartungszeit, Auto-Update Apps, and the
-actions Seite neu laden (closes the page), Browser neu starten, Apps aktualisieren, Neu starten (with confirmation).
+actions Seite neu laden (closes the page), Browser neu starten, Apps aktualisieren, Neu starten and Herunterfahren (both with confirmation).
 They run through the same `command()` as the MQTT messages (HA state follows at once); settings need the page
 token, anything that restarts or reboots (and *Jetzt aktualisieren*) also the recent real touch.
 A row above the columns shows current values with small graphs (1 h / 24 h): CPU, SoC temperature, memory,
