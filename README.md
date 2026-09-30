@@ -62,6 +62,30 @@ Measured at the wall (smart plug), dashboard running:
 
 Standby wakes instantly without a modeset (no artefacts); a touch or the power key wakes it.
 
+## 24/7 operation
+
+Built to run for years without attention. The eMMC (Samsung, 29 GiB, TLC) is the part that wears, so
+everything written constantly lives in RAM:
+
+| Written to | eMMC writes / day | 10 years, share of eMMC endurance* |
+|---|---|---|
+| Stock setup (Chromium profile, logs on eMMC) | 2.1–3.3 GB | 50–120 % |
+| Chromium HTTP/code cache in RAM | 1.4 GB | 35–50 % |
+| + Chromium histogram files (`BrowserMetrics/*.pma`, 4 MiB every 30 s) in RAM, logs and `/tmp` in RAM | ~0.1–0.3 GB (estimate) | < 10 % |
+
+\* ~1000 P/E cycles, write amplification 2–3. Measured on the whole block device (`/proc/diskstats`).
+
+- **RAM file systems**: `/tmp` (256 MiB), `/var/log` (32 MiB, syslog capped at 3 MiB, logs trimmed every
+  15 min), Chromium cache and histograms in `/run`. The Chromium profile (HA login, permissions) and the
+  settings stay on the eMMC.
+- **File system**: `noatime,commit=60`, weekly `fstrim`, `/` remounted read-only on shutdown; `fsck -y`
+  never stops the boot, so SSH and the USB maintenance port stay reachable.
+- **Stays running**: hardware watchdog (30 s), panic on soft/hard lockup (the watchdog
+  reboots), OpenRC respawns every service, the kiosk reloads when memory runs full while dark, optional
+  daily reboot (HA switch).
+- **Health**: `cat /sys/class/mmc_host/mmc0/mmc0:0001/life_time` shows the eMMC wear estimate
+  (`0x01` = 0–10 % used); temperature 45–51 °C with no throttling (trip points 70/75/95 °C).
+
 ## Partitions
 
 Only three partitions change; bootloader, `misc` and Android `super` stay untouched.
