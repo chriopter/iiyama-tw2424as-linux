@@ -281,9 +281,9 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 {
   "auto_off": 5,
   "auto_update": false,
-  "ct_scale": 85,
-  "ct_red": 92,
-  "ct_blue": 96,
+  "ct_scale": 74,
+  "ct_red": 96,
+  "ct_blue": 100,
   "display_lock": false,
   "fade_ms": 400,
   "hide_header": true,

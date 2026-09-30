@@ -237,7 +237,7 @@ class Display:
             self.kelvin = value  # RAM only (no eMMC writes every 90 s from Adaptive Lighting)
         self.ensure_gamma(fade_ms)
 
-    CT_SCALE = (50, 150, 85)  # %, min/max/default of the colour calibration (camera calibration vs. a hallway bulb)
+    CT_SCALE = (50, 150, 74)  # %, min/max/default of the colour calibration (matched to a hallway LED bulb)
 
     def ct_scale(self):
         return int(SETTINGS.get('ct_scale', self.CT_SCALE[2]))
@@ -248,7 +248,7 @@ class Display:
         self.ensure_gamma(0)  # calibrating: right away, no glide
 
     CT_GAIN = (50, 100)  # %, min/max of the red/blue balance (wallpanel-gamma "K R B")
-    CT_GAIN_DEFAULT = {'red': 92, 'blue': 96}  # camera calibration vs. a hallway LED bulb
+    CT_GAIN_DEFAULT = {'red': 96, 'blue': 100}  # matched to a hallway LED bulb (white screen, by eye)
 
     def ct_gain(self, ch):
         return int(SETTINGS.get(f'ct_{ch}', self.CT_GAIN_DEFAULT[ch]))
@@ -264,7 +264,7 @@ class Display:
     def effective_kelvin(self):
         """Colour calibration (HA number "Farbton-Kalibrierung"): the panel's tint looked warmer than a bulb of
         the same nominal temperature (3000 K like 2700 K), so the distance from neutral is scaled in the mired
-        domain - 6500 K stays neutral. Default 85 % (camera calibration): 3000 K -> ~3300 K. HA keeps seeing the
+        domain - 6500 K stays neutral. Default 74 % (matched to a bulb): 3000 K -> ~3500 K. HA keeps seeing the
         requested value."""
         neutral = 1e6 / self.KELVIN[1]
         mired = neutral + (1e6 / self.kelvin - neutral) * self.ct_scale() / 100
