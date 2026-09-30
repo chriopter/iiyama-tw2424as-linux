@@ -222,6 +222,24 @@ class Display:
             save_settings()
         self.ensure_gamma()
 
+    CT_SCALE = (50, 150, 83)  # %, min/max/default of the colour calibration
+
+    def ct_scale(self):
+        return int(SETTINGS.get('ct_scale', self.CT_SCALE[2]))
+
+    def set_ct_scale(self, value):
+        SETTINGS['ct_scale'] = max(self.CT_SCALE[0], min(self.CT_SCALE[1], int(float(value))))
+        save_settings()
+        self.ensure_gamma()  # re-applied right away
+
+    def effective_kelvin(self):
+        """Colour calibration (HA number "Farbton-Abgleich"): the panel's tint looked warmer than a bulb of
+        the same nominal temperature (3000 K like 2700 K), so the distance from neutral is scaled in the mired
+        domain - 6500 K stays neutral. Default 83 %: 3000 K -> ~3300 K. HA keeps seeing the requested value."""
+        neutral = 1e6 / self.KELVIN[1]
+        mired = neutral + (1e6 / self.kelvin - neutral) * self.ct_scale() / 100
+        return max(self.KELVIN[0], min(self.KELVIN[1], round(1e6 / mired)))
+
     def ensure_gamma(self):
         """Keep the night-shift tint applied. wallpanel-gamma holds the compositor's gamma control for
         the whole session and takes new temperatures on stdin, so changes (e.g. every few minutes from
@@ -229,7 +247,8 @@ class Display:
         compositor, so this runs periodically (gamma_loop) and restarts it. 6500 K = neutral: no helper."""
         with self.lock:
             running = self.gamma and self.gamma.poll() is None
-            if self.kelvin >= self.KELVIN[1]:
+            k = self.effective_kelvin()
+            if k >= self.KELVIN[1]:
                 if running:
                     self._stop_gamma()  # also switches the hardware LUT off
                 return
@@ -241,12 +260,12 @@ class Display:
                                               stdin=subprocess.PIPE, text=True, env=env, user='wallpanel',
                                               stdout=subprocess.DEVNULL)  # errors to our log
                 self.gamma_k = None
-            if self.gamma_k != self.kelvin:
+            if self.gamma_k != k:
                 try:
-                    self.gamma.stdin.write(f'{self.kelvin}\n')
+                    self.gamma.stdin.write(f'{k}\n')
                     self.gamma.stdin.flush()
-                    self.gamma_k = self.kelvin
-                    print(f'night shift: {self.kelvin} K', flush=True)
+                    self.gamma_k = k
+                    print(f'night shift: {self.kelvin} K (effective {k} K, calibration {self.ct_scale()} %)', flush=True)
                 except OSError:
                     self._stop_gamma()
 
@@ -263,7 +282,7 @@ class Display:
         return {'on': self.backlight_on, 'standby': self.standby, 'lit': self.lit, 'locked': self.locked,
                 'brightness': self.brightness, 'max_brightness': self.max,
                 'brightness_pct': round(100 * self.brightness / self.max) if self.backlight_on else 0,
-                'color_temp': self.kelvin,
+                'color_temp': self.kelvin, 'color_temp_effective': self.effective_kelvin(), 'ct_scale': self.ct_scale(),
                 'night_shift': bool(self.gamma and self.gamma.poll() is None)}
 
 
@@ -440,35 +459,102 @@ OSD_JS = """
 _cpu_last = [None]
 
 
-def cpu_usage():
-    """CPU busy in % since the previous call (i.e. averaged over the state interval)."""
+def cpu_usage(prev=_cpu_last):
+    """CPU busy in % since the previous call with the same prev holder (i.e. averaged over the state interval)."""
     v = [int(x) for x in read('/proc/stat').split('\n', 1)[0].split()[1:]]
     idle, total = v[3] + v[4], sum(v)  # idle + iowait
-    last, _cpu_last[0] = _cpu_last[0], (idle, total)
+    last, prev[0] = prev[0], (idle, total)
     if not last or total == last[1]:
         return None
     return round(100 * (1 - (idle - last[0]) / (total - last[1])), 1)
 
 
-def sensors():
+def soc_temperature():
     temps = [int(read(p, '0')) / 1000 for p in glob.glob('/sys/class/thermal/thermal_zone*/temp')]
+    return round(max(temps), 1) if temps else None
+
+
+def wifi_rssi():
     # nl80211 only (no wireless extensions, so no /proc/net/wireless)
     m = re.search(r'signal:\s*(-?\d+)', sh('iw', 'dev', 'wlan0', 'link').stdout)
-    rssi = int(m.group(1)) if m else None
+    return int(m.group(1)) if m else None
+
+
+def memory():
+    """(available kB, used %)"""
     mem = dict(re.findall(r'(\w+):\s+(\d+)', read('/proc/meminfo')))
     avail, total = int(mem.get('MemAvailable', 0)), max(1, int(mem.get('MemTotal', 1)))
+    return avail, round(100 * (1 - avail / total), 1)
+
+
+def sensors():
+    avail, used = memory()
     fs = os.statvfs('/')
     return {
-        'temperature': round(max(temps), 1) if temps else None,
-        'wifi_rssi': rssi,
+        'temperature': soc_temperature(),
+        'wifi_rssi': wifi_rssi(),
         'uptime': int(uptime()),
         'cpu_usage': cpu_usage(),
         'load': float(read('/proc/loadavg', '0').split()[0]),
-        'memory_used_pct': round(100 * (1 - avail / total), 1),
+        'memory_used_pct': used,
         'memory_free': round(avail / 1024),
         'disk_free': round(fs.f_bavail * fs.f_frsize / 2**30, 2),
         'disk_used_pct': round(100 * (1 - fs.f_bavail / max(1, fs.f_blocks)), 1),
     }
+
+
+class History:
+    """System values for the graphs on the update page: one sample every STEP s, SPAN s kept in memory as a
+    ring of compact arrays (~0.3 MB); nothing is written to the eMMC."""
+    STEP, SPAN, POINTS = 10, 86400, 240
+    KEYS = ('cpu', 'temp', 'mem', 'rssi', 'backlight')  # int16, x10 for cpu/temp/mem; NONE = no value
+    NONE = -32768
+
+    def __init__(self):
+        from array import array
+        self.n, self.i, self.count = self.SPAN // self.STEP, 0, 0
+        self.v = {k: array('h', [self.NONE]) * self.n for k in self.KEYS}
+        self.cpu_prev = [None]
+        self.now = {}
+
+    def sample(self):
+        backlight = int(read(f'{BACKLIGHT}/brightness', '0') or 0)
+        now = {'cpu': cpu_usage(self.cpu_prev), 'temp': soc_temperature(), 'mem': memory()[1],
+               'rssi': wifi_rssi(), 'backlight': round(100 * backlight / max(1, display.max))}
+        for k, x in now.items():
+            self.v[k][self.i] = self.NONE if x is None else round(x * (10 if k in ('cpu', 'temp', 'mem') else 1))
+        self.now = now  # current values for the page (the graphs show averages)
+        self.i, self.count = (self.i + 1) % self.n, min(self.n, self.count + 1)
+
+    def series(self, span):
+        """Last span seconds as POINTS averages per key (None = no data yet, e.g. after an api restart).
+        Cached until the next sample, so a page polling every 5 s costs nothing in between."""
+        key = (span, self.i, self.count)
+        if getattr(self, '_cache', (None,))[0] == key:
+            return self._cache[1]
+        m = max(1, min(self.n, span // self.STEP))
+        per = max(1, m // self.POINTS)
+        out = {}
+        for k in self.KEYS:
+            a, scale, pts = self.v[k], 10 if k in ('cpu', 'temp', 'mem') else 1, []
+            for b in range(m - m // per * per, m, per):  # oldest bucket first
+                vals = [a[(self.i - m + j) % self.n] for j in range(b, b + per) if m - j <= self.count]
+                vals = [x for x in vals if x != self.NONE]
+                pts.append(round(sum(vals) / len(vals) / scale, 1) if vals else None)
+            out[k] = pts
+        self._cache = (key, out)
+        return out
+
+    def loop(self):
+        while True:
+            try:
+                self.sample()
+            except Exception as e:
+                print('history:', e, flush=True)
+            time.sleep(self.STEP)
+
+
+history = History()
 
 
 # --- actions -------------------------------------------------------------
@@ -763,6 +849,10 @@ class Mqtt:
                                           'step': 10, 'unit_of_measurement': 'ms', 'icon': 'mdi:gesture-tap',
                                           'command_topic': f'{BASE}/touch_fade_ms/set', 'state_topic': f'{BASE}/state',
                                           'value_template': '{{ value_json.touch_fade_ms }}', 'entity_category': 'config'},
+            ('number', 'ct_scale'): {'name': 'Farbton-Abgleich', 'min': Display.CT_SCALE[0], 'max': Display.CT_SCALE[1],
+                                     'step': 1, 'unit_of_measurement': '%', 'icon': 'mdi:palette-swatch',
+                                     'command_topic': f'{BASE}/ct_scale/set', 'state_topic': f'{BASE}/state',
+                                     'value_template': '{{ value_json.display.ct_scale }}', 'entity_category': 'config'},
             ('number', 'auto_off'): {'name': 'Bildschirm aus nach', 'min': 0, 'max': 240, 'step': 1,
                                      'unit_of_measurement': 'min', 'mode': 'box', 'icon': 'mdi:timer-outline',
                                      'command_topic': f'{BASE}/auto_off/set', 'state_topic': f'{BASE}/state',
@@ -888,6 +978,8 @@ class Mqtt:
                 print('display locked: ignoring', payload, flush=True)
             else:
                 display.set_standby(payload.strip().upper() == 'OFF')  # ON also resets the auto-off timer
+        elif topic.endswith('/ct_scale/set'):
+            display.set_ct_scale(payload)
         elif topic.endswith('/touch_fade_ms/set'):
             SETTINGS['touch_fade_ms'] = max(0, min(3000, int(float(payload))))
             save_settings()
@@ -1231,6 +1323,10 @@ class UpdatePage:
                     self.send(200, PAGE_HTML.replace('__TOKEN__', page.token), 'text/html')
                 elif path == '/api/status':
                     self.send(200, json.dumps(page.status()))
+                elif path == '/api/stats':  # ?span=3600|86400
+                    span = 86400 if 'span=86400' in self.path else 3600
+                    self.send(200, json.dumps({'span': span, 'uptime': int(uptime()), 'kernel': os.uname().release,
+                                               'now': history.now, 'series': history.series(span)}))
                 else:
                     self.send(404, '{}')
 
@@ -1248,6 +1344,7 @@ class UpdatePage:
         server.daemon_threads = True
         threading.Thread(target=server.serve_forever, daemon=True).start()
         threading.Thread(target=self.loop, daemon=True).start()
+        threading.Thread(target=history.loop, daemon=True).start()
 
 
 update_page = UpdatePage()
@@ -1261,10 +1358,23 @@ PAGE_HTML = """<!doctype html>
 * { box-sizing:border-box; }
 html, body { margin:0; height:100%; background:var(--bg); color:var(--text);
   font:20px/1.4 Roboto, "Noto Sans", system-ui, sans-serif; -webkit-user-select:none; user-select:none; }
-body { display:flex; flex-direction:column; padding:28px 36px; gap:24px; overflow:hidden; }
+body { display:flex; flex-direction:column; padding:24px 36px 28px; gap:18px; overflow:hidden; }
 header { display:flex; align-items:center; gap:20px; }
 header h1 { margin:0; font-size:34px; font-weight:500; flex:1; }
 header h1 small { color:var(--dim); font-size:20px; font-weight:400; margin-left:14px; }
+#stats { display:grid; grid-template-columns:repeat(5, 1fr) 1.25fr; gap:16px; }
+.tile { background:var(--card); border-radius:16px; padding:14px 18px 10px; display:flex; flex-direction:column; gap:2px;
+  box-shadow:0 2px 6px rgba(0,0,0,.35); min-width:0; }
+.tile .dim { font-size:16px; }
+.tile b { font-size:25px; font-weight:500; }
+.tile svg { width:100%; height:48px; margin-top:4px; }
+.tile polyline { fill:none; stroke:var(--primary); stroke-width:2; vector-effect:non-scaling-stroke; stroke-linejoin:round; }
+.tile polygon { fill:rgba(3,169,244,.14); stroke:none; }
+.tile.info { justify-content:space-between; gap:6px; }
+.tile.info b { font-size:19px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.seg { display:flex; gap:8px; }
+.seg button { flex:1; min-height:48px; font-size:19px; padding:0; background:#2a2a2a; border-radius:10px; }
+.seg button.sel { background:var(--primary); }
 main { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:24px; min-height:0; }
 section { background:var(--card); border-radius:16px; padding:26px 30px; display:flex; flex-direction:column;
   gap:18px; min-height:0; box-shadow:0 2px 6px rgba(0,0,0,.35); }
@@ -1293,6 +1403,7 @@ button.flat { background:#2a2a2a; min-height:64px; font-size:21px; }
 button#close { background:#3a3a3a; min-height:84px; min-width:240px; font-size:26px; }
 button.kernel { background:var(--warn); color:#1a1a1a; }
 button.wide { width:100%; }
+button:disabled, button.kernel:disabled { background:#333; color:#777; }
 #closes { color:var(--dim); font-size:17px; }
 #modal { position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; }
 #modal .box { background:#232323; border-radius:20px; padding:40px 44px; width:880px; display:flex; flex-direction:column;
@@ -1308,6 +1419,18 @@ button.wide { width:100%; }
   <button class="flat" id="check">Erneut prüfen</button>
   <button id="close">✕&nbsp; Schließen</button>
 </header>
+<div id="stats">
+  <div class="tile"><span class="dim">Prozessor</span><b id="v-cpu">–</b><svg id="g-cpu" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
+  <div class="tile"><span class="dim">Temperatur</span><b id="v-temp">–</b><svg id="g-temp" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
+  <div class="tile"><span class="dim">Arbeitsspeicher</span><b id="v-mem">–</b><svg id="g-mem" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
+  <div class="tile"><span class="dim">WLAN-Signal</span><b id="v-rssi">–</b><svg id="g-rssi" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
+  <div class="tile"><span class="dim">Bildschirm</span><b id="v-backlight">–</b><svg id="g-backlight" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
+  <div class="tile info">
+    <span class="dim">Betriebszeit <b id="v-up" style="display:block">–</b></span>
+    <span class="dim">Kernel <b id="v-kern" style="display:block">–</b></span>
+    <div class="seg"><button data-s="3600" class="sel">1 h</button><button data-s="86400">24 h</button></div>
+  </div>
+</div>
 <main>
   <section>
     <h2><svg viewBox="0 0 24 24"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A1 1 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9z"/></svg>Apps &amp; System</h2>
@@ -1418,7 +1541,39 @@ $('k-go').onclick = () => {
 };
 $('m-no').onclick = () => $('modal').style.display = 'none';
 $('m-yes').onclick = () => { $('modal').style.display = 'none'; post('/api/kernel/install'); };
+// system values: sparklines from the api's in-memory history (1 h / 24 h), every 5 s
+let span = 3600;
+const RANGE = {cpu: [0, 100], mem: [0, 100], backlight: [0, 100]};
+const num = (x, d = 0) => x.toLocaleString('de-DE', {maximumFractionDigits: d, minimumFractionDigits: d});
+const FMT = {cpu: (x) => `${num(x)} %`, temp: (x) => `${num(x, 1)} °C`, mem: (x) => `${num(x)} %`,
+  rssi: (x) => `${num(x)} dBm`, backlight: (x) => x > 0 ? `an · ${num(x)} %` : 'aus'};
+function spark(k, arr, cur) {
+  const v = arr.filter((x) => x != null), svg = $('g-' + k), W = 240, H = 50;
+  $('v-' + k).textContent = cur == null ? '–' : FMT[k](cur);
+  if (!v.length) { svg.innerHTML = ''; return; }
+  const [lo, hi] = RANGE[k] || [Math.min(...v) - 2, Math.max(...v) + 2];
+  const pts = [];
+  arr.forEach((x, i) => { if (x != null) pts.push([i / Math.max(1, arr.length - 1) * W, H - 1 - (x - lo) / (hi - lo || 1) * (H - 2)]); });
+  if (pts.length == 1) pts.unshift([pts[0][0] - 3, pts[0][1]]);
+  const p = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  svg.innerHTML = `<polygon points="${pts[0][0].toFixed(1)},${H} ${p} ${pts[pts.length - 1][0].toFixed(1)},${H}"/><polyline points="${p}"/>`;
+}
+async function stats() {
+  try {
+    const s = await (await fetch('/api/stats?span=' + span)).json();
+    for (const k in s.series) spark(k, s.series[k], s.now[k]);
+    const d = Math.floor(s.uptime / 86400), h = Math.floor(s.uptime % 86400 / 3600), m = Math.floor(s.uptime % 3600 / 60);
+    $('v-up').textContent = d ? `${d} ${d == 1 ? 'Tag' : 'Tage'} ${h} h` : `${h} h ${m} min`;
+    $('v-kern').textContent = s.kernel;
+  } catch (e) {}
+}
+document.querySelectorAll('.seg button').forEach((b) => b.onclick = () => {
+  span = +b.dataset.s;
+  document.querySelectorAll('.seg button').forEach((x) => x.classList.toggle('sel', x === b));
+  stats();
+});
 refresh(); setInterval(refresh, 2000);
+stats(); setInterval(stats, 5000);
 </script></body></html>
 """
 
