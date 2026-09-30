@@ -309,7 +309,7 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 | `ct_red`, `ct_blue` | Weißabgleich Rot, Weißabgleich Blau | 50–100 (%) |
 | `display_lock`, `standby` | Bildschirm gesperrt, Bildschirm an/aus | true/false |
 | `fade_ms`, `touch_fade_ms` | Bildschirm-Überblendung (bei Berührung) | 0–3000 ms |
-| `hide_header`, `assist_listen` | HA-Kopfleiste ausblenden, Assist sofort zuhören | true/false (off, on) |
+| `hide_header`, `assist_listen` | HA-Kopfleiste ausblenden, Assist-Mikrofon sofort an | true/false (off, on) |
 | `home_after`, `home_url` | Startseite laden nach, Startseite | minutes (0 = never); URL, missing = `KIOSK_URL` |
 | `reboot_enabled`, `reboot_time` | Neustart täglich, Neustart-Zeit | true/false; `HH:MM` in 30-min steps (04:00) |
 | `scale` | Skalierung | 75, 80, 90, 100, 110, 125, 150, 175, 200 |

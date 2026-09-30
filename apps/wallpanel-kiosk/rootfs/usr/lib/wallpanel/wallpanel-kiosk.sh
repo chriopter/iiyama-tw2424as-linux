@@ -49,7 +49,7 @@ done
 # Extension with the configured home URL (navigation lock + paint containment)
 cp /usr/lib/wallpanel/extension/* "$EXT/"
 printf 'const WALLPANEL_HOME = %s;\n' "\"$URL\"" > "$EXT/config.js"
-# tweaks for the content scripts (update page / MQTT "HA-Kopfleiste ausblenden", "Assist sofort zuhören")
+# tweaks for the content scripts (update page / MQTT "HA-Kopfleiste ausblenden", "Assist-Mikrofon sofort an")
 [ "$(st hide_header)" = True ] && HIDE_HEADER=true || HIDE_HEADER=false
 [ "$(st assist_listen)" = False ] && ASSIST_LISTEN=false || ASSIST_LISTEN=true  # default on
 printf 'globalThis.WALLPANEL_TWEAKS = { hideHeader: %s, assistListen: %s };\n' "$HIDE_HEADER" "$ASSIST_LISTEN" > "$EXT/settings.js"

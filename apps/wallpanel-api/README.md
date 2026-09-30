@@ -8,7 +8,7 @@ names (*config*/*diagnostic* = HA's entity category); English meaning and values
 | HA name | English | Type | Values (default) |
 |---|---|---|---|
 | **Bildschirm** | | | |
-| **Bildschirm-Beleuchtung** | screen light: the screen as a bulb (on/off = standby) – works with Adaptive Lighting | `light` | brightness 0–100 %, colour temperature 1000–6500 K (6500 K = neutral) |
+| **Bildschirm-Beleuchtung** | screen light: the screen as a bulb (on/off = standby) – works with Adaptive Lighting | `light` | brightness 0–100 %, colour temperature 2202–6500 K (6500 K = neutral; never warmer than the LED bulbs) |
 | **Bildschirm an/aus** | screen on/off; off = standby (backlight off, animations paused, touch wakes) | `switch` | on/off |
 | **Bildschirm gesperrt** | screen locked: off, HA on-commands and touch wake ignored (power key still works) | `switch` | on/off (off) |
 | *config* **Bildschirm aus nach** | screen off after … without input | `number` | 0–240 min, 0 = never (5) |
@@ -24,7 +24,7 @@ names (*config*/*diagnostic* = HA's entity category); English meaning and values
 | *config* **Startseite laden nach** | load the home page after … dark | `number` | 0–1440 min, 0 = never (60) |
 | *config* **Skalierung** | scaling: page zoom of Home Assistant (restarts the browser) | `select` | 75, 80, 90, 100, 110, 125, 150, 175, 200 % (100) |
 | *config* **HA-Kopfleiste ausblenden** | hide HA's top bar; search and Assist move next to the badges (restarts the browser) | `switch` | on/off (off) |
-| *config* **Assist sofort zuhören** | tapping Assist starts speech recognition at once (restarts the browser) | `switch` | on/off (on) |
+| *config* **Assist-Mikrofon sofort an** | tapping Assist starts speech recognition at once (restarts the browser) | `switch` | on/off (on) |
 | **Seite neu laden** | reload page | `button` | – |
 | *config* **Browser neu starten** | restart browser | `button` | – |
 | **Wartungsseite anzeigen** | show the on-screen maintenance page (update page) | `switch` | on/off |
@@ -85,13 +85,13 @@ The api looks for a new kernel release on GitHub once a day (and whenever the pa
 tapped), so the page already shows it; installing still needs that touch.
 Second tab **Einstellungen & Service**, grouped by topic; the three sections marked *auch in Home Assistant*
 mirror the HA entities with the same names – **Bildschirm** (Helligkeit, Farbtemperatur, Farbabgleich, Überblendung (+ bei Berührung), Bildschirm aus nach, Bildschirm gesperrt), **Browser & Ton** (Lautstärke, Skalierung,
-HA-Kopfleiste ausblenden, Assist sofort zuhören, Startseite laden nach; Seite neu laden, Browser neu starten) and **System** (Neustart
+HA-Kopfleiste ausblenden, Assist-Mikrofon sofort an, Startseite laden nach; Seite neu laden, Browser neu starten) and **System** (Neustart
 täglich, Neustart-Zeit, Update täglich, Update-Zeit; Apps aktualisieren, Neu starten) – and a dashed box **Nur am Gerät**
 (Herunterfahren). URLs are set from HA only. **Skalierung** shows the resulting resolution
 (e.g. 125 % = 1536×864); *Anpassen* opens a live preview of the dashboard in a frame – *Übernehmen* restarts the
 browser, the update page itself stays at 100 %.
 They run through the same `command()` as the MQTT messages (HA state follows at once); settings need the page
-token, anything that restarts or reboots (also *Skalierung*, *HA-Kopfleiste ausblenden*, *Assist sofort zuhören* and *Jetzt aktualisieren*) also the recent real touch.
+token, anything that restarts or reboots (also *Skalierung*, *HA-Kopfleiste ausblenden*, *Assist-Mikrofon sofort an* and *Jetzt aktualisieren*) also the recent real touch.
 A row above the columns shows current values with small graphs (1 h / 24 h): CPU, SoC temperature, memory,
 WiFi signal, backlight (0 = off), plus uptime and kernel. The api samples them every 10 s into a 24 h ring
 buffer in RAM (~0.3 MB, lost on restart, nothing written to the eMMC); the page polls every 5 s while open.

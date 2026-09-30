@@ -16,15 +16,29 @@
     }
   }, 5000);
 
-  // Tweak "Assist sofort zuhören" (settings.js, WALLPANEL_TWEAKS.assistListen): tapping the Assist button
+  // Tweak "Assist-Mikrofon sofort an" (settings-main.js, WALLPANEL_TWEAKS.assistListen): tapping the Assist button
   // starts listening right away (no second tap on the mic) – the frontend's own start_listening parameter
-  // of the voice command dialog.
-  if (typeof WALLPANEL_TWEAKS !== 'undefined' && WALLPANEL_TWEAKS.assistListen) customElements.whenDefined('ha-voice-command-dialog').then((c) => {
-    const show = c.prototype.showDialog;
-    if (show.__wallpanel) return;
-    c.prototype.showDialog = function (params) {
-      return show.call(this, { ...(params || {}), start_listening: true });
+  // of the voice command dialog. Checked every 2 s (the dialog is loaded lazily, and a newer frontend build
+  // can define it again); globalThis.__wallpanelAssist tells whether it is patched.
+  if (typeof WALLPANEL_TWEAKS !== 'undefined' && WALLPANEL_TWEAKS.assistListen) {
+    const patch = () => {
+      const c = customElements.get('ha-voice-command-dialog');
+      if (!c || c.prototype.showDialog.__wallpanel) return;
+      const show = c.prototype.showDialog;
+      c.prototype.showDialog = function (params) {
+        return show.call(this, { ...(params || {}), start_listening: true });
+      };
+      c.prototype.showDialog.__wallpanel = true;
+      globalThis.__wallpanelAssist = 'patched';
     };
-    c.prototype.showDialog.__wallpanel = true;
-  });
+    globalThis.__wallpanelAssist = 'waiting';
+    // the first open loads the dialog, so the prototype patch comes too late for it: set the parameter in
+    // the "show-dialog" event itself (capture phase on window, before Home Assistant's own listener)
+    window.addEventListener('show-dialog', (e) => {
+      const d = e.detail;
+      if (d && d.dialogTag === 'ha-voice-command-dialog') d.dialogParams = { ...(d.dialogParams || {}), start_listening: true };
+    }, true);
+    patch();
+    setInterval(patch, 2000);
+  }
 })();

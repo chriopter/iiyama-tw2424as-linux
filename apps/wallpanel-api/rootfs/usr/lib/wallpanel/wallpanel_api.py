@@ -113,7 +113,8 @@ class Display:
     - colour temperature (HA number "Night shift"): the compositor's gamma ramp
       (wlr-gamma-control), applied by the VOP's hardware LUT, so it costs no rendering."""
     lock = threading.Lock()
-    KELVIN = (1000, 6500)  # 6500 K = neutral (no gamma client, identity ramp); 1000 K as in Adaptive Lighting
+    KELVIN = (2202, 6500)  # 6500 K = neutral (no gamma client, identity ramp); 2202 K = the warmest the hallway LED
+    # bulbs can do (454 mired): never warmer than them, so Adaptive Lighting's evening colour looks the same
 
     def __init__(self):
         self.max = int(read(f'{BACKLIGHT}/max_brightness', '255') or 255)
@@ -641,7 +642,7 @@ def set_hide_header(on):
 
 
 def assist_listen():
-    """Tweak "Assist sofort zuhören": tapping Assist starts speech recognition at once (kiosk extension,
+    """Tweak "Assist-Mikrofon sofort an": tapping Assist starts speech recognition at once (kiosk extension,
     read at kiosk start). On by default."""
     return bool(SETTINGS.get('assist_listen', True))
 
@@ -1150,7 +1151,7 @@ class Mqtt:
                                         'command_topic': f'{BASE}/hide_header/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.hide_header else 'OFF' }}",
                                         'entity_category': 'config'},
-            ('switch', 'assist_listen'): {'name': 'Assist sofort zuhören', 'icon': 'mdi:microphone-message',
+            ('switch', 'assist_listen'): {'name': 'Assist-Mikrofon sofort an', 'icon': 'mdi:microphone-message',
                                           'command_topic': f'{BASE}/assist_listen/set', 'state_topic': f'{BASE}/state',
                                           'value_template': "{{ 'ON' if value_json.assist_listen else 'OFF' }}",
                                           'entity_category': 'config'},
@@ -1946,7 +1947,7 @@ const pvStep = (d) => {
 };
 // Farbabgleich: the whole screen white, the colour controls at the bottom - to match the panel's white to a bulb
 const WB = [
-  {k: 'color_temp', label: 'Farbtemperatur (von Home Assistant, live)', min: 1000, max: 6500, step: 50,
+  {k: 'color_temp', label: 'Farbtemperatur (von Home Assistant, live)', min: 2202, max: 6500, step: 50,
     fmt: (v) => `${v} K → Panel ${V.color_temp_effective} K`, send: (v) => cmd('display', {color_temp: v})},
   {k: 'ct_scale', label: 'Farbton-Kalibrierung', min: 50, max: 150, step: 1, fmt: (v) => `${v} %`},
   {k: 'ct_red', label: 'Weißabgleich Rot', min: 50, max: 100, step: 1, fmt: (v) => `${v} %`},
@@ -2023,7 +2024,7 @@ const SVC = [
   {h: 'Bildschirm', ha: true, col: 0, xs: [
     {t: 'range', k: 'brightness', label: 'Helligkeit', sub: 'Bildschirm-Beleuchtung', min: 1, max: () => V.max_brightness,
       fmt: (v) => `${Math.round(100 * v / V.max_brightness)} %`, send: (v) => cmd('display', {brightness: v})},
-    {t: 'range', k: 'color_temp', label: 'Farbtemperatur', sub: 'Bildschirm-Beleuchtung', min: 1000, max: () => 6500, step: 50,
+    {t: 'range', k: 'color_temp', label: 'Farbtemperatur', sub: 'Bildschirm-Beleuchtung', min: 2202, max: () => 6500, step: 50,
       fmt: (v) => `${v} K`, send: (v) => cmd('display', {color_temp: v})},
     {t: 'wb', k: 'ct_scale', label: 'Farbabgleich', sub: 'Farbton-Kalibrierung, Weißabgleich Rot/Blau',
       fmt: () => `${V.ct_scale} % · R ${V.ct_red} · B ${V.ct_blue}`},
@@ -2036,7 +2037,7 @@ const SVC = [
     {t: 'range', k: 'volume', label: 'Lautstärke', min: 0, max: () => 100, fmt: (v) => `${v} %`},
     {t: 'scale', k: 'scale', label: 'Skalierung', sub: 'Home Assistant größer oder kleiner', fmt: scaleFmt},
     {t: 'switch', k: 'hide_header', label: 'HA-Kopfleiste ausblenden', sub: 'Suche & Assist neben die Status-Pillen'},
-    {t: 'switch', k: 'assist_listen', label: 'Assist sofort zuhören', sub: 'Tippen auf Assist startet die Spracherkennung'},
+    {t: 'switch', k: 'assist_listen', label: 'Assist-Mikrofon sofort an', sub: 'Tippen auf Assist startet die Spracherkennung'},
     {t: 'step', k: 'home_after', label: 'Startseite laden nach', sub: 'wenn der Bildschirm so lange aus ist',
       list: [0, 5, 10, 15, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1440], fmt: min},
     {t: 'act', c: 'reload', label: 'Seite neu laden', sub: 'schließt diese Seite'},
