@@ -4,12 +4,11 @@
 set -eu
 . /etc/wallpanel/wallpanel.conf
 # Start page (MQTT text "Home page") and scaling (update page "Skalierung", percent) saved by wallpanel-api:
-# the start page wins over the config; the scaling is the page zoom of Home Assistant (extension)
+# the start page wins over the config
 st() { python3 -c "import json, sys; print(json.load(open('/var/lib/wallpanel/api-state.json')).get(sys.argv[1], ''))" "$1" 2>/dev/null || true; }
 H=$(st home_url)
 [ -n "$H" ] && URL=$H
 S=$(st scale)
-SCALE=$(awk -v s="${S:-100}" 'BEGIN { if (s < 50 || s > 300) s = 100; printf "%g", s / 100 }')
 : "${URL:?URL not set in /etc/wallpanel/wallpanel.conf}"
 ROTATION=${ROTATION:-180}
 OUTPUT=${OUTPUT:-DSI-1}
@@ -49,7 +48,7 @@ done
 
 # Extension with the configured home URL (navigation lock + paint containment)
 cp /usr/lib/wallpanel/extension/* "$EXT/"
-printf 'const WALLPANEL_HOME = %s;\nconst WALLPANEL_ZOOM = %s;\n' "\"$URL\"" "$SCALE" > "$EXT/config.js"
+printf 'const WALLPANEL_HOME = %s;\n' "\"$URL\"" > "$EXT/config.js"
 # Chromium caches the extension service worker's importScripts (config.js) in the profile and keeps
 # using it across restarts. When the extension or home URL changed (kiosk restart after an update),
 # drop the service worker storage (Home Assistant registers its own worker again on the next load).
@@ -58,6 +57,32 @@ if [ "$(cat "$RUN/.extension-id" 2>/dev/null)" != "$v" ]; then
 	rm -rf "$PROFILE/Default/Service Worker"
 	echo "$v" > "$RUN/.extension-id"
 fi
+
+# Scaling ("Skalierung"): Chromium's page zoom of the Home Assistant host, written into the profile before
+# the start - 125 % lays HA out for 1536 x 864; the update page (127.0.0.1) keeps 100 %.
+# (--force-device-scale-factor does not change the layout under Wayland: only a larger buffer, scaled down.)
+python3 - "$PROFILE/Default/Preferences" "$URL" "${S:-100}" <<'PY' || echo "scaling not applied" >&2
+import json, math, os, sys, urllib.parse
+path, url, scale = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    s = int(float(scale))
+except ValueError:
+    s = 100
+s = s if 50 <= s <= 300 else 100
+try:
+    p = json.load(open(path))
+except (OSError, ValueError):
+    p = {}
+levels = p.setdefault('partition', {}).setdefault('per_host_zoom_levels', {}).setdefault('x', {})
+host = urllib.parse.urlsplit(url).hostname
+if s == 100:
+    levels.pop(host, None)
+else:  # Chromium zoom level: factor = 1.2 ** level
+    levels[host] = {'last_modified': '13400000000000000', 'zoom_level': math.log(s / 100) / math.log(1.2)}
+os.makedirs(os.path.dirname(path), exist_ok=True)
+json.dump(p, open(path + '.new', 'w'))
+os.replace(path + '.new', path)
+PY
 
 # Apply output rotation once the compositor is up
 (
@@ -68,13 +93,15 @@ fi
 	done
 ) &
 
+# ThirdPartyStoragePartitioning off: the update page's scaling preview frames the dashboard, which then needs
+# the kiosk's HA login (Local Storage) - partitioned, the frame would only show the login page.
 # --force-prefers-reduced-motion: HA's energy-distribution card then draws static flow lines instead of
 # endlessly animated SMIL dots, which forced a full main-thread frame at display rate (~70 % CPU).
 exec cage -d -s -- chromium \
 	--kiosk --no-first-run --noerrdialogs --disable-infobars --log-level=3 \
 	--ozone-platform=wayland --enable-gpu-rasterization --ignore-gpu-blocklist --enable-zero-copy \
 	--disable-pinch --overscroll-history-navigation=0 --force-prefers-reduced-motion \
-	--disable-features=Translate,TouchpadOverscrollHistoryNavigation,MediaRouter,DisableLoadExtensionCommandLineSwitch \
+	--disable-features=ThirdPartyStoragePartitioning,Translate,TouchpadOverscrollHistoryNavigation,MediaRouter,DisableLoadExtensionCommandLineSwitch \
 	--check-for-update-interval=31536000 --disable-component-update \
 	--password-store=basic --autoplay-policy=no-user-gesture-required \
 	--remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 \

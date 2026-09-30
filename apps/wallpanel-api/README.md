@@ -2,17 +2,35 @@
 
 Connects the panel to Home Assistant – via **MQTT discovery**, without a custom HA integration.
 
-| Entity (HA name) | Type |
-|---|---|
-| **Bildschirm-Beleuchtung**: the screen as a bulb – on/off = standby, brightness, colour temperature 1000–6500 K (night shift); works with Adaptive Lighting | `light` |
-| **Bildschirm an/aus**: off = standby (backlight off, animations paused, instant wake, touch wakes) | `switch` |
-| **Bildschirm gesperrt**: switches the display off; while on, on commands from HA and touch wake are ignored (power key still works) | `switch` |
-| **Lautstärke**; config: **Bildschirm aus nach** (min without input, 0 = never), **Bildschirm-Überblendung** (ms), **Farbton-Abgleich** (50–150 %, default 83) | `number` |
-| **Seitenadresse** (current page), config: **Startseite** | `text` |
-| **Update-Seite anzeigen**: shows the on-screen update page (see below) and wakes the display; off = back to the page shown before | `switch` |
-| **Seite neu laden**; config: **Browser neu starten**, **Neu starten** (reboot), **Apps aktualisieren** (Chrome & AirPlay only) | `button` |
-| Config: **Startseite laden nach** (min dark, 0 = never), **Neustart täglich**, **Auto-Update Apps** (Chrome & AirPlay, before the reboot), **Wartungszeit** (30-min steps) | `number`, `switch`, `select` |
-| Diagnostic: Prozessortemperatur/-auslastung, WLAN-Signal, Betriebszeit (h), Arbeitsspeicher/Speicherplatz belegt/frei, Systemlast, Nächster Neustart, Letztes Update, Updates verfügbar – *Systemlast, Arbeitsspeicher frei, Speicherplatz belegt* are disabled by default | `sensor` |
+All entities of the device "Wallpanel" – HA shows the German names; English meaning and values:
+
+| HA name | English | Type | Values (default) |
+|---|---|---|---|
+| **Bildschirm-Beleuchtung** | screen light: the screen as a bulb (on/off = standby) – works with Adaptive Lighting | `light` | brightness 0–100 %, colour temperature 1000–6500 K (6500 K = neutral) |
+| **Bildschirm an/aus** | screen on/off; off = standby (backlight off, animations paused, touch wakes) | `switch` | on/off |
+| **Bildschirm gesperrt** | screen locked: off, HA on-commands and touch wake ignored (power key still works) | `switch` | on/off (off) |
+| **Lautstärke** | volume | `number` | 0–100 % (30 after a restart) |
+| **Wiedergabe** | playback: sound is playing (AirPlay, browser) | `binary_sensor` | on/off |
+| **Seitenadresse** | page address (the page shown now) | `text` | http(s) URL |
+| **Update-Seite anzeigen** | show the on-screen update page | `switch` | on/off |
+| **Seite neu laden** | reload page | `button` | – |
+| *config* **Bildschirm aus nach** | screen off after … without input | `number` | 0–240 min, 0 = never (5) |
+| *config* **Bildschirm-Überblendung** | screen fade | `number` | 0–3000 ms (400) |
+| *config* **Bildschirm-Überblendung bei Berührung** | screen fade when woken by touch | `number` | 0–3000 ms (100) |
+| *config* **Farbton-Abgleich** | tint calibration against real bulbs | `number` | 50–150 % (83) |
+| *config* **Skalierung** | scaling: page zoom of Home Assistant (restarts the browser) | `select` | 75, 80, 90, 100, 110, 125, 150, 175, 200 % (100) |
+| *config* **Startseite** | home page | `text` | http(s) URL (`KIOSK_URL`) |
+| *config* **Startseite laden nach** | load the home page after … dark | `number` | 0–1440 min, 0 = never (60) |
+| *config* **Neustart täglich** | reboot daily | `switch` | on/off (off) |
+| *config* **Wartungszeit** | maintenance time (daily reboot, auto-update) | `select` | 00:00–23:30 in 30-min steps (04:00) |
+| *config* **Auto-Update Apps** | update Chrome & AirPlay daily at the maintenance time | `switch` | on/off (off) |
+| *config* **Apps aktualisieren** | update apps now (Chrome & AirPlay only) | `button` | – |
+| *config* **Browser neu starten** | restart browser | `button` | – |
+| *config* **Neu starten** | reboot | `button` | – |
+| *diagnostic* **Prozessortemperatur**, **Prozessorauslastung** | CPU temperature, CPU usage | `sensor` | °C, % |
+| *diagnostic* **WLAN-Signal**, **Betriebszeit** | WiFi signal, uptime | `sensor` | dBm, h |
+| *diagnostic* **Arbeitsspeicher belegt/frei**, **Speicherplatz frei/belegt**, **Systemlast** | memory used/free, disk free/used, load | `sensor` | %, MiB, GiB (*frei*/*belegt* partly disabled by default) |
+| *diagnostic* **Updates verfügbar**, **Letztes Update**, **Nächster Neustart** | updates available, last update, next reboot | `sensor` | count, time |
 
 Volume: ALSA control `MIXER_CONTROL` (default `DAC` of the ES8316), 100 % = 0 dB, 0.5 dB per % (1 % = -49.5 dB),
 0 % = mute; the last value is re-applied on start (default 30 %).
@@ -48,9 +66,9 @@ tapped), so the page already shows it; installing still needs that touch.
 Second tab **Einstellungen & Service**: on-screen controls for everything MQTT offers except URLs
 (*Seitenadresse*/*Startseite* are shown read-only; *Bildschirm an/aus* as info), labelled like the HA entities:
 brightness + colour temperature, Farbton-Abgleich, Überblendung (+ bei Berührung), Bildschirm aus nach,
-Bildschirm gesperrt, Lautstärke, Startseite laden nach, **Skalierung** (page only: page zoom of
-Home Assistant 75–200 % via the kiosk extension, shown with the resulting resolution, e.g. 125 % = 1536×864 – Home Assistant
-larger; restarts the browser, the update page itself stays at native size), Neustart täglich, Wartungszeit, Auto-Update Apps, and the
+Bildschirm gesperrt, Lautstärke, Startseite laden nach, **Skalierung** (shown with the resulting resolution,
+e.g. 125 % = 1536×864; *Anpassen* opens a live preview of the dashboard in a frame – *Übernehmen* restarts the
+browser, the update page itself stays at 100 %), Neustart täglich, Wartungszeit, Auto-Update Apps, and the
 actions Seite neu laden (closes the page), Browser neu starten, Apps aktualisieren, Neu starten and Herunterfahren (both with confirmation).
 They run through the same `command()` as the MQTT messages (HA state follows at once); settings need the page
 token, anything that restarts or reboots (also *Skalierung*, and *Jetzt aktualisieren*) also the recent real touch.

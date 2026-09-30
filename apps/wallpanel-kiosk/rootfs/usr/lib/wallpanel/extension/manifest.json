@@ -2,10 +2,11 @@
   "manifest_version": 3,
   "name": "wallpanel",
   "version": "1.0",
-  "description": "Kiosk helpers: keep the browser on the configured home URL, reduce repaint cost of dashboard cards, work around card bugs.",
+  "description": "Kiosk helpers: keep the browser on the configured home URL, reduce repaint cost of dashboard cards, work around card bugs, let the update page frame Home Assistant (scaling preview).",
   "permissions": [
     "webNavigation",
-    "tabs"
+    "tabs",
+    "declarativeNetRequestWithHostAccess"
   ],
   "host_permissions": [
     "<all_urls>"

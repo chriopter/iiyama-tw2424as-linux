@@ -18,6 +18,7 @@ import socket
 import subprocess
 import threading
 import time
+import urllib.parse
 
 CONF_FILE = os.environ.get('WALLPANEL_CONF', '/etc/wallpanel/wallpanel.conf')
 BACKLIGHT = '/sys/class/backlight/backlight'
@@ -571,8 +572,17 @@ history = History()
 display, volume, browser = Display(), Volume(), Browser()
 
 
+_kiosk_lock = threading.Lock()
+
+
 def restart_kiosk():
-    sh('rc-service', 'wallpanel-kiosk', 'restart')
+    # one at a time: overlapping "rc-service restart" calls left a second supervisor behind that could not
+    # get the seat (the first one kept running, the service looked stopped)
+    with _kiosk_lock:
+        try:
+            subprocess.run(['rc-service', 'wallpanel-kiosk', 'restart'], capture_output=True, timeout=90)
+        except subprocess.TimeoutExpired:
+            print('kiosk restart: timeout', flush=True)
 
 
 # Browser scaling (page zoom of the HA origin, set by the kiosk extension; read at kiosk start): 125 % shows
@@ -586,14 +596,23 @@ def scale():
 
 
 def set_scale(payload):
-    v = int(float(payload))
+    v = int(float(str(payload).strip().rstrip('%').strip()))  # "125" or "125 %" (HA select)
     if v not in SCALES:
         raise ValueError(f'scale must be one of {SCALES}')
+    global _scale_timer
     if v != scale():
         SETTINGS['scale'] = v
         save_settings()
         print(f'scale {v} %: restarting the kiosk', flush=True)
-        threading.Thread(target=lambda: (time.sleep(1), restart_kiosk()), daemon=True).start()
+        # several changes in a row (HA slider, repeated taps): one restart 2 s after the last one
+        if _scale_timer:
+            _scale_timer.cancel()
+        _scale_timer = threading.Timer(2, restart_kiosk)
+        _scale_timer.daemon = True
+        _scale_timer.start()
+
+
+_scale_timer = None
 
 
 def panel_resolution():
@@ -842,7 +861,7 @@ def state():
     return {'display': display.state(), 'volume': volume.get(), 'url': browser.url(),
             'playing': playing(),
             'home_url': home_url(), 'home_after': home_after(), 'auto_update': auto_update(),
-            'auto_off': int(SETTINGS.get('auto_off', 5)), 'fade_ms': int(SETTINGS.get('fade_ms', 400)),
+            'auto_off': int(SETTINGS.get('auto_off', 5)), 'fade_ms': int(SETTINGS.get('fade_ms', 400)), 'scale': scale(),
             'touch_fade_ms': int(SETTINGS.get('touch_fade_ms', 100)),
             'updates_pending': UPDATE['pending'], 'last_update': UPDATE['last'],
             'last_update_result': UPDATE['result'], 'update_page': update_page.on,
@@ -856,7 +875,7 @@ def state():
 # object_id and derives ids from names otherwise, so fresh installs would get other ids)
 ENTITY_IDS = {'screen': 'display', 'auto_off': 'display_auto_off_timeout', 'fade_ms': 'display_fade_time',
               'home_after': 'return_to_home_page_after', 'home_url': 'home_page', 'reboot_enabled': 'auto_reboot',
-              'reload': 'reload_page', 'disk_used_pct': 'disk_used'}
+              'reload': 'reload_page', 'disk_used_pct': 'disk_used', 'scale': 'browser_scaling'}
 
 
 def command(topic, payload):
@@ -1021,6 +1040,10 @@ class Mqtt:
                                         'json_attributes_topic': f'{BASE}/state',
                                         'json_attributes_template': '{{ {"result": value_json.last_update_result} | tojson }}',
                                         'icon': 'mdi:package-variant-closed-check', 'entity_category': 'diagnostic'},
+            ('select', 'scale'): {'name': 'Skalierung', 'options': [f'{v} %' for v in SCALES],
+                                  'command_topic': f'{BASE}/scale/set', 'state_topic': f'{BASE}/state',
+                                  'value_template': '{{ value_json.scale }} %',
+                                  'icon': 'mdi:magnify-plus-outline', 'entity_category': 'config'},
             ('select', 'reboot_time'): {'name': 'Wartungszeit', 'options': REBOOT_TIMES,
                                         'command_topic': f'{BASE}/reboot_time/set', 'state_topic': f'{BASE}/state',
                                         'value_template': '{{ value_json.reboot_time }}',
@@ -1450,8 +1473,11 @@ class UpdatePage:
                 self.send_header('Content-Length', str(len(body)))
                 self.send_header('Cache-Control', 'no-store')
                 self.send_header('X-Frame-Options', 'DENY')
+                # frame-src: the Home Assistant origin only, for the scaling preview ("Skalierung")
+                u = urllib.parse.urlsplit(home_url())
                 self.send_header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; "
-                                 "style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'")
+                                 "style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; "
+                                 f"frame-src {u.scheme}://{u.netloc}")
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -1585,6 +1611,14 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:40px; h
 .acts { margin-top:auto; display:flex; flex-direction:column; gap:14px; }
 .acts button { min-height:76px; }
 button.danger { background:var(--err); }
+#pv { position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; }
+#pv .box { background:#232323; border-radius:20px; padding:28px 32px; display:flex; flex-direction:column; gap:18px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6); }
+#pv h3 { margin:0; font-size:28px; font-weight:500; }
+#pvwrap { width:1344px; height:756px; overflow:hidden; border-radius:10px; background:#fafafa; position:relative; }
+#pvf { border:0; position:absolute; left:0; top:0; transform-origin:0 0; pointer-events:none; }
+#pv .btns { display:flex; gap:20px; align-items:center; }
+#pv .stp .val { min-width:260px; font-size:24px; }
 #modal { position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; }
 #modal .box { background:#232323; border-radius:20px; padding:40px 44px; width:880px; display:flex; flex-direction:column;
   gap:22px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
@@ -1639,6 +1673,13 @@ button.danger { background:var(--err); }
 </main>
 </div>
 <div id="tab-svc" class="tab" hidden></div>
+<div id="pv"><div class="box">
+  <h3>Skalierung – Vorschau</h3>
+  <div id="pvwrap"><iframe id="pvf" title="Vorschau"></iframe></div>
+  <div class="btns"><div class="stp"><button id="pvdn">−</button><b class="val" id="pvval"></b><button id="pvup">+</button></div>
+    <span style="flex:1" class="dim">Übernehmen startet den Browser neu</span>
+    <button class="flat" id="pvno">Abbrechen</button><button id="pvok">Übernehmen</button></div>
+</div></div>
 <div id="modal"><div class="box">
   <h3 id="m-title"></h3>
   <div id="m-text"></div>
@@ -1728,6 +1769,27 @@ $('k-go').onclick = () => ask(`Kernel ${S.kernel.available.kernel} installieren?
   'einwandfrei, wird er übernommen – sonst startet das Panel automatisch wieder mit dem bisherigen Kernel.',
   'Während des Updates bitte nicht vom Strom trennen.', 'Installieren und neu starten', () => post('/api/kernel/install'));
 $('m-no').onclick = () => $('modal').style.display = 'none';
+// Skalierung: the dashboard live in a frame, laid out for the simulated resolution and shrunk to the box
+let pvScale = 100;
+function pvPaint() {
+  const w = V.panel_res[0] * 100 / pvScale, h = V.panel_res[1] * 100 / pvScale, f = $('pvf');
+  f.style.width = `${w}px`; f.style.height = `${h}px`;
+  f.style.transform = `scale(${$('pvwrap').clientWidth / w})`;
+  $('pvval').textContent = scaleFmt(pvScale);
+}
+function preview() {
+  pvScale = V.scale;
+  if (!$('pvf').src) $('pvf').src = V.home_url;
+  $('pv').style.display = 'flex'; pvPaint();
+}
+const pvStep = (d) => {
+  const l = V.scales, i = Math.max(0, l.indexOf(pvScale));
+  pvScale = l[Math.max(0, Math.min(l.length - 1, i + d))]; pvPaint();
+};
+$('pvdn').onclick = () => pvStep(-1); $('pvup').onclick = () => pvStep(1);
+$('pvno').onclick = () => { $('pv').style.display = 'none'; $('pvf').removeAttribute('src'); };
+$('pvok').onclick = () => { $('pv').style.display = 'none'; $('pvf').removeAttribute('src');
+  if (pvScale !== V.scale) cmd('scale', pvScale); };
 $('m-yes').onclick = () => { $('modal').style.display = 'none'; asked && asked(); };
 // system values: sparklines from the api's in-memory history (1 h / 24 h), every 5 s
 let span = 3600;
@@ -1764,6 +1826,7 @@ document.querySelectorAll('.seg button').forEach((b) => b.onclick = () => {
 let tab = 'upd', V = null, built = false;
 const hold = new Set();  // sliders under a finger: not overwritten by the poll
 const ms = (v) => `${num(v)} ms`, min = (v) => v ? `${num(v)} min` : 'nie';
+const scaleFmt = (v) => `${v} % · ${Math.round(V.panel_res[0] * 100 / v)}×${Math.round(V.panel_res[1] * 100 / v)}`;
 const TIMES = Array.from({length: 48}, (_, i) => `${String(i >> 1).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 const SVC = [
   ['Bildschirm', [
@@ -1782,8 +1845,7 @@ const SVC = [
     {t: 'range', k: 'volume', label: 'Lautstärke', min: 0, max: () => 100, fmt: (v) => `${v} %`},
     {t: 'step', k: 'home_after', label: 'Startseite laden nach', sub: 'wenn der Bildschirm so lange aus ist',
       list: [0, 5, 10, 15, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1440], fmt: min},
-    {t: 'step', k: 'scale', label: 'Skalierung', sub: 'Home Assistant – Browser startet neu', list: () => V.scales,
-      fmt: (v) => `${v} % · ${Math.round(V.panel_res[0] * 100 / v)}×${Math.round(V.panel_res[1] * 100 / v)}`},
+    {t: 'scale', k: 'scale', label: 'Skalierung', sub: 'Home Assistant größer oder kleiner', fmt: scaleFmt},
     {t: 'info', label: 'Seitenadresse', v: () => V.url, url: true},
     {t: 'info', label: 'Startseite', v: () => V.home_url, url: true},
     {t: 'act', c: 'reload', label: 'Seite neu laden', sub: 'schließt diese Seite'},
@@ -1813,6 +1875,7 @@ async function cmd(c, value) {
 function lab(x) {
   return `<div class="lab"><span>${esc(x.label)}${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>` +
     (x.t === 'switch' ? '<button class="toggle"></button>' : x.t === 'step' ? '<div class="stp"><button>−</button><b class="val"></b><button>+</button></div>'
+      : x.t === 'scale' ? '<div class="stp"><b class="val"></b><button class="flat" style="width:auto;padding:0 24px;font-size:21px">Anpassen</button></div>'
       : `<b class="val${x.url ? ' url' : ''}"></b>`) + '</div>';
 }
 function build() {
@@ -1843,6 +1906,8 @@ function build() {
           V[x.k] = n; x.el.querySelector('.val').textContent = x.fmt(n); send(n);
         };
         dn.onclick = () => go(-1); up.onclick = () => go(1);
+      } else if (x.t === 'scale') {
+        x.el.querySelector('.stp button').onclick = preview;
       } else if (x.t === 'act') {
         x.el.onclick = x.confirm
           ? () => ask(x.confirm[0], x.confirm[1], '', x.confirm[2], () => cmd(x.c))
@@ -1863,7 +1928,7 @@ async function settings() {
   for (const [, xs] of SVC) for (const x of xs) {
     if (x.t === 'range' && !hold.has(x.k)) { const r = x.el.querySelector('input'); r.max = x.max(); r.value = V[x.k]; paint(x, V[x.k]); }
     else if (x.t === 'switch') x.el.querySelector('.toggle').classList.toggle('on', !!V[x.k]);
-    else if (x.t === 'step') x.el.querySelector('.val').textContent = x.fmt(V[x.k]);
+    else if (x.t === 'step' || x.t === 'scale') x.el.querySelector('.val').textContent = x.fmt(V[x.k]);
     else if (x.t === 'info') x.el.querySelector('.val').textContent = x.v();
     else if (x.c === 'install_updates') x.el.disabled = V.updating;
   }
