@@ -1,5 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
 # Kernel updates over two slots of the vendor U-Boot:
 #   slot A = partition "boot"     (default at every power-on)
 #   slot B = partition "recovery" (only booted once via the PMUGRF reboot flag)
@@ -94,5 +93,5 @@ PY
 	dd if="$tmp" of="$A" bs=1M conv=fsync 2>/dev/null
 	[ "$(head -c "$n" "$A" | sha256sum | cut -c1-64)" = "$(sha256sum < "$tmp" | cut -c1-64)" ] || { echo "verify failed" >&2; exit 1; }
 	rm -f "$tmp"; echo "slot A updated" ;;
-*) sed -n '3,15p' "$0"; exit 1 ;;
+*) sed -n '2,14p' "$0"; exit 1 ;;
 esac

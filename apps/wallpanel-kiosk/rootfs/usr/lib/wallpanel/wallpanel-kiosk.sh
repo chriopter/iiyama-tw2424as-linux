@@ -1,5 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
 # wallpanel-kiosk: Chromium fullscreen with the Home Assistant dashboard (cage, Wayland).
 # Runs as the unprivileged user "wallpanel"; started and respawned by OpenRC.
 set -eu

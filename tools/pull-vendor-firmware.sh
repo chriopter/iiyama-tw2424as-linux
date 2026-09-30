@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Pull the AP6256 WiFi/BT firmware, NVRAM and BT patch RAM from the vendor
 # Android partition into system/firmware/vendor/ (gitignored, proprietary).
 set -euo pipefail

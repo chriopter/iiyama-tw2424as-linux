@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: MIT
 """Build an Android boot image (header v2) for the Rockchip vendor U-Boot.
 
 The vendor U-Boot loads the kernel DTB from a Rockchip resource image (RSCE)

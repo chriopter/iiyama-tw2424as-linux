@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: MIT
 """wallpanel-api: Home Assistant integration for the iiyama TW2424AS wallpanel.
 
 - MQTT Discovery: entities appear automatically in Home Assistant

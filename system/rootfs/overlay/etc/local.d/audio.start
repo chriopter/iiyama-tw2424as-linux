@@ -1,5 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
 # ES8316: route the DAC to the headphone outputs (they also feed the loudspeaker amplifier, which
 # the kernel only enables while audio plays). Output stage fixed low; the volume is the DAC level
 # (wallpanel-api, HA number "Volume").

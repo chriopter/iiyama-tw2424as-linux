@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 // Isolate every Home Assistant card in its own compositor layer and paint
 // boundary: animated cards (e.g. the energy distribution flow) then repaint only
 // themselves instead of large parts of the dashboard (measured: ~18 -> ~38 fps).

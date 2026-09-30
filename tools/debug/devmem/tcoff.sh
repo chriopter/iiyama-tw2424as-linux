@@ -1,5 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
 # Disable the TC358775 LVDS output (LVCFG=0) so the panel goes dark again
 D=/usr/sbin/devmem; B=0xff960000
 r(){ $D $((B+$1)); }; w(){ $D $((B+$1)) $2 >/dev/null; }

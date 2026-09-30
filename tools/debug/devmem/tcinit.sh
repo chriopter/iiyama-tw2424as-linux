@@ -1,5 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
 # Re-send the TC358775 init sequence by hand (DSI generic long writes, LP).
 D=/usr/sbin/devmem; B=0xff960000
 r(){ $D $((B+$1)); }

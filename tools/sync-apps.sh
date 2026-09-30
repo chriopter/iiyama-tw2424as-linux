@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Update the wallpanel apps and the rootfs overlay on an installed device without reinstalling.
 # Works against the running system (root on /) or the rescue initramfs (mounts LABEL=wallpanel-root).
 set -euo pipefail

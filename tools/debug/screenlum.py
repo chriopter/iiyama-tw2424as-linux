@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: MIT
 """Mean luminance of the display area in the camera frame (0-255). Dark ~<60, lit ~>150."""
 import sys
 from PIL import Image, ImageStat

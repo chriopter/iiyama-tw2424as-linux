@@ -1,5 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
 # PID 1 of the RAM-only test system. Never mounts or writes the eMMC.
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 

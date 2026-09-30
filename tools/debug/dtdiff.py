@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: MIT
 """Semantic diff of two DTBs: nodes added/removed and properties changed.
 
 Phandle references in well-known reference properties are resolved to node

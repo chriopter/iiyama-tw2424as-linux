@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Build entry point. Sources are fetched at pinned versions into build/src,
 # our patches are applied as git commits, outputs go to build/out.
 #
@@ -176,6 +175,6 @@ export)
 	[ "$2" = cage ] && cage_sums
 	ls "$PD" ;;
 *)
-	sed -n '3,13p' "$0"
+	sed -n '2,12p' "$0"
 	exit 1 ;;
 esac

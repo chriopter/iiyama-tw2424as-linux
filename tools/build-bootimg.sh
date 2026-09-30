@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Build build/out/wallpanel-boot.img for the vendor U-Boot (boot/recovery partition):
 # mainline Image (uncompressed: the vendor U-Boot hangs on Image.gz) + board DTB (with symbols for the vendor DTBO overlay) +
 # rescue-capable initramfs (system/rootfs/initramfs/init, busybox, dropbear, display modules).

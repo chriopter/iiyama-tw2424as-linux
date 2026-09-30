@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Power-cycle the display via the Shelly plug, honouring the shared-plug rules:
 # off for >= 10 s, and >= 60 s on-time since the last switch-on before cycling.
 D=$(dirname "$(readlink -f "$0")")

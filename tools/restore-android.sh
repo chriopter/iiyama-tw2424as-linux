@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Roll back to the original Android from the verified backup in dumps/.
 #
 #   tools/restore-android.sh ssh       device runs Linux (normal, rescue or RAM installer), root@10.42.0.1
@@ -61,5 +60,5 @@ rockusb)
 	# note: Rockusb read-back is unreliable above ~32 MiB (see README, Findings); Android verifies by booting
 	$R rd && echo "reset; Android recovery wipes userdata, then Android starts" ;;
 *)
-	sed -n '3,13p' "$0"; exit 1 ;;
+	sed -n '2,12p' "$0"; exit 1 ;;
 esac

@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Build a RAM-only boot image (installer/test system): mainline kernel + board DTB + Alpine initramfs.
 #   build-test-image.sh [suffix]   -> build/out/boot-test-mainline[-suffix].img
 set -euo pipefail

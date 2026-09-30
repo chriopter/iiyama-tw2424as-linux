@@ -1,5 +1,4 @@
 #!/sbin/openrc-run
-# SPDX-License-Identifier: MIT
 description="Wallpanel kiosk (cage + Chromium, Home Assistant)"
 supervisor=supervise-daemon
 command=/usr/lib/wallpanel/wallpanel-kiosk.sh

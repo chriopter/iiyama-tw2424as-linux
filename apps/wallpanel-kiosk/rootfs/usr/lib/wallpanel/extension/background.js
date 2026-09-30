@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 // Keep the kiosk on the configured home origin (links cannot navigate away).
 importScripts('config.js');
 const home = new URL(WALLPANEL_HOME);

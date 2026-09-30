@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: MIT
 """Minimal Chrome DevTools Protocol helper for the kiosk (via ssh -L 9222).
 
   cdp.py login                 log in to Home Assistant (HA_USER/HA_PASS from tools/local.env)

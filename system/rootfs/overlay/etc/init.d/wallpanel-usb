@@ -1,5 +1,4 @@
 #!/sbin/openrc-run
-# SPDX-License-Identifier: MIT
 # Maintenance access over the USB-C port: CDC-NCM network (10.42.0.1) + CDC-ACM serial port
 # (root shell on it: wallpanel-console).
 description="Wallpanel USB-C maintenance gadget"

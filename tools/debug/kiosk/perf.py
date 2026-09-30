@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: MIT
 """Where does the page spend time? Diff of CDP Performance metrics over N seconds + GPU feature status."""
 import json, sys, time, urllib.request
 sys.path.insert(0, __import__('os').path.dirname(__file__))

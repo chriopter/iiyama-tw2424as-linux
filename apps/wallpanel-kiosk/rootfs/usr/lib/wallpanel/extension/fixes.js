@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 // Workarounds for third-party dashboard cards (remove once fixed upstream).
 (() => {
   const findAll = (root, tag, out = []) => {

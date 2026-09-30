@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Install the wallpanel system onto the eMMC.
 #
 # Precondition: the device runs the RAM installer (tools/ramboot.sh build/out/boot-test-mainline.img),

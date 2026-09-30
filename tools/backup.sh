@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Read-only dump of all eMMC partitions (except userdata) via adb root
 . "$(dirname "$(readlink -f "$0")")/local.env"   # ADB_SERIAL, SHELLY_IP, ... (gitignored)
 set -e

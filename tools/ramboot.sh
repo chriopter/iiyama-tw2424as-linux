@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Android -> Rockusb loader -> maskrom -> mainline U-Boot in RAM -> fastboot boot <image>.
 # Nothing is written to the eMMC on this path.
 . "$(dirname "$(readlink -f "$0")")/local.env"   # ADB_SERIAL, SHELLY_IP, ... (gitignored)

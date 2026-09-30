@@ -1,5 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: MIT
 # Build our cage package (system/cage: pinned release tarball + patches + APKBUILD) natively with abuild
 # on an Alpine v3.24 aarch64 system reachable over tools/tssh (the panel, or the RAM installer) and copy
 # the signed apk to build/out/cage-<ver>-r<rel>.apk.
@@ -23,7 +22,7 @@ while [ $# -gt 0 ]; do
 	case $1 in
 	--root) R=${2:?--root needs a directory}; shift ;;
 	--install) INSTALL=1 ;;
-	*) sed -n '3,14p' "$0"; exit 1 ;;
+	*) sed -n '2,13p' "$0"; exit 1 ;;
 	esac
 	shift
 done

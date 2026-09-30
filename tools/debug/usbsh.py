@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: MIT
 """Run a shell command on the RAM test system over the USB gadget link (tcp/2323)."""
 import os, socket, sys, time
 # NetworkManager profile 'tw2424as-usb' gives the host 10.42.0.2/24

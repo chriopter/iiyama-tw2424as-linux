@@ -1,5 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
 # Read TC358775 registers over DSI generic read (host briefly in command mode).
 D=/tmp/devmem; B=0xff960000
 r(){ $D $((B+$1)); }

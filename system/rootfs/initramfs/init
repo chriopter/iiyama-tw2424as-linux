@@ -1,5 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
 # Wallpanel boot initramfs (PID 1).
 # Normal: mount LABEL=wallpanel-root and switch_root to it.
 # Rescue: if the root filesystem is missing/broken, or "wallpanel.rescue" is on

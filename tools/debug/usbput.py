@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: MIT
 """Copy a local file to the RAM test system over the USB shell: usbput.py LOCAL REMOTE [mode]."""
 import base64, os, subprocess, sys
 local, remote = sys.argv[1], sys.argv[2]

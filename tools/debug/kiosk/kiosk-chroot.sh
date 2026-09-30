@@ -1,5 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
 # Run on the RAM test system: enter the kiosk rootfs (unpacked to /mnt/k)
 # and start WiFi + cage/Chromium. Args: SSID PSK URL
 set -e

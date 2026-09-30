@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: MIT
 """Print vendor DT nodes with phandles resolved to labels/paths and GPIO specs decoded."""
 import sys, fdt
 d = fdt.parse_dtb(open(sys.argv[1], 'rb').read())

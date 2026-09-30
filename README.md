@@ -260,17 +260,3 @@ docs/    analysis/ (derived analysis results, BSP 6.1 reference)
 No third-party source trees (only our patches against pinned upstream versions) and no personal data in
 the repo: credentials in `tools/local.env`, SSH key in `tools/ssh/` (gitignored). Each folder's README
 states its rules.
-
-## License
-
-Own scripts, apps and docs: MIT ([`LICENSE`](LICENSE)). Patches and sources for GPL projects keep the
-project's licence; full texts in [`LICENSES/`](LICENSES/).
-
-| Path | Licence |
-|---|---|
-| `system/kernel/patches/*`, `docs/analysis/bsp-6.1/patches/*` | GPL-2.0 (Linux); new files carry their own SPDX line (DT bindings `GPL-2.0-only OR BSD-2-Clause`, DTS `GPL-2.0+ OR MIT`) |
-| `system/boot/patches/*` | GPL-2.0-or-later (U-Boot) |
-| `system/rootfs/src/rebootmode.c`, `tools/debug/devmem/devmem.c` | GPL-2.0-only |
-| `system/cage/patches/*` | MIT (cage) |
-| `system/wallpanel-gamma/` | MIT, colour math from wlsunset (notice kept in the source) |
-| everything else | MIT |

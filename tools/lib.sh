@@ -1,4 +1,3 @@
-# SPDX-License-Identifier: MIT
 # Shared helpers for install.sh / sync-apps.sh / build-*.sh (sourced; expects $P = repo root).
 
 # ssh_pubkeys: print the maintenance public keys (tools/ssh/*.pub, gitignored).

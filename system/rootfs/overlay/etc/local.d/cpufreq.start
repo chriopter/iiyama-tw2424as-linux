@@ -1,5 +1,4 @@
 #!/bin/sh
-# SPDX-License-Identifier: MIT
 # schedutil derives its rate limit from the OPP clock latency (60/100 us), ignoring that every
 # frequency change also writes the CPU voltage to the PMIC over I2C. That caused ~400 changes/s
 # and ~2300 I2C interrupts/s at idle. 10 ms is plenty for a wallpanel.
