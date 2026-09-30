@@ -304,15 +304,15 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 | Key | Setting (HA name) | Values |
 |---|---|---|
 | `auto_off` | Bildschirm aus nach | minutes, 0 = never |
-| `auto_update`, `update_time` | Update täglich, Update-Zeit | true/false; `HH:MM` in 30-min steps (03:30) |
-| `ct_scale` | Farbton-Kalibrierung | 50–150 (%) |
-| `ct_red`, `ct_blue` | Weißabgleich Rot, Weißabgleich Blau | 50–100 (%) |
-| `display_lock`, `standby` | Bildschirm gesperrt, Bildschirm an/aus | true/false |
-| `fade_ms`, `touch_fade_ms` | Bildschirm-Überblendung (bei Berührung) | 0–3000 ms |
-| `hide_header`, `assist_listen` | HA-Kopfleiste ausblenden, Assist-Mikrofon sofort an | true/false (off, on) |
-| `home_after`, `home_url` | Startseite laden nach, Startseite | minutes (0 = never); URL, missing = `KIOSK_URL` |
-| `reboot_enabled`, `reboot_time` | Neustart täglich, Neustart-Zeit | true/false; `HH:MM` in 30-min steps (04:00) |
-| `scale` | Skalierung | 75, 80, 90, 100, 110, 125, 150, 175, 200 |
+| `auto_update`, `update_time` | Apps-Update täglich, Apps-Update: Uhrzeit | true/false; `HH:MM` in 30-min steps (03:30) |
+| `ct_scale` | Bildschirm-Kelvin | 50–150 (%) |
+| `ct_red`, `ct_blue` | Bildschirm-Rot, Bildschirm-Blau | 50–100 (%) |
+| `display_lock`, `standby` | Bildschirm-Sperre, Bildschirm-Ein/Aus | true/false |
+| `fade_ms`, `touch_fade_ms` | Bildschirm-Dimmen (: Berührung) | 0–3000 ms |
+| `hide_header`, `assist_listen` | HA-Kopfleiste ausblenden, HA-Assist hört sofort zu | true/false (off, on) |
+| `home_after`, `home_url` | HA-Startseite laden nach, HA-Startseite | minutes (0 = never); URL, missing = `KIOSK_URL` |
+| `reboot_enabled`, `reboot_time` | System-Neustart täglich, System-Neustart: Uhrzeit | true/false; `HH:MM` in 30-min steps (04:00) |
+| `scale` | HA-Skalierung | 75, 80, 90, 100, 110, 125, 150, 175, 200 |
 | `last_update`, `last_update_result` | – (shown on the update page) | written by the api |
 
 By hand over SSH: `wallpanel-rw run vi /var/lib/wallpanel/api-state.json`, then `rc-service wallpanel-api restart`.
@@ -332,7 +332,7 @@ rescue keys), test-boots slot B with an automatic health check and promotes it �
 ([`system/rootfs/`](system/rootfs/) → "Kernel updates").
 Alpine itself updates from the update page or with `wallpanel-rw run apk upgrade`. New kernel version: see [`system/kernel/`](system/kernel/).
 On the panel: the **update page** (HA switch *Wartungsseite anzeigen* or button *Wartungsseite umschalten*, or tap the screen 10× within 4 s) shows
-pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Update täglich*
+pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Apps-Update täglich*
 covers only Chromium and the AirPlay receiver – never other packages or the kernel
 ([`apps/wallpanel-api/`](apps/wallpanel-api/)).
 </details>

@@ -9,38 +9,38 @@ names (*config*/*diagnostic* = HA's entity category); English meaning and values
 |---|---|---|---|
 | **Bildschirm** | | | |
 | **Bildschirm-Beleuchtung** | screen light: the screen as a bulb (on/off = standby) – works with Adaptive Lighting | `light` | brightness 0–100 %, colour temperature 2202–6500 K (6500 K = neutral; never warmer than the LED bulbs) |
-| **Bildschirm an/aus** | screen on/off; off = standby (backlight off, animations paused, touch wakes) | `switch` | on/off |
-| **Bildschirm gesperrt** | screen locked: off, HA on-commands and touch wake ignored (power key still works) | `switch` | on/off (off) |
+| **Bildschirm-Ein/Aus** | screen on/off; off = standby (backlight off, animations paused, touch wakes) | `switch` | on/off |
+| **Bildschirm-Sperre** | screen locked: off, HA on-commands and touch wake ignored (power key still works) | `switch` | on/off (off) |
 | *config* **Bildschirm aus nach** | screen off after … without input | `number` | 0–240 min, 0 = never (5) |
-| *config* **Bildschirm-Überblendung** | screen fade | `number` | 0–3000 ms (400) |
-| *config* **Bildschirm-Überblendung bei Berührung** | screen fade when woken by touch | `number` | 0–3000 ms (100) |
-| *config* **Farbton-Kalibrierung** | tint calibration against real bulbs | `number` | 50–150 % (74) |
-| *config* **Weißabgleich Rot**, **Weißabgleich Blau** | red/blue balance of the panel's white against the bulbs (below 4000 K, fading out towards 6500 K) | `number` | 50–100 % (red 96, blue 100) |
+| *config* **Bildschirm-Dimmen** | screen fade | `number` | 0–3000 ms (400) |
+| *config* **Bildschirm-Dimmen: Berührung** | screen fade when woken by touch | `number` | 0–3000 ms (100) |
+| *config* **Bildschirm-Kelvin** | tint calibration against real bulbs | `number` | 50–150 % (74) |
+| *config* **Bildschirm-Rot**, **Bildschirm-Blau** | red/blue balance of the panel's white against the bulbs (below 4000 K, fading out towards 6500 K) | `number` | 50–100 % (red 96, blue 100) |
 | **Browser & Ton** | | | |
-| **Lautstärke** | volume | `number` | 0–100 % (30 after a restart) |
-| **Wiedergabe** | playback: sound is playing (AirPlay, browser) | `binary_sensor` | on/off |
-| **Seitenadresse** | page address (the page shown now) | `text` | http(s) URL |
-| *config* **Startseite** | home page | `text` | http(s) URL (`KIOSK_URL`) |
-| *config* **Startseite laden nach** | load the home page after … dark | `number` | 0–1440 min, 0 = never (60) |
-| *config* **Skalierung** | scaling: page zoom of Home Assistant (restarts the browser) | `select` | 75, 80, 90, 100, 110, 125, 150, 175, 200 % (100) |
+| **Ton-Lautstärke** | volume | `number` | 0–100 % (30 after a restart) |
+| **Ton-Wiedergabe** | playback: sound is playing (AirPlay, browser) | `binary_sensor` | on/off |
+| **HA-Seitenadresse** | page address (the page shown now) | `text` | http(s) URL |
+| *config* **HA-Startseite** | home page | `text` | http(s) URL (`KIOSK_URL`) |
+| *config* **HA-Startseite laden nach** | load the home page after … dark | `number` | 0–1440 min, 0 = never (60) |
+| *config* **HA-Skalierung** | scaling: page zoom of Home Assistant (restarts the browser) | `select` | 75, 80, 90, 100, 110, 125, 150, 175, 200 % (100) |
 | *config* **HA-Kopfleiste ausblenden** | hide HA's top bar; search and Assist move next to the badges (restarts the browser) | `switch` | on/off (off) |
-| *config* **Assist-Mikrofon sofort an** | tapping Assist starts speech recognition at once (restarts the browser) | `switch` | on/off (on) |
-| **Seite neu laden** | reload page | `button` | – |
-| *config* **Browser neu starten** | restart browser | `button` | – |
+| *config* **HA-Assist hört sofort zu** | tapping Assist starts speech recognition at once (restarts the browser) | `switch` | on/off (on) |
+| **HA-Seite neu laden** | reload page | `button` | – |
+| *config* **HA-Browser neu starten** | restart browser | `button` | – |
 | **Wartungsseite anzeigen** | show the on-screen maintenance page (update page) | `switch` | on/off |
 | **Wartungsseite umschalten** | maintenance page ↔ dashboard | `button` | – |
 | **System** | | | |
-| *config* **Neustart täglich** | reboot daily | `switch` | on/off (off) |
-| *config* **Neustart-Zeit** | time of the daily reboot | `select` | 00:00–23:30 in 30-min steps (04:00) |
-| *config* **Update täglich** | update Chrome & AirPlay once a day | `switch` | on/off (off) |
-| *config* **Update-Zeit** | time of the daily update – keep it apart from the reboot time (a reboot due during an update waits for it) | `select` | 00:00–23:30 in 30-min steps (03:30) |
-| *config* **Apps aktualisieren** | update apps now (Chrome & AirPlay only) | `button` | – |
-| *config* **Neu starten** | reboot | `button` | – |
+| *config* **System-Neustart täglich** | reboot daily | `switch` | on/off (off) |
+| *config* **System-Neustart: Uhrzeit** | time of the daily reboot | `select` | 00:00–23:30 in 30-min steps (04:00) |
+| *config* **Apps-Update täglich** | update Chrome & AirPlay once a day | `switch` | on/off (off) |
+| *config* **Apps-Update: Uhrzeit** | time of the daily update – keep it apart from the reboot time (a reboot due during an update waits for it) | `select` | 00:00–23:30 in 30-min steps (03:30) |
+| *config* **Apps-Update jetzt** | update apps now (Chrome & AirPlay only) | `button` | – |
+| *config* **System-Neustart** | reboot | `button` | – |
 | **Diagnose (diagnostic)** | | | |
 | *diagnostic* **Prozessortemperatur**, **Prozessorauslastung** | CPU temperature, CPU usage | `sensor` | °C, % |
-| *diagnostic* **WLAN-Signal**, **Betriebszeit** | WiFi signal, uptime | `sensor` | dBm, h |
-| *diagnostic* **Arbeitsspeicher belegt/frei**, **Speicherplatz frei/belegt**, **Systemlast** | memory used/free, disk free/used, load | `sensor` | %, MiB, GiB (*frei*/*belegt* partly disabled by default) |
-| *diagnostic* **Updates verfügbar**, **Letztes Update**, **Nächster Neustart** | updates available, last update, next reboot | `sensor` | count, time |
+| *diagnostic* **WLAN-Signal**, **System-Betriebszeit** | WiFi signal, uptime | `sensor` | dBm, h |
+| *diagnostic* **Arbeitsspeicher belegt/frei**, **Speicherplatz frei/belegt**, **Prozessorlast** | memory used/free, disk free/used, load | `sensor` | %, MiB, GiB (*frei*/*belegt* partly disabled by default) |
+| *diagnostic* **Apps-Updates verfügbar**, **Apps-Update: zuletzt**, **System-Neustart: geplant** | updates available, last update, next reboot | `sensor` | count, time |
 
 Volume: ALSA control `MIXER_CONTROL` (default `DAC` of the ES8316), 100 % = 0 dB, 0.5 dB per % (1 % = -49.5 dB),
 0 % = mute; the last value is re-applied on start (default 30 %).
@@ -49,12 +49,12 @@ logs it in to HA (`KIOSK_USER`/`KIOSK_PASSWORD`, with backoff), reloads the page
 if the JS heap exceeds `RELOAD_HEAP_MB` (350) or free RAM drops below `RELOAD_MEM_PCT` (15 %).
 Colour temperature ("night shift"): the compositor's gamma ramp via `wallpanel-gamma` (as user `wallpanel`,
 restarted when it or the compositor exits), applied by the VOP's hardware LUT – no rendering cost; 6500 K
-= neutral (no gamma client). **Farbton-Kalibrierung** calibrates the tint against real bulbs in the mired domain,
+= neutral (no gamma client). **Bildschirm-Kelvin** calibrates the tint against real bulbs in the mired domain,
 keeping 6500 K neutral: `mired_eff = 153.85 + (1e6/K − 153.85) × s`. The default 74 % (3000 K is sent as ~3500 K)
 comes from matching the panel to a hallway LED bulb (below); HA keeps seeing the requested Kelvin.
-**Weißabgleich Rot/Blau** scale the panel's red and blue on top (LED bulbs are greener than the panel's white).
-On the settings page, **Farbabgleich → Weißfläche** turns the whole screen white with the four colour controls at
-the bottom (Farbtemperatur, Farbton-Kalibrierung, Weißabgleich Rot/Blau); the Farbtemperatur follows Home
+**Bildschirm-Rot/-Blau** scale the panel's red and blue on top (LED bulbs are greener than the panel's white).
+On the settings page, **Bildschirm-Farbe → Weißfläche** turns the whole screen white with the four colour controls at
+the bottom (Farbtemperatur, Bildschirm-Kelvin, Bildschirm-Rot/-Blau); the Farbtemperatur follows Home
 Assistant live (shown as requested → panel Kelvin), so a bulb and the panel can be switched together from HA
 while calibrating. Calibration changes and colour temperatures from the page apply at once; HA commands glide
 over their `transition` (Adaptive Lighting without one: 1.5 s).
@@ -66,14 +66,14 @@ advertises the protocol and drops the ramps.
 Opens no network port (MQTT client only); the update page listens on **127.0.0.1:8099** only. Diagnostics on the device: `python3 /usr/lib/wallpanel/wallpanel_api.py --state`.
 
 **Updates.** "Apps" means the browser (`chromium`) and the AirPlay receiver (`shairport-sync`, if installed):
-**Update täglich** and the **Apps aktualisieren** button only run `apk add -u` for these two (plus the
+**Apps-Update täglich** and the **Apps-Update jetzt** button only run `apk add -u` for these two (plus the
 dependencies apk needs), then restart the kiosk/AirPlay service. All other Alpine packages and the **kernel are
-never updated automatically** – only by hand on the on-screen update page. *Updates verfügbar* counts all
+never updated automatically** – only by hand on the on-screen update page. *Apps-Updates verfügbar* counts all
 pending packages.
 
 **On-screen update page** – opened by the switch *Wartungsseite anzeigen*, the button *Wartungsseite umschalten* (page ↔ dashboard) or by **tapping the lit screen 10 times
 within 4 s** (hidden gesture; the taps also reach the dashboard below). Two columns: *Apps & System* (pending
-packages old → new from `apk upgrade --simulate`, Update täglich status and time, last result,
+packages old → new from `apk upgrade --simulate`, Apps-Update täglich status and time, last result,
 **Jetzt aktualisieren** = full `apk upgrade` with live output) and *Kernel* (running kernel + slot, available
 release with changelog, last result from `wallpanel-update check --json`, **Kernel installieren** with an on-screen
 confirmation, then `wallpanel-update install-release` detached, output in `/var/log/wallpanel-kernel-update.log`).
@@ -84,14 +84,15 @@ additionally requires a real finger-down from the touchscreen within the last 20
 The api looks for a new kernel release on GitHub once a day (and whenever the page opens or *Erneut prüfen* is
 tapped), so the page already shows it; installing still needs that touch.
 Second tab **Einstellungen & Service**, grouped by topic; the three sections marked *auch in Home Assistant*
-mirror the HA entities with the same names – **Bildschirm** (Helligkeit, Farbtemperatur, Farbabgleich, Überblendung (+ bei Berührung), Bildschirm aus nach, Bildschirm gesperrt), **Browser & Ton** (Lautstärke, Skalierung,
-HA-Kopfleiste ausblenden, Assist-Mikrofon sofort an, Startseite laden nach; Seite neu laden, Browser neu starten) and **System** (Neustart
-täglich, Neustart-Zeit, Update täglich, Update-Zeit; Apps aktualisieren, Neu starten) – and a dashed box **Nur am Gerät**
-(Herunterfahren). URLs are set from HA only. **Skalierung** shows the resulting resolution
+mirror the HA entities with the same names – **Bildschirm** (Helligkeit, Farbtemperatur, Bildschirm-Farbe, Bildschirm-Dimmen
+(+ Berührung), Bildschirm aus nach, Bildschirm-Sperre), **Browser & Ton** (Ton-Lautstärke, HA-Skalierung, HA-Kopfleiste
+ausblenden, HA-Assist hört sofort zu, HA-Startseite laden nach; HA-Seite neu laden, HA-Browser neu starten) and **System**
+(System-Neustart täglich / Uhrzeit, Apps-Update täglich / Uhrzeit; Apps-Update jetzt, System-Neustart) – and a dashed box **Nur am Gerät**
+(Herunterfahren). URLs are set from HA only. **HA-Skalierung** shows the resulting resolution
 (e.g. 125 % = 1536×864); *Anpassen* opens a live preview of the dashboard in a frame – *Übernehmen* restarts the
 browser, the update page itself stays at 100 %.
 They run through the same `command()` as the MQTT messages (HA state follows at once); settings need the page
-token, anything that restarts or reboots (also *Skalierung*, *HA-Kopfleiste ausblenden*, *Assist-Mikrofon sofort an* and *Jetzt aktualisieren*) also the recent real touch.
+token, anything that restarts or reboots (also *HA-Skalierung*, *HA-Kopfleiste ausblenden*, *HA-Assist hört sofort zu* and *Jetzt aktualisieren*) also the recent real touch.
 A row above the columns shows current values with small graphs (1 h / 24 h): CPU, SoC temperature, memory,
 WiFi signal, backlight (0 = off), plus uptime and kernel. The api samples them every 10 s into a 24 h ring
 buffer in RAM (~0.3 MB, lost on restart, nothing written to the eMMC); the page polls every 5 s while open.
