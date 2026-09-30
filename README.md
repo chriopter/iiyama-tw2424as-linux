@@ -23,7 +23,7 @@ Specifications and photos: see the manufacturer page, [iiyama ProLite TW2424AS-W
 | WiFi / Bluetooth | AMPAK AP6256 (BCM43456 / BCM4345C5) | ✅ vendor firmware, power save off |
 | GPU / video | Mali-T860 MP4 / rkvdec, hantro | ✅ Panfrost (GLES 3.1), V4L2 |
 | Audio | ES8316, HDMI audio | ✅ cards present, playback untested |
-| Microphones | 2 digital mics + echo reference on ES7210 | ✅ own driver, capture on card 0 (channels 2–5) |
+| Microphones | 2 digital mics + echo reference on ES7210 | ✅ own driver, capture on card 0 (channels 2–5); ALSA `default` = the mics (Assist in the browser) |
 | Ethernet | GMAC RGMII + Motorcomm YT8511 | ✅ driver, link untested |
 | RTC, HDMI out | HYM8563, dw-hdmi | ✅ |
 | HDMI in | RK628 (HDMI → CSI) | ❌ no mainline driver |
