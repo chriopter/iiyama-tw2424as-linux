@@ -361,9 +361,9 @@ static void release_and_exit(void)
 	exit(0);
 }
 
-/* parse one input line "K" or "K R B" (red/blue gain in %, sets *r, *b): returns K, 0 for an empty line,
- * -1 if invalid */
-static int parse_line(char *s, int *r, int *b)
+/* parse one input line "K", "K R B" (red/blue gain in %, sets *r, *b) or "K R B F" (fade in ms for this
+ * change, sets *f; e.g. 0 while calibrating): returns K, 0 for an empty line, -1 if invalid */
+static int parse_line(char *s, int *r, int *b, long *f)
 {
 	while (*s == ' ' || *s == '\t' || *s == '\r')
 		s++;
@@ -378,11 +378,17 @@ static int parse_line(char *s, int *r, int *b)
 	if (errno || k < KELVIN_MIN || k > KELVIN_MAX)
 		return -1;
 	if (*end) {
-		char *e2, *e3;
+		char *e2, *e3, *e4;
 		long vr = strtol(end, &e2, 10);
 		long vb = strtol(e2, &e3, 10);
-		if (errno || *e3 || e2 == end || e3 == e2 || vr < GAIN_MIN || vr > 100 || vb < GAIN_MIN || vb > 100)
+		if (errno || e2 == end || e3 == e2 || vr < GAIN_MIN || vr > 100 || vb < GAIN_MIN || vb > 100)
 			return -1;
+		if (*e3) {
+			long vf = strtol(e3, &e4, 10);
+			if (errno || *e4 || e4 == e3 || vf < 0 || vf > 3600000)
+				return -1;
+			*f = vf;
+		}
 		*r = (int)vr;
 		*b = (int)vb;
 	}
@@ -394,8 +400,9 @@ static void usage(FILE *f)
 	fprintf(f,
 		"usage: wallpanel-gamma [-o NAME] [-f MS] [-v]\n"
 		"  reads colour temperatures (integer Kelvin %d-%d, one per line, optionally followed by red\n"
-		"  and blue gain %d-100 %%, e.g. \"3300 85 100\") from stdin and sets the gamma ramp (wlsunset\n"
-		"  colour math, %d K = identity); exits 0 on EOF.\n"
+		"  and blue gain %d-100 %% and a fade in ms for this change, e.g. \"3300 85 100\" or\n"
+		"  \"3300 85 100 0\") from stdin and sets the gamma ramp (wlsunset colour math, %d K = identity);\n"
+		"  exits 0 on EOF.\n"
 		"  -o NAME  only this output (wl_output name, e.g. DSI-1); default: all outputs\n"
 		"  -f MS    fade to each new temperature over MS milliseconds (default 0: jump)\n"
 		"  -v       log every applied step\n"
@@ -477,6 +484,7 @@ int main(int argc, char **argv)
 	/* cur: temperature on screen. Before our first set_gamma the compositor shows identity. */
 	int cur = IDENTITY_K, from = IDENTITY_K, target = IDENTITY_K;
 	bool reapply = false;  /* the colour balance changed */
+	long cur_fade = fade_ms;  /* fade of the change in progress */
 	int64_t fade_start = 0;
 
 	for (;;) {
@@ -484,10 +492,10 @@ int main(int argc, char **argv)
 		int timeout = -1;
 		if (target != cur || reapply) {
 			int k = target;
-			if (fade_ms > 0) {
+			if (cur_fade > 0) {
 				int64_t t = now_ms() - fade_start;
-				if (t < fade_ms) {
-					k = from + (int)lround((double)(target - from) * t / fade_ms);
+				if (t < cur_fade) {
+					k = from + (int)lround((double)(target - from) * t / cur_fade);
 					timeout = FADE_STEP_MS;
 				}
 			}
@@ -544,6 +552,7 @@ int main(int argc, char **argv)
 		used += (size_t)got;
 		/* take every complete line; only the last valid one matters */
 		int newest = -1;
+		long newest_fade = -1;  /* fade of this change in ms, -1 = the -f default */
 		char *line = buf, *nl;
 		while ((nl = memchr(line, '\n', used - (size_t)(line - buf)))) {
 			*nl = 0;
@@ -551,7 +560,8 @@ int main(int argc, char **argv)
 				discard = false;
 			} else {
 				int r = gain_r, b = gain_b;
-				int k = parse_line(line, &r, &b);
+				long f = -1;
+				int k = parse_line(line, &r, &b, &f);
 				if (k < 0) {
 					msg("ignoring invalid line \"%s\" (want Kelvin %d-%d, optionally red/blue %d-100)", line,
 					    KELVIN_MIN, KELVIN_MAX, GAIN_MIN);
@@ -561,8 +571,10 @@ int main(int argc, char **argv)
 						gain_b = b;
 						reapply = true;
 					}
-					if (k > 0)
+					if (k > 0) {
 						newest = k;
+						newest_fade = f;
+					}
 				}
 			}
 			line = nl + 1;
@@ -575,8 +587,9 @@ int main(int argc, char **argv)
 			discard = true;
 		}
 		if (newest > 0) {
-			if (fade_ms > 0 && newest != cur)
-				msg("%d K (fading from %d K over %ld ms)", newest, cur, fade_ms);
+			cur_fade = newest_fade >= 0 ? newest_fade : fade_ms;
+			if (cur_fade > 0 && newest != cur)
+				msg("%d K (fading from %d K over %ld ms)", newest, cur, cur_fade);
 			else
 				msg("%d K", newest);
 			from = cur;

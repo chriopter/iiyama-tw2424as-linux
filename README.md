@@ -131,7 +131,7 @@ Only three partitions change; bootloader, `misc` and Android `super` stay untouc
 | [`wallpanel-api`](apps/wallpanel-api/) | Home Assistant integration via MQTT discovery – display on/off (instant standby) + lock, brightness, night shift, volume, home page, return to home page after N min dark, browser scaling, HA top bar tweak, auto reboot with time, reload/restart/reboot buttons, CPU/memory/disk/temperature/WiFi sensors; keeps the kiosk fullscreen and logged in, reloads it when memory runs full while dark; Vol± with on-screen overlay, power key toggles standby | outbound MQTT, no open port |
 | [`wallpanel-airplay`](apps/wallpanel-airplay/) | AirPlay 1 speaker (shairport-sync + avahi) for iPhone/Mac and Home Assistant via Music Assistant; plays through the shared dmix next to Chromium, AirPlay volume = panel volume (same DAC control and scale), optional password | mDNS 5353/udp, 5000/tcp, 6001–6010/udp |
 
-**On-screen update page** (tap the screen 10× within 4 s, or the HA switch *Update-Seite anzeigen*): updates of
+**On-screen update page** (tap the screen 10× within 4 s, or the HA switch *Wartungsseite anzeigen* or button *Wartungsseite umschalten*): updates of
 apps, system and kernel with live graphs, and all settings – grouped by topic, marked whether they also exist in
 Home Assistant ([`wallpanel-api`](apps/wallpanel-api/)).
 
@@ -331,7 +331,7 @@ Signed kernel releases from CI (GitHub releases `kernel-*`): `wallpanel-update c
 rescue keys), test-boots slot B with an automatic health check and promotes it – or falls back to slot A
 ([`system/rootfs/`](system/rootfs/) → "Kernel updates").
 Alpine itself updates from the update page or with `wallpanel-rw run apk upgrade`. New kernel version: see [`system/kernel/`](system/kernel/).
-On the panel: the **update page** (HA switch *Update-Seite anzeigen*, or tap the screen 10× within 4 s) shows
+On the panel: the **update page** (HA switch *Wartungsseite anzeigen* or button *Wartungsseite umschalten*, or tap the screen 10× within 4 s) shows
 pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Update täglich*
 covers only Chromium and the AirPlay receiver – never other packages or the kernel
 ([`apps/wallpanel-api/`](apps/wallpanel-api/)).

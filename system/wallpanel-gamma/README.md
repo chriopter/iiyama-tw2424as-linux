@@ -25,6 +25,7 @@ wallpanel-gamma [-o NAME] [-f MS] [-v]      # also -V (version), -h (help)
 - stdin: one integer Kelvin value per line, 1000–25000 (`\n`, surrounding blanks/`\r` ignored), optionally
   followed by a red and a blue gain in % (50–100, e.g. `3300 92 96`): the white is scaled per channel below
   4000 K, fading out towards 6500 K (neutral stays the identity ramp); a changed gain is applied at once.
+  A fourth value sets the fade of this change in ms (e.g. `3300 92 96 0`: at once), otherwise `-f`.
   Applied on receipt; several lines arriving together: only the last one counts. Empty lines are
   ignored, invalid ones are logged and ignored (the program keeps running). 6500 = identity ramp
   (control still held, so the VOP LUT stays enabled with an identity table).

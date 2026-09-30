@@ -27,7 +27,8 @@ names (*config*/*diagnostic* = HA's entity category); English meaning and values
 | *config* **Assist sofort zuhören** | tapping Assist starts speech recognition at once (restarts the browser) | `switch` | on/off (on) |
 | **Seite neu laden** | reload page | `button` | – |
 | *config* **Browser neu starten** | restart browser | `button` | – |
-| **Update-Seite anzeigen** | show the on-screen update page | `switch` | on/off |
+| **Wartungsseite anzeigen** | show the on-screen maintenance page (update page) | `switch` | on/off |
+| **Wartungsseite umschalten** | maintenance page ↔ dashboard | `button` | – |
 | **System** | | | |
 | *config* **Neustart täglich** | reboot daily | `switch` | on/off (off) |
 | *config* **Neustart-Zeit** | time of the daily reboot | `select` | 00:00–23:30 in 30-min steps (04:00) |
@@ -53,6 +54,11 @@ keeping 6500 K neutral: `mired_eff = 153.85 + (1e6/K − 153.85) × s`. An eye c
 panel looks like a 2700 K bulb") gave 83 %, the camera calibration below 85 % (the default; 3000 K is sent as
 ~3300 K); HA keeps seeing the requested Kelvin.
 **Weißabgleich Rot/Blau** scale the panel's red and blue on top (LED bulbs are greener than the panel's white).
+On the settings page, **Farbabgleich → Weißfläche** turns the whole screen white with the four colour controls at
+the bottom (Farbtemperatur, Farbton-Kalibrierung, Weißabgleich Rot/Blau); the Farbtemperatur follows Home
+Assistant live (shown as requested → panel Kelvin), so a bulb and the panel can be switched together from HA
+while calibrating. Calibration changes and colour temperatures from the page apply at once; HA commands glide
+over their `transition` (Adaptive Lighting without one: 1.5 s).
 Calibrated once with a camera (fixed white balance/exposure) looking at the panel (white page) next to the
 hallway bulb, bulb and panel at the same Kelvin: 85 % / red 92 % / blue 96 % (the defaults) brought the mean deviation of R/G and
 B/G from 18 % to 12 % (R/G within ±9 % over 2200–4000 K; the panel's blue still rises a bit faster with Kelvin). Needs our cage build ([`system/cage/`](../../system/cage/)): Alpine's cage 0.3.0 only
@@ -65,7 +71,7 @@ dependencies apk needs), then restart the kiosk/AirPlay service. All other Alpin
 never updated automatically** – only by hand on the on-screen update page. *Updates verfügbar* counts all
 pending packages.
 
-**On-screen update page** – opened by the switch *Update-Seite anzeigen* or by **tapping the lit screen 10 times
+**On-screen update page** – opened by the switch *Wartungsseite anzeigen*, the button *Wartungsseite umschalten* (page ↔ dashboard) or by **tapping the lit screen 10 times
 within 4 s** (hidden gesture; the taps also reach the dashboard below). Two columns: *Apps & System* (pending
 packages old → new from `apk upgrade --simulate`, Update täglich status and time, last result,
 **Jetzt aktualisieren** = full `apk upgrade` with live output) and *Kernel* (running kernel + slot, available
@@ -78,8 +84,7 @@ additionally requires a real finger-down from the touchscreen within the last 20
 The api looks for a new kernel release on GitHub once a day (and whenever the page opens or *Erneut prüfen* is
 tapped), so the page already shows it; installing still needs that touch.
 Second tab **Einstellungen & Service**, grouped by topic; the three sections marked *auch in Home Assistant*
-mirror the HA entities with the same names – **Bildschirm** (Helligkeit, Farbtemperatur, Farbton-Kalibrierung,
-Weißabgleich Rot/Blau, Überblendung (+ bei Berührung), Bildschirm aus nach, Bildschirm gesperrt), **Browser & Ton** (Lautstärke, Skalierung,
+mirror the HA entities with the same names – **Bildschirm** (Helligkeit, Farbtemperatur, Farbabgleich, Überblendung (+ bei Berührung), Bildschirm aus nach, Bildschirm gesperrt), **Browser & Ton** (Lautstärke, Skalierung,
 HA-Kopfleiste ausblenden, Assist sofort zuhören, Startseite laden nach; Seite neu laden, Browser neu starten) and **System** (Neustart
 täglich, Neustart-Zeit, Update täglich, Update-Zeit; Apps aktualisieren, Neu starten) – and a dashed box **Nur am Gerät**
 (Herunterfahren). URLs are set from HA only. **Skalierung** shows the resulting resolution

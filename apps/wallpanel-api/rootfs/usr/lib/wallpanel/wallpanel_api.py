@@ -227,13 +227,15 @@ class Display:
         except OSError:
             pass
 
-    def set_kelvin(self, value):
+    def set_kelvin(self, value, fade_ms=None):
+        """fade_ms: overlap for this change (HA transition, 0 from the on-screen page); None = the helper's
+        default 1.5 s glide (Adaptive Lighting)."""
         value = max(self.KELVIN[0], min(self.KELVIN[1], int(value)))
         with self.lock:
             if value == self.kelvin:
                 return
             self.kelvin = value  # RAM only (no eMMC writes every 90 s from Adaptive Lighting)
-        self.ensure_gamma()
+        self.ensure_gamma(fade_ms)
 
     CT_SCALE = (50, 150, 85)  # %, min/max/default of the colour calibration (camera calibration vs. a hallway bulb)
 
@@ -243,7 +245,7 @@ class Display:
     def set_ct_scale(self, value):
         SETTINGS['ct_scale'] = max(self.CT_SCALE[0], min(self.CT_SCALE[1], int(float(value))))
         save_settings()
-        self.ensure_gamma()  # re-applied right away
+        self.ensure_gamma(0)  # calibrating: right away, no glide
 
     CT_GAIN = (50, 100)  # %, min/max of the red/blue balance (wallpanel-gamma "K R B")
     CT_GAIN_DEFAULT = {'red': 92, 'blue': 96}  # camera calibration vs. a hallway LED bulb
@@ -257,7 +259,7 @@ class Display:
         so neutral stays neutral."""
         SETTINGS[f'ct_{ch}'] = max(self.CT_GAIN[0], min(self.CT_GAIN[1], int(float(value))))
         save_settings()
-        self.ensure_gamma()
+        self.ensure_gamma(0)
 
     def effective_kelvin(self):
         """Colour calibration (HA number "Farbton-Kalibrierung"): the panel's tint looked warmer than a bulb of
@@ -268,7 +270,7 @@ class Display:
         mired = neutral + (1e6 / self.kelvin - neutral) * self.ct_scale() / 100
         return max(self.KELVIN[0], min(self.KELVIN[1], round(1e6 / mired)))
 
-    def ensure_gamma(self):
+    def ensure_gamma(self, fade_ms=None):
         """Keep the night-shift tint applied. wallpanel-gamma holds the compositor's gamma control for
         the whole session and takes new temperatures on stdin, so changes (e.g. every few minutes from
         Adaptive Lighting) glide without releasing the ramp - no neutral flash. It exits with the
@@ -291,7 +293,7 @@ class Display:
             r, b = self.ct_gain('red'), self.ct_gain('blue')
             if self.gamma_k != (k, r, b):
                 try:
-                    self.gamma.stdin.write(f'{k} {r} {b}\n')
+                    self.gamma.stdin.write(f'{k} {r} {b}' + ('' if fade_ms is None else f' {int(fade_ms)}') + '\n')
                     self.gamma.stdin.flush()
                     self.gamma_k = (k, r, b)
                     print(f'night shift: {self.kelvin} K (effective {k} K, calibration {self.ct_scale()} %, '
@@ -963,8 +965,9 @@ def command(topic, payload):
         # the screen as a light bulb (HA light, e.g. driven by Adaptive Lighting): on/off = standby,
         # brightness = backlight, colour temperature = night shift
         cmd = json.loads(payload)
-        if 'color_temp' in cmd:  # Kelvin (color_temp_kelvin)
-            display.set_kelvin(cmd['color_temp'])
+        if 'color_temp' in cmd:  # Kelvin (color_temp_kelvin); HA "transition" (s) -> this change's fade
+            t = cmd.get('transition')
+            display.set_kelvin(cmd['color_temp'], None if t is None else max(0, min(3600000, float(t) * 1000)))
         if cmd.get('brightness'):
             display.set_brightness(cmd['brightness'])
         if cmd.get('state') in ('ON', 'OFF'):
@@ -1022,6 +1025,8 @@ def command(topic, payload):
         threading.Thread(target=install_updates, daemon=True).start()
     elif topic.endswith('/update_page/set'):  # shows the page only; kernel installs need a touch there
         update_page.show() if payload.strip().upper() == 'ON' else update_page.close()
+    elif topic.endswith('/update_page_toggle'):  # HA button: maintenance page <-> dashboard
+        update_page.close() if update_page.on else update_page.show()
     elif topic.endswith('/reboot_enabled/set'):
         set_reboot_enabled(payload.strip().upper() == 'ON')
     elif topic.endswith('/volume/set'):
@@ -1122,7 +1127,9 @@ class Mqtt:
                                            'command_topic': f'{BASE}/reboot_enabled/set', 'state_topic': f'{BASE}/state',
                                            'value_template': "{{ 'ON' if value_json.reboot_enabled else 'OFF' }}",
                                            'entity_category': 'config'},
-            ('switch', 'update_page'): {'name': 'Update-Seite anzeigen', 'icon': 'mdi:update',
+            ('button', 'update_page_toggle'): {'name': 'Wartungsseite umschalten', 'icon': 'mdi:swap-horizontal',
+                                               'command_topic': f'{BASE}/update_page_toggle'},
+            ('switch', 'update_page'): {'name': 'Wartungsseite anzeigen', 'icon': 'mdi:update',
                                         'command_topic': f'{BASE}/update_page/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.update_page else 'OFF' }}"},
             ('switch', 'auto_update'): {'name': 'Update täglich', 'icon': 'mdi:update',
@@ -1213,7 +1220,7 @@ class Mqtt:
             return
         self.discovery()
         c.subscribe(f'{BASE}/+/set')
-        for t in ('reload', 'restart_kiosk', 'reboot', 'install_updates'):
+        for t in ('reload', 'restart_kiosk', 'reboot', 'install_updates', 'update_page_toggle'):
             c.subscribe(f'{BASE}/{t}')
         c.subscribe('homeassistant/status')
         c.publish(f'{BASE}/availability', 'online', retain=True)
@@ -1401,7 +1408,7 @@ def gamma_loop():
 # --- on-screen update page (127.0.0.1 only) -------------------------------------
 
 class UpdatePage:
-    """HA switch "Update-Seite anzeigen": the kiosk shows a local page with the pending Alpine updates and
+    """HA switch "Wartungsseite anzeigen" (and button "Wartungsseite umschalten"): the kiosk shows a local page with the pending Alpine updates and
     the kernel (A/B) release; off (or IDLE without touch) returns to the page shown before.
     Served on 127.0.0.1 only (not reachable from the network). POSTs need the random token that is only
     embedded in the page the kiosk loads (other local processes cannot start anything), and the Host header
@@ -1492,6 +1499,7 @@ class UpdatePage:
     def settings(self):
         d = display.state()
         return {'brightness': d['brightness'], 'max_brightness': d['max_brightness'], 'color_temp': d['color_temp'],
+                'color_temp_effective': d['color_temp_effective'],
                 'kelvin_range': list(Display.KELVIN), 'ct_scale': d['ct_scale'], 'ct_scale_range': list(Display.CT_SCALE),
                 'ct_red': d['ct_red'], 'ct_blue': d['ct_blue'],
                 'locked': d['locked'], 'standby': d['standby'], 'volume': volume.get(),
@@ -1528,7 +1536,8 @@ class UpdatePage:
             return 403, 'Nur per Berührung am Bildschirm möglich.'
         try:
             if cmd == 'display':  # brightness / colour temperature only, never on/off
-                value = json.dumps({k: int(v) for k, v in dict(value).items() if k in ('brightness', 'color_temp')})
+                value = {k: int(v) for k, v in dict(value).items() if k in ('brightness', 'color_temp')}
+                value = json.dumps({**value, 'transition': 0})  # on-screen: at once (calibrating by eye)
             self._command(f'{BASE}/{cmd}/set', str(value))
         except (TypeError, ValueError) as e:
             return 400, f'Ungültiger Wert ({e})'
@@ -1753,6 +1762,12 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:40px; h
 .acts button { min-height:76px; }
 button.danger { background:var(--err); }
 button.danger .dim { color:rgba(255,255,255,.8) !important; }
+#wb { position:fixed; inset:0; background:#fff; display:none; align-items:flex-end; justify-content:center; }
+#wb .box { background:rgba(35,35,35,.94); border-radius:20px 20px 0 0; padding:18px 36px 22px; width:1500px;
+  display:grid; grid-template-columns:1fr 1fr; gap:6px 48px; }
+#wb .box .ctl { padding:2px 0; }
+#wb .box .lab { min-height:40px; }
+#wb .box .end { grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center; }
 #pv { position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; }
 #pv .box { background:#232323; border-radius:20px; padding:28px 32px; display:flex; flex-direction:column; gap:18px;
   box-shadow:0 20px 60px rgba(0,0,0,.6); }
@@ -1815,6 +1830,7 @@ button.danger .dim { color:rgba(255,255,255,.8) !important; }
 </main>
 </div>
 <div id="tab-svc" class="tab" hidden></div>
+<div id="wb"><div class="box" id="wbbox"></div></div>
 <div id="pv"><div class="box">
   <h3>Skalierung – Vorschau</h3>
   <div id="pvwrap"><iframe id="pvf" title="Vorschau"></iframe></div>
@@ -1928,6 +1944,37 @@ const pvStep = (d) => {
   const l = V.scales, i = Math.max(0, l.indexOf(pvScale));
   pvScale = l[Math.max(0, Math.min(l.length - 1, i + d))]; pvPaint();
 };
+// Farbabgleich: the whole screen white, the colour controls at the bottom - to match the panel's white to a bulb
+const WB = [
+  {k: 'color_temp', label: 'Farbtemperatur (von Home Assistant, live)', min: 1000, max: 6500, step: 50,
+    fmt: (v) => `${v} K → Panel ${V.color_temp_effective} K`, send: (v) => cmd('display', {color_temp: v})},
+  {k: 'ct_scale', label: 'Farbton-Kalibrierung', min: 50, max: 150, step: 1, fmt: (v) => `${v} %`},
+  {k: 'ct_red', label: 'Weißabgleich Rot', min: 50, max: 100, step: 1, fmt: (v) => `${v} %`},
+  {k: 'ct_blue', label: 'Weißabgleich Blau', min: 50, max: 100, step: 1, fmt: (v) => `${v} %`},
+];
+let wbTimer = null;
+function whiteOpen() {
+  $('wbbox').innerHTML = WB.map((w) => `<div class="ctl"><div class="lab"><span>${esc(w.label)}</span><b class="val"></b></div>` +
+    `<input type="range" min="${w.min}" max="${w.max}" step="${w.step}"></div>`).join('') +
+    '<div class="end"><span class="dim">Weiße Fläche zum Vergleich mit der Lampe</span><button id="wbok">Fertig</button></div>';
+  const ctls = $('wbbox').querySelectorAll('.ctl'), held = new Set();
+  const rows = WB.map((w, i) => {
+    const r = ctls[i].querySelector('input'), val = ctls[i].querySelector('.val');
+    const paintW = (v) => { val.textContent = w.fmt(v); r.style.setProperty('--p', `${100 * (v - w.min) / (w.max - w.min)}%`); };
+    r.value = V[w.k]; paintW(+r.value);
+    r.oninput = () => { held.add(w.k); paintW(+r.value); };
+    r.onchange = () => { (w.send || ((v) => cmd(w.k, v)))(+r.value); setTimeout(() => held.delete(w.k), 1500); };
+    return {w, r, paintW};
+  });
+  // live: Home Assistant (e.g. lamp and panel switched together) moves the sliders while this is open
+  clearInterval(wbTimer);
+  wbTimer = setInterval(async () => {
+    try { V = await (await fetch('/api/settings')).json(); } catch (e) { return; }
+    for (const {w, r, paintW} of rows) if (!held.has(w.k)) { r.value = V[w.k]; paintW(+r.value); }
+  }, 1000);
+  $('wbok').onclick = () => { clearInterval(wbTimer); $('wb').style.display = 'none'; settings(); };
+  $('wb').style.display = 'flex';
+}
 $('pvdn').onclick = () => pvStep(-1); $('pvup').onclick = () => pvStep(1);
 $('pvno').onclick = () => { $('pv').style.display = 'none'; $('pvf').removeAttribute('src'); };
 $('pvok').onclick = () => { $('pv').style.display = 'none'; $('pvf').removeAttribute('src');
@@ -1978,9 +2025,8 @@ const SVC = [
       fmt: (v) => `${Math.round(100 * v / V.max_brightness)} %`, send: (v) => cmd('display', {brightness: v})},
     {t: 'range', k: 'color_temp', label: 'Farbtemperatur', sub: 'Bildschirm-Beleuchtung', min: 1000, max: () => 6500, step: 50,
       fmt: (v) => `${v} K`, send: (v) => cmd('display', {color_temp: v})},
-    {t: 'range', k: 'ct_scale', label: 'Farbton-Kalibrierung', min: 50, max: () => 150, fmt: (v) => `${v} %`},
-    {t: 'range', k: 'ct_red', label: 'Weißabgleich Rot', min: 50, max: () => 100, fmt: (v) => `${v} %`},
-    {t: 'range', k: 'ct_blue', label: 'Weißabgleich Blau', min: 50, max: () => 100, fmt: (v) => `${v} %`},
+    {t: 'wb', k: 'ct_scale', label: 'Farbabgleich', sub: 'Farbton-Kalibrierung, Weißabgleich Rot/Blau',
+      fmt: () => `${V.ct_scale} % · R ${V.ct_red} · B ${V.ct_blue}`},
     {t: 'range', k: 'fade_ms', label: 'Bildschirm-Überblendung', min: 0, max: () => 3000, step: 50, fmt: ms},
     {t: 'range', k: 'touch_fade_ms', label: 'Bildschirm-Überblendung bei Berührung', min: 0, max: () => 3000, step: 10, fmt: ms},
     {t: 'step', k: 'auto_off', label: 'Bildschirm aus nach', list: [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240], fmt: min},
@@ -2024,6 +2070,7 @@ function lab(x) {
   return `<div class="lab"><span>${esc(x.label)}${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>` +
     (x.t === 'switch' ? '<button class="toggle"></button>' : x.t === 'step' ? '<div class="stp"><button>−</button><b class="val"></b><button>+</button></div>'
       : x.t === 'scale' ? '<div class="stp"><b class="val"></b><button class="flat" style="width:auto;padding:0 24px;font-size:21px">Anpassen</button></div>'
+      : x.t === 'wb' ? '<div class="stp"><b class="val"></b><button class="flat" style="width:auto;padding:0 24px;font-size:21px">Weißfläche</button></div>'
       : `<b class="val${x.url ? ' url' : ''}"></b>`) + '</div>';
 }
 function build() {
@@ -2057,6 +2104,8 @@ function build() {
         dn.onclick = () => go(-1); up.onclick = () => go(1);
       } else if (x.t === 'scale') {
         x.el.querySelector('.stp button').onclick = preview;
+      } else if (x.t === 'wb') {
+        x.el.querySelector('.stp button').onclick = whiteOpen;
       } else if (x.t === 'act') {
         x.el.onclick = x.confirm
           ? () => ask(x.confirm[0], x.confirm[1], '', x.confirm[2], () => cmd(x.c))
@@ -2077,7 +2126,7 @@ async function settings() {
   for (const {xs} of SVC) for (const x of xs) {
     if (x.t === 'range' && !hold.has(x.k)) { const r = x.el.querySelector('input'); r.max = x.max(); r.value = V[x.k]; paint(x, V[x.k]); }
     else if (x.t === 'switch') x.el.querySelector('.toggle').classList.toggle('on', !!V[x.k]);
-    else if (x.t === 'step' || x.t === 'scale') x.el.querySelector('.val').textContent = x.fmt(V[x.k]);
+    else if (x.t === 'step' || x.t === 'scale' || x.t === 'wb') x.el.querySelector('.val').textContent = x.fmt(V[x.k]);
     else if (x.t === 'info') x.el.querySelector('.val').textContent = x.v();
     else if (x.c === 'install_updates') x.el.disabled = V.updating;
   }
