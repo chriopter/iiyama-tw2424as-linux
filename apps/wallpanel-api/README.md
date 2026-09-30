@@ -14,8 +14,8 @@ names (*config*/*diagnostic* = HA's entity category); English meaning and values
 | *config* **Bildschirm aus nach** | screen off after … without input | `number` | 0–240 min, 0 = never (5) |
 | *config* **Bildschirm-Überblendung** | screen fade | `number` | 0–3000 ms (400) |
 | *config* **Bildschirm-Überblendung bei Berührung** | screen fade when woken by touch | `number` | 0–3000 ms (100) |
-| *config* **Farbton-Kalibrierung** | tint calibration against real bulbs | `number` | 50–150 % (83) |
-| *config* **Weißabgleich Rot**, **Weißabgleich Blau** | red/blue balance of the panel's white against the bulbs (below 4000 K, fading out towards 6500 K) | `number` | 50–100 % (100) |
+| *config* **Farbton-Kalibrierung** | tint calibration against real bulbs | `number` | 50–150 % (85) |
+| *config* **Weißabgleich Rot**, **Weißabgleich Blau** | red/blue balance of the panel's white against the bulbs (below 4000 K, fading out towards 6500 K) | `number` | 50–100 % (red 92, blue 96) |
 | **Browser & Ton** | | | |
 | **Lautstärke** | volume | `number` | 0–100 % (30 after a restart) |
 | **Wiedergabe** | playback: sound is playing (AirPlay, browser) | `binary_sensor` | on/off |
@@ -49,11 +49,12 @@ if the JS heap exceeds `RELOAD_HEAP_MB` (350) or free RAM drops below `RELOAD_ME
 Colour temperature ("night shift"): the compositor's gamma ramp via `wallpanel-gamma` (as user `wallpanel`,
 restarted when it or the compositor exits), applied by the VOP's hardware LUT – no rendering cost; 6500 K
 = neutral (no gamma client). **Farbton-Kalibrierung** calibrates the tint against real bulbs in the mired domain,
-keeping 6500 K neutral: `mired_eff = 153.85 + (1e6/K − 153.85) × s`. The default 83 % comes from "3000 K on
-the panel looks like a 2700 K bulb" (3000 K is sent as ~3300 K); HA keeps seeing the requested Kelvin.
+keeping 6500 K neutral: `mired_eff = 153.85 + (1e6/K − 153.85) × s`. An eye check ("3000 K on the
+panel looks like a 2700 K bulb") gave 83 %, the camera calibration below 85 % (the default; 3000 K is sent as
+~3300 K); HA keeps seeing the requested Kelvin.
 **Weißabgleich Rot/Blau** scale the panel's red and blue on top (LED bulbs are greener than the panel's white).
 Calibrated once with a camera (fixed white balance/exposure) looking at the panel (white page) next to the
-hallway bulb, bulb and panel at the same Kelvin: 85 % / red 92 % / blue 96 % brought the mean deviation of R/G and
+hallway bulb, bulb and panel at the same Kelvin: 85 % / red 92 % / blue 96 % (the defaults) brought the mean deviation of R/G and
 B/G from 18 % to 12 % (R/G within ±9 % over 2200–4000 K; the panel's blue still rises a bit faster with Kelvin). Needs our cage build ([`system/cage/`](../../system/cage/)): Alpine's cage 0.3.0 only
 advertises the protocol and drops the ramps.
 Opens no network port (MQTT client only); the update page listens on **127.0.0.1:8099** only. Diagnostics on the device: `python3 /usr/lib/wallpanel/wallpanel_api.py --state`.

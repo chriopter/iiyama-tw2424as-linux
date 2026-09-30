@@ -3,6 +3,7 @@
 the panel's calibration (Farbton-Kalibrierung, Weißabgleich Rot/Blau) matches the bulb.
 
   tools/debug/ct-sync.py [--steps 10] [--hold 8] [--from 2200] [--to 4000] [--white] [--brightness 60]
+  tools/debug/ct-sync.py --random --step 300 --hold 2 --white     # random colours every 2 s until Ctrl+C
 
   --white   the panel shows a plain white page meanwhile (DevTools over tools/tssh), else the dashboard
 
@@ -80,6 +81,8 @@ def main():
     a.add_argument('--from', dest='k0', type=int, default=2200)
     a.add_argument('--to', dest='k1', type=int, default=4000)
     a.add_argument('--brightness', type=int, default=60, help='bulb brightness 1-255')
+    a.add_argument('--random', action='store_true', help='random colours from --from..--to in --step K, until Ctrl+C')
+    a.add_argument('--step', type=int, default=300, help='Kelvin step for --random')
     a.add_argument('--white', action='store_true')
     o = a.parse_args()
     if not (HA and TOKEN and LAMP):
@@ -94,11 +97,18 @@ def main():
             white = White()
             white.on()
         print(f'{LAMP} and {PANEL} (Farbton-Kalibrierung / Weißabgleich set on the panel), {o.hold:g} s each')
-        for i in range(o.steps):
-            k = round(o.k0 + (o.k1 - o.k0) * i / max(1, o.steps - 1))
-            call('light.turn_on', entity_id=LAMP, color_temp_kelvin=k, brightness=o.brightness)
+        import itertools, random
+        levels = list(range(o.k0, o.k1 + 1, o.step))
+        last = None
+        for i in itertools.count() if o.random else range(o.steps):
+            if o.random:
+                k = random.choice([x for x in levels if x != last])
+            else:
+                k = round(o.k0 + (o.k1 - o.k0) * i / max(1, o.steps - 1))
+            last = k
+            call('light.turn_on', entity_id=LAMP, color_temp_kelvin=k, brightness=o.brightness, transition=0)
             call('light.turn_on', entity_id=PANEL, color_temp_kelvin=k, brightness=255)
-            print(f'  {i + 1:2}/{o.steps}  {k} K', flush=True)
+            print(f'  {i + 1:3}{"" if o.random else "/" + str(o.steps)}  {k} K', flush=True)
             time.sleep(o.hold)
     except KeyboardInterrupt:
         print('stopped')
