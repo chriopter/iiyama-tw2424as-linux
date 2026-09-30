@@ -85,8 +85,8 @@ cat "$P/system/firmware/vendor/BCM4345C5.hcd" | $SSH 'cat > /mnt/t/lib/firmware/
 
 say "device configuration (from tools/local.env, never in git)"
 $SSH "umask 077; mkdir -p /mnt/t/etc/wpa_supplicant
-	wpa_passphrase '$WIFI_SSID' '$WIFI_PSK' | grep -v '#psk=' > /mnt/t/etc/wpa_supplicant/wpa_supplicant.conf
-	echo 'LABEL=wallpanel-root / ext4 defaults,noatime,commit=60 0 1' > /mnt/t/etc/fstab"
+	wpa_passphrase '$WIFI_SSID' '$WIFI_PSK' | grep -v '#psk=' > /mnt/t/etc/wpa_supplicant/wpa_supplicant.conf"
+write_fstab "$SSH" /mnt/t
 write_conf "$SSH" /mnt/t
 
 say "services and users"
@@ -99,7 +99,7 @@ $SSH 'for d in dev proc sys; do mount --bind /$d /mnt/t/$d; done; chroot /mnt/t 
 	depmod -a '"$KREL"'
 	for s in devfs dmesg udev udev-trigger udev-settle; do rc-update add \$s sysinit >/dev/null; done
 	for s in modules sysctl hostname bootmisc hwclock syslog wallpanel-usb wallpanel-console watchdog; do rc-update add \$s boot >/dev/null; done
-	for s in networking wpa_supplicant chronyd dropbear seatd udev-postmount local wallpanel-kiosk wallpanel-api; do rc-update add \$s default >/dev/null; done
+	for s in networking wpa_supplicant chronyd dropbear seatd udev-postmount local wallpanel-kiosk wallpanel-api wallpanel-kernel-health dbus avahi-daemon wallpanel-airplay; do rc-update add \$s default >/dev/null; done
 	for s in mount-ro killprocs savecache; do rc-update add \$s shutdown >/dev/null; done
 	rc-update show | grep -c . >/dev/null
 "; for d in sys proc dev; do umount /mnt/t/$d; done; df -h /mnt/t | tail -1'

@@ -1,0 +1,4 @@
+# busybox syslogd: /var/log is a tmpfs (RAM, see /etc/fstab), so /var/log/messages is lost on reboot.
+# -s 1024 -b 2: rotate at 1 MiB, keep 2 old files (max. 3 MiB of RAM). Kernel messages of the previous
+# boot (panic, watchdog reset): /sys/fs/pstore/console-ramoops-0.
+SYSLOGD_OPTS="-t -s 1024 -b 2"

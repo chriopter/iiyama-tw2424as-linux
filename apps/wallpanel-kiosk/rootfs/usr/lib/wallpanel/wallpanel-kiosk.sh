@@ -51,6 +51,13 @@ if [ "$(cat "$DATA/.extension-id" 2>/dev/null)" != "$v" ]; then
 	echo "$v" > "$DATA/.extension-id"
 fi
 
+# HTTP and code cache in RAM (/run is a tmpfs): they are rewritten all the time and are the bulk of
+# Chromium's eMMC writes; losing them on reboot only costs one slower first load. The profile itself
+# (HA login token, local storage, permissions) stays on the eMMC. Drop the old caches there once.
+CACHE=$XDG_RUNTIME_DIR/chromium-cache
+mkdir -p "$CACHE"
+rm -rf "$DATA/chromium/Default/Cache" "$DATA/chromium/Default/Code Cache"
+
 # Apply output rotation once the compositor is up
 (
 	for _ in $(seq 1 50); do
@@ -71,4 +78,5 @@ exec cage -d -s -- chromium \
 	--password-store=basic --autoplay-policy=no-user-gesture-required \
 	--remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 \
 	--user-data-dir="$DATA/chromium" --load-extension="$EXT" \
+	--disk-cache-dir="$CACHE" --disk-cache-size=67108864 \
 	${CHROMIUM_FLAGS:-} "$URL"

@@ -1,11 +1,13 @@
 # iiyama ProLite TW2424AS – Linux wallpanel
 
+<p align="center"><img src="docs/images/wallpanel.svg" alt="Wallpanel with a Home Assistant dashboard (illustration)" width="720"></p>
+
 The iiyama ProLite TW2424AS is a 24" touch panel PC with a Rockchip RK3399, sold with Android 12 and
 stuck on the March 2022 security patch. This project replaces Android with current mainline Linux
 (kernel.org 7.2 + Alpine) and turns it into a dedicated Home Assistant wallpanel.
 
 **Why:** a maintained kernel and OS instead of an abandoned Android · a smooth dashboard (GPU raster,
-~57 fps median) · native HA integration via MQTT discovery, no Fully Kiosk · only SSH exposed ·
+~57 fps median) · native HA integration via MQTT discovery, no Fully Kiosk · only SSH and AirPlay exposed ·
 A/B kernel updates and a rescue path that never touches the bootloader.
 **Trade-offs:** no Android apps · HDMI-in unsupported · audio and Ethernet not fully tested ·
 installing wipes the Android user data (reversible from the backup).
@@ -91,6 +93,7 @@ Only three partitions change; bootloader, `misc` and Android `super` stay untouc
 |---|---|---|
 | [`wallpanel-kiosk`](apps/wallpanel-kiosk/) | Chromium fullscreen (cage/Wayland) with the Home Assistant dashboard: GPU raster, locked to the HA URL, per-card isolation for smooth animations, restarts on crash, runs unprivileged | outbound to HA; DevTools 9222/tcp localhost only |
 | [`wallpanel-api`](apps/wallpanel-api/) | Home Assistant integration via MQTT discovery – display on/off (instant standby) + lock, brightness, night shift, volume, home page, return to home page after N min dark, auto reboot with time, reload/restart/reboot buttons, CPU/memory/disk/temperature/WiFi sensors; keeps the kiosk fullscreen and logged in, reloads it when memory runs full while dark; Vol± with on-screen overlay, power key toggles standby | outbound MQTT, no open port |
+| [`wallpanel-airplay`](apps/wallpanel-airplay/) | AirPlay 1 speaker (shairport-sync + avahi) for iPhone/Mac and Home Assistant via Music Assistant; plays through the shared dmix next to Chromium, AirPlay volume = panel volume (same DAC control and scale), optional password | mDNS 5353/udp, 5000/tcp, 6001–6010/udp |
 
 ## Services and ports
 
@@ -99,12 +102,15 @@ Only three partitions change; bootloader, `misc` and Android `super` stay untouc
 | `dropbear` | SSH as root, key or password | 22/tcp |
 | `wallpanel-usb`, `wallpanel-console` | USB-C maintenance: network + serial root shell | 10.42.0.1, `/dev/ttyACM0` |
 | `wpa_supplicant`, `chronyd`, `seatd` | WiFi (retries forever), time, seat for the kiosk | – |
+| `wallpanel-airplay`, `avahi-daemon`, `dbus` | AirPlay receiver, its mDNS announcement (wlan0/eth0 only) | 5000/tcp, 6001–6010/udp, 5353/udp |
 
 **Maintenance access is open by design** – so a broken panel can always be rescued:
 - USB-C serial console (`/dev/ttyACM0`) is an **unauthenticated root shell**: physical access = root.
 - SSH (WiFi and USB-C) accepts key **and** password – set a strong `ROOT_PASSWORD`.
 - `tools/tssh` disables host-key checking (convenience for the point-to-point USB link).
 - MQTT is unencrypted on 1883 (`wallpanel-api` has no TLS): keep panel and broker on a trusted network/VLAN.
+- AirPlay (`wallpanel-airplay`): anyone who reaches ports 5000/tcp + 6001–6010/udp can play audio unless
+  `AIRPLAY_PASSWORD` is set; AirPlay 1 is unencrypted. Restrict the ports to the HA host and your clients.
 
 ## Install and update
 
@@ -136,6 +142,10 @@ wallpanel-update test      # boot slot B once (refuses if its modules are missin
 wallpanel-update promote   # slot B works: copy to slot A
 ```
 The test boot is a one-shot register flag (never `misc`), so a power cycle always returns to slot A.
+Signed kernel releases from CI (GitHub releases `kernel-*`): `wallpanel-update check` shows them,
+`wallpanel-update install-release` downloads and verifies one, assembles the boot image on the panel (with its own
+rescue keys), test-boots slot B with an automatic health check and promotes it – or falls back to slot A
+([`system/rootfs/`](system/rootfs/) → "Kernel updates").
 Alpine itself updates with `apk upgrade`. New kernel version: see [`system/kernel/`](system/kernel/).
 On the panel: the **update page** (HA switch *Update-Seite anzeigen*, or tap the screen 10× within 4 s) shows
 pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Auto-Update Apps*
@@ -216,7 +226,7 @@ sequenceDiagram
 
 `tools/ramboot.sh [image]` runs the whole chain. Needed for it: a mainline U-Boot in RAM (the vendor
 `fastboot boot` only resets); an SPL fix because the rkbin DDR init overwrites the BootROM's "booted from
-USB" word (`system/boot/patches/0001`); a mainline load-address profile in `tools/mkrkboot.py`. The RAM
+USB" word (`system/boot/patches/0001`); a mainline load-address profile in `mkrkboot.py` (`system/rootfs/overlay/usr/lib/wallpanel/boot/`). The RAM
 U-Boot has no flash, UMS, Rockusb, env-save or MMC-write support compiled in.
 </details>
 
@@ -248,6 +258,12 @@ U-Boot has no flash, UMS, Rockusb, env-save or MMC-write support compiled in.
   limited to stereo playback: 4–8 output channels would switch the shared SDI1–3/SDO3–1 pins to
   outputs against the ES7210. The vendor DT used two dai-links on one CPU DAI; mainline describes it
   as one audio-graph-card2 multi-codec link.
+- **AirPlay (shairport-sync 5.0.4, Alpine: AirPlay 1, no FFmpeg)**: it probes the ALSA device with
+  resampling disabled, so `default` (plug → 48 kHz dmix) "can not handle 44100" and playback dies with
+  "unknown format" – the process then hangs without its RTSP listener and ignores SIGTERM (hence a 44.1 kHz
+  rate PCM, `retry` TERM→KILL and a port health check). An SDP with `a=fmtp` is always treated as ALAC,
+  also pyatv's L16 stream (HA Apple TV integration) → PCM in the ALAC decoder → segfault. avahi ignores
+  unicast mDNS queries from other subnets, so "add by IP" across VLANs does not work.
 - **Rockchip BSP 6.1** (earlier reference kernel): RK808 missing from regulator/clk id tables, cpufreq init
   before the PMIC, broken ramoops/PWM/vddio DT – details in [`docs/analysis/`](docs/analysis/).
 </details>
@@ -256,7 +272,7 @@ U-Boot has no flash, UMS, Rockusb, env-save or MMC-write support compiled in.
 
 ```
 system/  kernel/ (pin + patches), boot/ (RAM loader), cage/ (kiosk compositor pin + patches), rootfs/ (Alpine), firmware/
-apps/    wallpanel-kiosk/, wallpanel-api/ – each with its target tree rootfs/
+apps/    wallpanel-kiosk/, wallpanel-api/, wallpanel-airplay/ – each with its target tree rootfs/
 tools/   build, install, update, rescue (+ debug/)
 docs/    analysis/ (derived analysis results, BSP 6.1 reference)
 ```

@@ -1,0 +1,31 @@
+# Daily upstream watch: a newer kernel.org stable of the pinned series becomes a pull request (VERSION +
+# SHA256, patches checked with git am) - never a release before the pull request is merged. A newer series
+# only opens an issue. Needs: Settings -> Actions -> General -> "Allow GitHub Actions to create and approve
+# pull requests".
+name: kernel-bump
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Check kernel.org
+        run: tools/kernel-bump.sh

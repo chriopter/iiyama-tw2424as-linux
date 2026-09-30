@@ -1,0 +1,16 @@
+#!/sbin/openrc-run
+# After "wallpanel-update install-release": the one test boot in slot B checks its health
+# (kernel release, eMMC errors, WiFi, MQTT, kiosk rendering, services) and then promotes the kernel
+# to slot A or falls back. Does nothing without a pending test. Log: /var/log/wallpanel-kernel-health.log
+description="Kernel update: health check of a test boot in slot B, then promote or fall back"
+
+depend() {
+	need localmount
+	after wallpanel-kiosk wallpanel-api
+}
+
+start() {
+	ebegin "Checking for a pending kernel update test"
+	/usr/bin/python3 /usr/lib/wallpanel/kernel-update.py boot-start
+	eend $?
+}

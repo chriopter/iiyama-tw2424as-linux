@@ -13,6 +13,7 @@ chrony
 chrony-openrc
 dropbear
 dropbear-openrc
+openssh-keygen
 seatd
 seatd-openrc
 cage
@@ -31,4 +32,8 @@ py3-paho-mqtt
 py3-evdev
 py3-websocket-client
 alsa-utils
+shairport-sync
+avahi
+avahi-openrc
+dbus-openrc
 htop

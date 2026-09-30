@@ -1,0 +1,11 @@
+#!/bin/sh
+# /var/log is a tmpfs (32 MiB of RAM): service logs (supervise-daemon output_log) are otherwise only
+# rotated when the service starts. Keep the last 512 KiB of any log above 2 MiB (as <name>.old) and
+# truncate it in place - the writers append (O_APPEND), so they carry on at the new end.
+for f in /var/log/*.log /var/log/*/*.log; do
+	[ -f "$f" ] || continue
+	[ "$(stat -c %s "$f")" -gt 2097152 ] || continue
+	tail -c 524288 "$f" > "$f.old"
+	: > "$f"
+	logger -t wallpanel-logtrim "trimmed $f"
+done

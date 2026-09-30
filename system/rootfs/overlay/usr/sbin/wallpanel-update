@@ -9,8 +9,19 @@
 #                                         write image to slot B + install its kernel modules
 #   wallpanel-update test                 reboot once into slot B
 #   wallpanel-update promote              copy the running slot B to slot A
+# Signed kernel releases (GitHub releases "kernel-*", or a directory in WALLPANEL_KERNEL_RELEASE_DIR),
+# the device assembles its own boot image (its own rescue SSH keys):
+#   wallpanel-update check [--json]       running kernel, latest release, changelog, last result
+#   wallpanel-update fetch                download + verify + assemble in /var/lib/wallpanel/kernel-update
+#   wallpanel-update install-release [--force]
+#                                         fetch, install to slot B, test boot with automatic health
+#                                         check: pass -> promote to slot A, fail/hang -> slot A (old)
+#   wallpanel-update health [--json]      the health checks of the running system
 # Modules live in /lib/modules/<release>, so a new kernel never replaces the running one's modules.
 set -eu
+case ${1:-} in
+check|fetch|install-release|health|boot-start|boot-check) exec /usr/bin/python3 /usr/lib/wallpanel/kernel-update.py "$@" ;;
+esac
 A=/dev/disk/by-partlabel/boot
 B=/dev/disk/by-partlabel/recovery
 slot=$(sed -n 's/.*wallpanel\.slot=\([AB]\).*/\1/p' /proc/cmdline)
@@ -93,5 +104,5 @@ PY
 	dd if="$tmp" of="$A" bs=1M conv=fsync 2>/dev/null
 	[ "$(head -c "$n" "$A" | sha256sum | cut -c1-64)" = "$(sha256sum < "$tmp" | cut -c1-64)" ] || { echo "verify failed" >&2; exit 1; }
 	rm -f "$tmp"; echo "slot A updated" ;;
-*) sed -n '2,14p' "$0"; exit 1 ;;
+*) sed -n '2,23p' "$0"; exit 1 ;;
 esac

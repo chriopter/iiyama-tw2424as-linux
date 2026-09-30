@@ -4,6 +4,8 @@
 #
 #   ./build.sh fetch   kernel|uboot|cage   fetch pinned source + apply patches
 #   ./build.sh kernel                      configure (defconfig + fragments) and build
+#   ./build.sh release                     kernel release files + manifest.json in build/out/release
+#   ./build.sh sign-release [KEY]          sign manifest.json (ssh-keygen -Y, default tools/kernel-key/)
 #   ./build.sh uboot                       build the maskrom RAM-boot loader
 #   ./build.sh helpers                     build wallpanel-rebootmode and devmem (freestanding)
 #   ./build.sh image                       RAM installer boot image (build/out/boot-test-mainline.img)
@@ -148,6 +150,35 @@ kernel)
 	echo "CONFIG_LOCALVERSION=\"-iiyama-$BID\"" > "$OUT/mainline-release.fragment"
 	config_kernel "$K" "$O" defconfig "$KDIR/config.platforms" "$KDIR/config.fragment" "$OUT/mainline-release.fragment"
 	make -C "$K" O="$O" -j"$(nproc)" DTC_FLAGS=-@ Image Image.gz modules rockchip/rk3399-iiyama-tw2424as.dtb ;;
+release)
+	# Release files of the built kernel (CI: .github/workflows/kernel.yml; PC: tools/build-bootimg.sh).
+	# No boot image and no keys: the device assembles its own boot image (wallpanel-update fetch).
+	toolchain mainline
+	K=$SRC/linux O=$OUT/mainline R=$OUT/release MS=$OUT/modstage-release
+	KREL=$(cat "$O/include/config/kernel.release")
+	rm -rf "$R" "$MS" && mkdir -p "$R"
+	make -s -C "$K" O="$O" INSTALL_MOD_PATH="$MS" INSTALL_MOD_STRIP=1 modules_install
+	# without the build/source links (they point into this build tree)
+	tar --owner=0 --group=0 --sort=name --mtime=@0 --exclude="$KREL/build" --exclude="$KREL/source" \
+		-cf - -C "$MS/lib/modules" "$KREL" | gzip -9n > "$R/modules.tar.gz"
+	cp "$O/arch/arm64/boot/Image" "$O/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as.dtb" "$R/"
+	grep -qaF "Linux version $KREL " "$R/Image" || die "Image does not contain release $KREL"
+	GIT=${GITHUB_SHA:-$(git -C "$P" rev-parse HEAD 2>/dev/null || echo unknown)}
+	[ -n "${GITHUB_SHA:-}" ] || git -C "$P" diff --quiet HEAD -- system/kernel 2>/dev/null || GIT=$GIT-dirty
+	python3 "$TOOLS/kernel-manifest.py" "$R" "$KREL" "$KDIR" "$GIT"
+	ls -l "$R" ;;
+sign-release)
+	# manifest.json holds the sha256 of every release file; its signature is checked on the device
+	# against system/rootfs/overlay/etc/wallpanel/kernel-release.pub (ssh-keygen -Y verify).
+	R=$OUT/release KEY=${2:-$TOOLS/kernel-key/kernel-release} PUB=$P/system/rootfs/overlay/etc/wallpanel/kernel-release.pub
+	[ -f "$R/manifest.json" ] || die "run ./build.sh release first"
+	[ -f "$KEY" ] || die "signing key $KEY missing"
+	rm -f "$R/manifest.json.sig"
+	ssh-keygen -q -Y sign -f "$KEY" -n wallpanel-kernel-release "$R/manifest.json" || die "signing failed"
+	printf 'kernel-release namespaces="wallpanel-kernel-release" %s\n' "$(cut -d' ' -f1,2 "$PUB")" > "$R/allowed_signers"
+	ssh-keygen -Y verify -f "$R/allowed_signers" -I kernel-release -n wallpanel-kernel-release \
+		-s "$R/manifest.json.sig" < "$R/manifest.json" || die "signature does not match $PUB"
+	rm -f "$R/allowed_signers" ;;
 uboot)
 	toolchain uboot
 	U=$SRC/u-boot R=$SRC/rkbin/bin/rk33
@@ -175,6 +206,6 @@ export)
 	[ "$2" = cage ] && cage_sums
 	ls "$PD" ;;
 *)
-	sed -n '2,12p' "$0"
+	sed -n '2,14p' "$0"
 	exit 1 ;;
 esac

@@ -1,0 +1,99 @@
+# Kernel release: cross-build with build.sh (same steps as on the PC), publish the release files with a
+# signed manifest as GitHub release "kernel-<release>". The panel installs it with
+# "wallpanel-update install-release" (checks the signature against etc/wallpanel/kernel-release.pub).
+# Secret KERNEL_SIGNING_KEY: the OpenSSH private key (tools/kernel-key/kernel-release) - system/kernel/README.md.
+name: kernel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - system/kernel/**
+      - build.sh
+      - tools/kernel-manifest.py
+      - .github/workflows/kernel.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kernel-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Host packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq --no-install-recommends bc bison flex libssl-dev libelf-dev cpio kmod
+
+      - name: Cache toolchain and kernel tarball
+        uses: actions/cache@v4
+        with:
+          path: |
+            tools/gcc-15.3.0-nolibc
+            build/src/linux-*.tar.xz
+          key: kernel-src-${{ hashFiles('system/kernel/VERSION') }}-gcc-15.3.0
+
+      - name: Fetch kernel.org tarball + apply patches
+        run: ./build.sh fetch kernel
+
+      - name: Build
+        run: ./build.sh kernel
+
+      - name: Release files + manifest
+        id: rel
+        run: |
+          ./build.sh release
+          tag=$(python3 -c 'import json; print(json.load(open("build/out/release/manifest.json"))["tag"])')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::release $tag exists already (same kernel source and config), not publishing"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sign manifest
+        if: github.ref == 'refs/heads/main' && steps.rel.outputs.exists == 'false'
+        env:
+          KERNEL_SIGNING_KEY: ${{ secrets.KERNEL_SIGNING_KEY }}
+        run: |
+          [ -n "$KERNEL_SIGNING_KEY" ] || { echo "::error::secret KERNEL_SIGNING_KEY is not set"; exit 1; }
+          key=$RUNNER_TEMP/kernel-release
+          (umask 077 && printf '%s\n' "$KERNEL_SIGNING_KEY" > "$key")
+          ./build.sh sign-release "$key"
+          rm -f "$key"
+
+      - name: Publish release
+        if: github.ref == 'refs/heads/main' && steps.rel.outputs.exists == 'false'
+        run: |
+          R=build/out/release
+          python3 - > "$RUNNER_TEMP/notes.md" <<'PY'
+          import json
+          m = json.load(open("build/out/release/manifest.json"))
+          print(f"Kernel **{m['kernel']}** (kernel.org {m['version']} + board patches), commit {m['git']}.\n")
+          print("\n".join(f"- {c}" for c in m["changelog"]))
+          print("\nOn the panel: `wallpanel-update check` / `wallpanel-update install-release` (test boot in slot B, "
+                "automatic health check, then promote). The manifest holds the sha256 of every file and is signed "
+                "(`manifest.json.sig`, ssh-keygen -Y, namespace `wallpanel-kernel-release`).")
+          PY
+          gh release create "${{ steps.rel.outputs.tag }}" --target "$GITHUB_SHA" \
+            --title "Kernel ${{ steps.rel.outputs.tag }}" --notes-file "$RUNNER_TEMP/notes.md" \
+            "$R/Image" "$R/rk3399-iiyama-tw2424as.dtb" "$R/modules.tar.gz" "$R/manifest.json" "$R/manifest.json.sig"
+
+      - name: Keep build output (branches, e.g. kernel-bump/*)
+        if: github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.rel.outputs.tag }}
+          path: build/out/release/
+          retention-days: 14

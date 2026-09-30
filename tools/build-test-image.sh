@@ -75,7 +75,7 @@ install -m755 $P/tools/init-test.sh "$ROOT/init"
 
 (cd "$ROOT" && find . -print0 | cpio --null -o -H newc --owner=0:0 2>/dev/null | gzip -9) > $OUT/initramfs-$VARIANT.cpio.gz
 
-python3 $P/tools/mkrkboot.py \
+python3 $P/system/rootfs/overlay/usr/lib/wallpanel/boot/mkrkboot.py \
 	--kernel $KO/arch/arm64/boot/Image \
 	--dtb $DTB \
 	--ramdisk $OUT/initramfs-$VARIANT.cpio.gz \

@@ -26,3 +26,6 @@ tools/trust/
 
 # local apk signing key (./build.sh cage)
 tools/apk-key/
+
+# local kernel release signing key (./build.sh sign-release; CI: secret KERNEL_SIGNING_KEY)
+tools/kernel-key/
