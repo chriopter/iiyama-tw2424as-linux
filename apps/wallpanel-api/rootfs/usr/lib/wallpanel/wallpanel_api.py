@@ -628,7 +628,7 @@ def set_scale(payload):
 
 
 def hide_header():
-    """Tweak "HA-Kopfleiste ausblenden": the kiosk extension hides Home Assistant's top bar and keeps only its
+    """Tweak "HA hide header": the kiosk extension hides Home Assistant's top bar and keeps only its
     search and Assist buttons, top right next to the badges (read at kiosk start)."""
     return bool(SETTINGS.get('hide_header', False))
 
@@ -816,7 +816,7 @@ def install_updates(then_reboot=False, full=False):
         if not full and not pkgs:
             cmd = ['true']
         if apk_update() != 0:
-            UPDATE['log'].append('apk update fehlgeschlagen (Netzwerk?)')
+            UPDATE['log'].append('apk update failed (network?)')
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         deadline = time.time() + 1800
         for line in p.stdout:  # progress for the update page
@@ -872,8 +872,8 @@ def check_kernel():
         KERNEL['error'] = None
     except (OSError, ValueError, subprocess.TimeoutExpired) as e:
         KERNEL['info'] = None
-        KERNEL['error'] = 'Kernel-Updates werden von diesem System noch nicht unterstützt' \
-            if isinstance(e, ValueError) else f'Prüfung fehlgeschlagen ({e.__class__.__name__})'
+        KERNEL['error'] = 'Kernel updates are not supported by this system yet' \
+            if isinstance(e, ValueError) else f'Check failed ({e.__class__.__name__})'
         print('kernel check:', e, flush=True)
     finally:
         KERNEL['checked'] = now_iso()
@@ -891,7 +891,7 @@ def install_kernel():
     if kernel_installing() or UPDATE['running']:
         return False
     log = open(KERNEL_LOG, 'w')
-    log.write(f'{now_iso()} Kernel-Update gestartet\n')
+    log.write(f'{now_iso()} Kernel update started\n')
     log.flush()
     subprocess.Popen([WALLPANEL_UPDATE, 'install-release'], stdin=subprocess.DEVNULL, stdout=log,
                      stderr=subprocess.STDOUT, start_new_session=True)
@@ -1081,118 +1081,118 @@ class Mqtt:
         dev, avail = self.device(), f'{BASE}/availability'
         common = {'device': dev, 'availability_topic': avail}
         cfg = {
-            ('switch', 'screen'): {'name': 'Bildschirm-Ein/Aus', 'icon': 'mdi:monitor',
+            ('switch', 'screen'): {'name': 'Screen on/off', 'icon': 'mdi:monitor',
                                    'command_topic': f'{BASE}/screen/set', 'state_topic': f'{BASE}/state',
                                    'value_template': "{{ 'OFF' if value_json.display.standby else 'ON' }}"},
-            ('switch', 'display_lock'): {'name': 'Bildschirm-Sperre', 'icon': 'mdi:monitor-lock',
+            ('switch', 'display_lock'): {'name': 'Screen lock', 'icon': 'mdi:monitor-lock',
                                          'command_topic': f'{BASE}/display_lock/set', 'state_topic': f'{BASE}/state',
                                          'value_template': "{{ 'ON' if value_json.display.locked else 'OFF' }}"},
-            ('number', 'fade_ms'): {'name': 'Bildschirm-Dimmen', 'min': 0, 'max': 3000, 'step': 50,
+            ('number', 'fade_ms'): {'name': 'Screen fade', 'min': 0, 'max': 3000, 'step': 50,
                                     'unit_of_measurement': 'ms', 'icon': 'mdi:transition',
                                     'command_topic': f'{BASE}/fade_ms/set', 'state_topic': f'{BASE}/state',
                                     'value_template': '{{ value_json.fade_ms }}', 'entity_category': 'config'},
-            ('number', 'touch_fade_ms'): {'name': 'Bildschirm-Dimmen: Berührung', 'min': 0, 'max': 3000,
+            ('number', 'touch_fade_ms'): {'name': 'Screen fade: touch', 'min': 0, 'max': 3000,
                                           'step': 10, 'unit_of_measurement': 'ms', 'icon': 'mdi:gesture-tap',
                                           'command_topic': f'{BASE}/touch_fade_ms/set', 'state_topic': f'{BASE}/state',
                                           'value_template': '{{ value_json.touch_fade_ms }}', 'entity_category': 'config'},
-            ('number', 'ct_scale'): {'name': 'Bildschirm-Kelvin', 'min': Display.CT_SCALE[0], 'max': Display.CT_SCALE[1],
+            ('number', 'ct_scale'): {'name': 'Screen kelvin', 'min': Display.CT_SCALE[0], 'max': Display.CT_SCALE[1],
                                      'step': 1, 'unit_of_measurement': '%', 'icon': 'mdi:palette-swatch',
                                      'command_topic': f'{BASE}/ct_scale/set', 'state_topic': f'{BASE}/state',
                                      'value_template': '{{ value_json.display.ct_scale }}', 'entity_category': 'config'},
-            ('number', 'ct_red'): {'name': 'Bildschirm-Rot', 'min': Display.CT_GAIN[0], 'max': Display.CT_GAIN[1],
+            ('number', 'ct_red'): {'name': 'Screen red', 'min': Display.CT_GAIN[0], 'max': Display.CT_GAIN[1],
                                    'step': 1, 'unit_of_measurement': '%', 'icon': 'mdi:palette',
                                    'command_topic': f'{BASE}/ct_red/set', 'state_topic': f'{BASE}/state',
                                    'value_template': '{{ value_json.display.ct_red }}', 'entity_category': 'config'},
-            ('number', 'ct_blue'): {'name': 'Bildschirm-Blau', 'min': Display.CT_GAIN[0], 'max': Display.CT_GAIN[1],
+            ('number', 'ct_blue'): {'name': 'Screen blue', 'min': Display.CT_GAIN[0], 'max': Display.CT_GAIN[1],
                                     'step': 1, 'unit_of_measurement': '%', 'icon': 'mdi:palette',
                                     'command_topic': f'{BASE}/ct_blue/set', 'state_topic': f'{BASE}/state',
                                     'value_template': '{{ value_json.display.ct_blue }}', 'entity_category': 'config'},
-            ('number', 'auto_off'): {'name': 'Bildschirm aus nach', 'min': 0, 'max': 240, 'step': 1,
+            ('number', 'auto_off'): {'name': 'Screen off after', 'min': 0, 'max': 240, 'step': 1,
                                      'unit_of_measurement': 'min', 'mode': 'box', 'icon': 'mdi:timer-outline',
                                      'command_topic': f'{BASE}/auto_off/set', 'state_topic': f'{BASE}/state',
                                      'value_template': '{{ value_json.auto_off }}', 'entity_category': 'config'},
-            ('light', 'display'): {'name': 'Bildschirm-Beleuchtung', 'schema': 'json', 'icon': 'mdi:monitor-shimmer',
+            ('light', 'display'): {'name': 'Screen light', 'schema': 'json', 'icon': 'mdi:monitor-shimmer',
                                    'brightness': True, 'brightness_scale': display.max,
                                    'supported_color_modes': ['color_temp'], 'color_temp_kelvin': True,
                                    'min_kelvin': Display.KELVIN[0], 'max_kelvin': Display.KELVIN[1],
                                    'command_topic': f'{BASE}/display/set', 'state_topic': f'{BASE}/display/state'},
-            ('binary_sensor', 'playing'): {'name': 'Ton-Wiedergabe', 'icon': 'mdi:waveform', 'device_class': 'sound',
+            ('binary_sensor', 'playing'): {'name': 'Audio playing', 'icon': 'mdi:waveform', 'device_class': 'sound',
                                            'state_topic': f'{BASE}/state',
                                            'value_template': "{{ 'ON' if value_json.playing else 'OFF' }}"},
-            ('number', 'volume'): {'name': 'Ton-Lautstärke', 'min': 0, 'max': 100, 'unit_of_measurement': '%',
+            ('number', 'volume'): {'name': 'Audio volume', 'min': 0, 'max': 100, 'unit_of_measurement': '%',
                                    'command_topic': f'{BASE}/volume/set', 'state_topic': f'{BASE}/state',
                                    'value_template': '{{ value_json.volume }}', 'icon': 'mdi:volume-high'},
-            ('text', 'url'): {'name': 'HA-Seitenadresse', 'command_topic': f'{BASE}/url/set', 'state_topic': f'{BASE}/state',
+            ('text', 'url'): {'name': 'HA page address', 'command_topic': f'{BASE}/url/set', 'state_topic': f'{BASE}/state',
                               'value_template': '{{ value_json.url }}', 'max': 255, 'icon': 'mdi:web'},
-            ('switch', 'reboot_enabled'): {'name': 'System-Neustart täglich', 'icon': 'mdi:autorenew',
+            ('switch', 'reboot_enabled'): {'name': 'System reboot daily', 'icon': 'mdi:autorenew',
                                            'command_topic': f'{BASE}/reboot_enabled/set', 'state_topic': f'{BASE}/state',
                                            'value_template': "{{ 'ON' if value_json.reboot_enabled else 'OFF' }}",
                                            'entity_category': 'config'},
-            ('button', 'update_page_toggle'): {'name': 'Wartungsseite umschalten', 'icon': 'mdi:swap-horizontal',
+            ('button', 'update_page_toggle'): {'name': 'Maintenance page toggle', 'icon': 'mdi:swap-horizontal',
                                                'command_topic': f'{BASE}/update_page_toggle'},
-            ('switch', 'update_page'): {'name': 'Wartungsseite anzeigen', 'icon': 'mdi:update',
+            ('switch', 'update_page'): {'name': 'Maintenance page', 'icon': 'mdi:update',
                                         'command_topic': f'{BASE}/update_page/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.update_page else 'OFF' }}"},
-            ('switch', 'auto_update'): {'name': 'Apps-Update täglich', 'icon': 'mdi:update',
+            ('switch', 'auto_update'): {'name': 'Apps update daily', 'icon': 'mdi:update',
                                         'command_topic': f'{BASE}/auto_update/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.auto_update else 'OFF' }}",
                                         'entity_category': 'config'},
-            ('button', 'install_updates'): {'name': 'Apps-Update jetzt', 'command_topic': f'{BASE}/install_updates',
+            ('button', 'install_updates'): {'name': 'Apps update now', 'command_topic': f'{BASE}/install_updates',
                                             'icon': 'mdi:download', 'entity_category': 'config'},
-            ('sensor', 'updates_pending'): {'name': 'Apps-Updates verfügbar', 'state_topic': f'{BASE}/state',
+            ('sensor', 'updates_pending'): {'name': 'Apps updates available', 'state_topic': f'{BASE}/state',
                                             'value_template': '{{ value_json.updates_pending }}',
                                             'icon': 'mdi:package-up', 'entity_category': 'diagnostic'},
-            ('sensor', 'last_update'): {'name': 'Apps-Update: zuletzt', 'state_topic': f'{BASE}/state',
+            ('sensor', 'last_update'): {'name': 'Apps update: last', 'state_topic': f'{BASE}/state',
                                         'value_template': '{{ value_json.last_update }}', 'device_class': 'timestamp',
                                         'json_attributes_topic': f'{BASE}/state',
                                         'json_attributes_template': '{{ {"result": value_json.last_update_result} | tojson }}',
                                         'icon': 'mdi:package-variant-closed-check', 'entity_category': 'diagnostic'},
-            ('switch', 'hide_header'): {'name': 'HA-Kopfleiste ausblenden', 'icon': 'mdi:page-layout-header',
+            ('switch', 'hide_header'): {'name': 'HA hide header', 'icon': 'mdi:page-layout-header',
                                         'command_topic': f'{BASE}/hide_header/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.hide_header else 'OFF' }}",
                                         'entity_category': 'config'},
-            ('switch', 'assist_listen'): {'name': 'HA-Assist hört sofort zu', 'icon': 'mdi:microphone-message',
+            ('switch', 'assist_listen'): {'name': 'HA Assist auto-listen', 'icon': 'mdi:microphone-message',
                                           'command_topic': f'{BASE}/assist_listen/set', 'state_topic': f'{BASE}/state',
                                           'value_template': "{{ 'ON' if value_json.assist_listen else 'OFF' }}",
                                           'entity_category': 'config'},
-            ('select', 'scale'): {'name': 'HA-Skalierung', 'options': [f'{v} %' for v in SCALES],
+            ('select', 'scale'): {'name': 'HA zoom', 'options': [f'{v} %' for v in SCALES],
                                   'command_topic': f'{BASE}/scale/set', 'state_topic': f'{BASE}/state',
                                   'value_template': '{{ value_json.scale }} %',
                                   'icon': 'mdi:magnify-plus-outline', 'entity_category': 'config'},
-            ('select', 'update_time'): {'name': 'Apps-Update: Uhrzeit', 'options': REBOOT_TIMES,
+            ('select', 'update_time'): {'name': 'Apps update: time', 'options': REBOOT_TIMES,
                                         'command_topic': f'{BASE}/update_time/set', 'state_topic': f'{BASE}/state',
                                         'value_template': '{{ value_json.update_time }}',
                                         'icon': 'mdi:update', 'entity_category': 'config'},
-            ('select', 'reboot_time'): {'name': 'System-Neustart: Uhrzeit', 'options': REBOOT_TIMES,
+            ('select', 'reboot_time'): {'name': 'System reboot: time', 'options': REBOOT_TIMES,
                                         'command_topic': f'{BASE}/reboot_time/set', 'state_topic': f'{BASE}/state',
                                         'value_template': '{{ value_json.reboot_time }}',
                                         'icon': 'mdi:wrench-clock', 'entity_category': 'config'},
-            ('text', 'home_url'): {'name': 'HA-Startseite', 'command_topic': f'{BASE}/home_url/set',
+            ('text', 'home_url'): {'name': 'HA home page', 'command_topic': f'{BASE}/home_url/set',
                                    'state_topic': f'{BASE}/state', 'value_template': '{{ value_json.home_url }}',
                                    'max': 255, 'icon': 'mdi:home-outline', 'entity_category': 'config'},
-            ('number', 'home_after'): {'name': 'HA-Startseite laden nach', 'min': 0, 'max': 1440, 'step': 5,
+            ('number', 'home_after'): {'name': 'HA home page after', 'min': 0, 'max': 1440, 'step': 5,
                                        'unit_of_measurement': 'min', 'mode': 'box', 'icon': 'mdi:home-clock-outline',
                                        'command_topic': f'{BASE}/home_after/set', 'state_topic': f'{BASE}/state',
                                        'value_template': '{{ value_json.home_after }}', 'entity_category': 'config'},
-            ('sensor', 'next_reboot'): {'name': 'System-Neustart: geplant', 'state_topic': f'{BASE}/state',
+            ('sensor', 'next_reboot'): {'name': 'System reboot: next', 'state_topic': f'{BASE}/state',
                                         'value_template': '{{ value_json.next_reboot }}', 'device_class': 'timestamp',
                                         'icon': 'mdi:calendar-clock', 'entity_category': 'diagnostic'},
-            ('button', 'reload'): {'name': 'HA-Seite neu laden', 'command_topic': f'{BASE}/reload', 'icon': 'mdi:refresh'},
-            ('button', 'restart_kiosk'): {'name': 'HA-Browser neu starten', 'command_topic': f'{BASE}/restart_kiosk',
+            ('button', 'reload'): {'name': 'HA reload page', 'command_topic': f'{BASE}/reload', 'icon': 'mdi:refresh'},
+            ('button', 'restart_kiosk'): {'name': 'HA restart browser', 'command_topic': f'{BASE}/restart_kiosk',
                                           'icon': 'mdi:web-refresh', 'entity_category': 'config'},
-            ('button', 'reboot'): {'name': 'System-Neustart', 'command_topic': f'{BASE}/reboot', 'device_class': 'restart',
+            ('button', 'reboot'): {'name': 'System reboot', 'command_topic': f'{BASE}/reboot', 'device_class': 'restart',
                                    'icon': 'mdi:restart', 'entity_category': 'config'},
         }
         for key, name, unit, dc, icon, enabled in (  # enabled: False = disabled by default (noise for most users)
-                ('temperature', 'Prozessortemperatur', '°C', 'temperature', None, True),
-                ('wifi_rssi', 'WLAN-Signal', 'dBm', 'signal_strength', None, True),
-                ('uptime', 'System-Betriebszeit', 's', 'duration', 'mdi:clock-start', True),
-                ('cpu_usage', 'Prozessorauslastung', '%', None, 'mdi:cpu-64-bit', True),
-                ('load', 'Prozessorlast', None, None, 'mdi:gauge', False),
-                ('memory_used_pct', 'Arbeitsspeicher belegt', '%', None, 'mdi:memory', True),
-                ('memory_free', 'Arbeitsspeicher frei', 'MiB', 'data_size', 'mdi:memory', False),
-                ('disk_free', 'Speicherplatz frei', 'GiB', 'data_size', 'mdi:harddisk', True),
-                ('disk_used_pct', 'Speicherplatz belegt', '%', None, 'mdi:harddisk', False)):
+                ('temperature', 'CPU temperature', '°C', 'temperature', None, True),
+                ('wifi_rssi', 'WiFi signal', 'dBm', 'signal_strength', None, True),
+                ('uptime', 'System uptime', 's', 'duration', 'mdi:clock-start', True),
+                ('cpu_usage', 'CPU usage', '%', None, 'mdi:cpu-64-bit', True),
+                ('load', 'CPU load', None, None, 'mdi:gauge', False),
+                ('memory_used_pct', 'Memory used', '%', None, 'mdi:memory', True),
+                ('memory_free', 'Memory free', 'MiB', 'data_size', 'mdi:memory', False),
+                ('disk_free', 'Disk free', 'GiB', 'data_size', 'mdi:harddisk', True),
+                ('disk_used_pct', 'Disk used', '%', None, 'mdi:harddisk', False)):
             c = {'name': name, 'state_topic': f'{BASE}/state',
                  'value_template': '{{ value_json.%s }}' % key, 'entity_category': 'diagnostic',
                  'state_class': 'measurement'}
@@ -1409,7 +1409,7 @@ def gamma_loop():
 # --- on-screen update page (127.0.0.1 only) -------------------------------------
 
 class UpdatePage:
-    """HA switch "Wartungsseite anzeigen" (and button "Wartungsseite umschalten"): the kiosk shows a local page with the pending Alpine updates and
+    """HA switch "Maintenance page" (and button "Maintenance page toggle"): the kiosk shows a local page with the pending Alpine updates and
     the kernel (A/B) release; off (or IDLE without touch) returns to the page shown before.
     Served on 127.0.0.1 only (not reachable from the network). POSTs need the random token that is only
     embedded in the page the kiosk loads (other local processes cannot start anything), and the Host header
@@ -1518,30 +1518,30 @@ class UpdatePage:
         if cmd in self.ACTIONS:
             if not self.touched():
                 print(f'update page: {cmd} refused (no touch on the screen)', flush=True)
-                return 403, 'Nur per Berührung am Bildschirm möglich.'
+                return 403, 'Only by touching the screen.'
             if cmd == 'reload':  # the dashboard, not this page: back to it, freshly loaded
                 threading.Thread(target=self._close_and_publish, daemon=True).start()
-                return 200, 'Seite wird neu geladen …'
+                return 200, 'Reloading the page …'
             if cmd == 'install_updates' and (UPDATE['running'] or kernel_installing()):
-                return 409, 'Es läuft bereits ein Update.'
+                return 409, 'An update is already running.'
             print(f'update page: {cmd}', flush=True)
             if cmd == 'shutdown':  # page only, never via MQTT: afterwards only unplugging brings it back
                 threading.Thread(target=lambda: (time.sleep(1), sh('poweroff')), daemon=True).start()
-                return 202, 'Panel fährt herunter – jetzt kann der Strom getrennt werden, sobald der Bildschirm dunkel ist.'
+                return 202, 'Shutting down – unplug the panel once the screen is dark.'
             threading.Thread(target=self._command, args=(f'{BASE}/{cmd}', ''), daemon=True).start()
-            return 202, {'restart_kiosk': 'Browser wird neu gestartet …', 'reboot': 'Panel startet neu …',
-                         'install_updates': 'Apps werden aktualisiert …'}[cmd]
+            return 202, {'restart_kiosk': 'Restarting the browser …', 'reboot': 'Restarting the panel …',
+                         'install_updates': 'Updating the apps …'}[cmd]
         if cmd not in self.SETTABLE:
-            return 400, 'Unbekannte Einstellung.'
+            return 400, 'Unknown setting.'
         if cmd in ('scale', 'hide_header', 'assist_listen') and not self.touched():  # restart the browser
-            return 403, 'Nur per Berührung am Bildschirm möglich.'
+            return 403, 'Only by touching the screen.'
         try:
             if cmd == 'display':  # brightness / colour temperature only, never on/off
                 value = {k: int(v) for k, v in dict(value).items() if k in ('brightness', 'color_temp')}
                 value = json.dumps({**value, 'transition': 0})  # on-screen: at once (calibrating by eye)
             self._command(f'{BASE}/{cmd}/set', str(value))
         except (TypeError, ValueError) as e:
-            return 400, f'Ungültiger Wert ({e})'
+            return 400, f'Invalid value ({e})'
         return 200, 'ok'
 
     def _command(self, topic, payload):
@@ -1552,7 +1552,7 @@ class UpdatePage:
     def post(self, path, body=None):
         """-> (http code, message)"""
         if not self.on:
-            return 409, 'Die Update-Seite ist nicht aktiv.'
+            return 409, 'The maintenance page is not active.'
         if path == '/api/cmd':
             return self.command((body or {}).get('cmd'), (body or {}).get('value'))
         if path == '/api/close':
@@ -1560,23 +1560,23 @@ class UpdatePage:
             return 200, 'ok'
         if path == '/api/check':
             self.check()
-            return 202, 'Wird geprüft …'
+            return 202, 'Checking …'
         if path == '/api/apps/update':
             if not self.touched():  # restarts the browser afterwards
-                return 403, 'Nur per Berührung am Bildschirm möglich.'
+                return 403, 'Only by touching the screen.'
             if UPDATE['running'] or kernel_installing():
-                return 409, 'Es läuft bereits ein Update.'
+                return 409, 'An update is already running.'
             threading.Thread(target=install_updates, kwargs={'full': True}, daemon=True).start()
-            return 202, 'Update gestartet.'
+            return 202, 'Update started.'
         if path == '/api/kernel/install':
             if not self.touched():
                 print('update page: kernel install refused (no touch on the screen)', flush=True)
-                return 403, 'Nur per Berührung am Bildschirm möglich.'
+                return 403, 'Only by touching the screen.'
             if not (KERNEL['info'] or {}).get('update_available'):
-                return 409, 'Kein neuer Kernel verfügbar.'
+                return 409, 'No new kernel available.'
             if not install_kernel():
-                return 409, 'Es läuft bereits ein Update.'
-            return 202, 'Kernel-Update gestartet.'
+                return 409, 'An update is already running.'
+            return 202, 'Kernel update started.'
         return 404, 'not found'
 
     def _close_and_publish(self):
@@ -1669,7 +1669,7 @@ class UpdatePage:
 update_page = UpdatePage()
 
 PAGE_HTML = """<!doctype html>
-<html lang="de"><head><meta charset="utf-8"><title>Updates</title>
+<html lang="en"><head><meta charset="utf-8"><title>Maintenance</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root { --bg:#111; --card:#1c1c1c; --line:#2e2e2e; --text:#e1e1e1; --dim:#9b9b9b; --primary:#03a9f4;
@@ -1786,21 +1786,21 @@ button.danger .dim { color:rgba(255,255,255,.8) !important; }
   border-radius:12px; font-size:21px; display:none; box-shadow:0 8px 30px rgba(0,0,0,.5); }
 </style></head><body>
 <header>
-  <nav class="tabs"><button data-tab="upd" class="sel">Updates</button><button data-tab="svc">Einstellungen &amp; Service</button></nav>
+  <nav class="tabs"><button data-tab="upd" class="sel">Updates</button><button data-tab="svc">Settings &amp; service</button></nav>
   <h1><small id="name"></small></h1>
   <span id="closes"></span>
-  <button class="flat" id="check">Erneut prüfen</button>
-  <button id="close">✕&nbsp; Schließen</button>
+  <button class="flat" id="check">Check again</button>
+  <button id="close">✕&nbsp; Close</button>
 </header>
 <div id="tab-upd" class="tab">
 <div id="stats">
-  <div class="tile"><span class="dim">Prozessor</span><b id="v-cpu">–</b><svg id="g-cpu" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
-  <div class="tile"><span class="dim">Temperatur</span><b id="v-temp">–</b><svg id="g-temp" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
-  <div class="tile"><span class="dim">Arbeitsspeicher</span><b id="v-mem">–</b><svg id="g-mem" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
-  <div class="tile"><span class="dim">WLAN-Signal</span><b id="v-rssi">–</b><svg id="g-rssi" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
-  <div class="tile"><span class="dim">Bildschirm</span><b id="v-backlight">–</b><svg id="g-backlight" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
+  <div class="tile"><span class="dim">CPU</span><b id="v-cpu">–</b><svg id="g-cpu" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
+  <div class="tile"><span class="dim">Temperature</span><b id="v-temp">–</b><svg id="g-temp" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
+  <div class="tile"><span class="dim">Memory</span><b id="v-mem">–</b><svg id="g-mem" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
+  <div class="tile"><span class="dim">WiFi signal</span><b id="v-rssi">–</b><svg id="g-rssi" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
+  <div class="tile"><span class="dim">Screen</span><b id="v-backlight">–</b><svg id="g-backlight" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
   <div class="tile info">
-    <span class="dim">Betriebszeit <b id="v-up" style="display:block">–</b></span>
+    <span class="dim">Uptime <b id="v-up" style="display:block">–</b></span>
     <span class="dim">Kernel <b id="v-kern" style="display:block">–</b></span>
     <div class="seg"><button data-s="3600" class="sel">1 h</button><button data-s="86400">24 h</button></div>
   </div>
@@ -1811,39 +1811,39 @@ button.danger .dim { color:rgba(255,255,255,.8) !important; }
     <div><div class="big" id="a-count">…</div><div class="dim" id="a-checked"></div></div>
     <div class="list" id="a-list"></div>
     <div class="rows">
-      <span class="dim">Apps-Update täglich</span><span id="a-auto"></span>
-      <span class="dim">Apps-Update: zuletzt</span><span id="a-last"></span>
+      <span class="dim">Apps update daily</span><span id="a-auto"></span>
+      <span class="dim">Apps update: last</span><span id="a-last"></span>
     </div>
     <div class="log" id="a-log"></div>
-    <button class="wide" id="a-go">Jetzt aktualisieren</button>
+    <button class="wide" id="a-go">Update now</button>
   </section>
   <section>
     <h2><svg viewBox="0 0 24 24"><path d="M17 17H7V7h10m4 4V9h-2V7a2 2 0 0 0-2-2h-2V3h-2v2h-2V3H9v2H7a2 2 0 0 0-2 2v2H3v2h2v2H3v2h2v2a2 2 0 0 0 2 2h2v2h2v-2h2v2h2v-2h2a2 2 0 0 0 2-2v-2h2v-2h-2v-2m-6 2h-2v-2h2m2-2H9v6h6V9z"/></svg>Kernel</h2>
     <div class="rows">
-      <span class="dim">Läuft</span><span id="k-run"></span>
-      <span class="dim">Letztes Kernel-Update</span><span id="k-last"></span>
+      <span class="dim">Running</span><span id="k-run"></span>
+      <span class="dim">Last kernel update</span><span id="k-last"></span>
     </div>
     <div><div class="big" id="k-avail">…</div><div class="dim" id="k-checked"></div></div>
     <div class="list" id="k-list"></div>
     <div class="log" id="k-log"></div>
-    <button class="wide kernel" id="k-go" disabled>Kernel installieren</button>
+    <button class="wide kernel" id="k-go" disabled>Install kernel</button>
   </section>
 </main>
 </div>
 <div id="tab-svc" class="tab" hidden></div>
 <div id="wb"><div class="box" id="wbbox"></div></div>
 <div id="pv"><div class="box">
-  <h3>Skalierung – Vorschau</h3>
+  <h3>Zoom – preview</h3>
   <div id="pvwrap"><iframe id="pvf" title="Vorschau"></iframe></div>
   <div class="btns"><div class="stp"><button id="pvdn">−</button><b class="val" id="pvval"></b><button id="pvup">+</button></div>
-    <span style="flex:1" class="dim">Übernehmen startet den Browser neu</span>
-    <button class="flat" id="pvno">Abbrechen</button><button id="pvok">Übernehmen</button></div>
+    <span style="flex:1" class="dim">Apply restarts the browser</span>
+    <button class="flat" id="pvno">Cancel</button><button id="pvok">Apply</button></div>
 </div></div>
 <div id="modal"><div class="box">
   <h3 id="m-title"></h3>
   <div id="m-text"></div>
   <div class="dim" id="m-note"></div>
-  <div class="btns"><button class="flat" id="m-no">Abbrechen</button>
+  <div class="btns"><button class="flat" id="m-no">Cancel</button>
     <button class="kernel" id="m-yes"></button></div>
 </div></div>
 <div id="toast"></div>
@@ -1854,7 +1854,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<'
 const when = (s) => {
   if (!s) return '–';
   const d = new Date(String(s).replace(/([+-]\\d\\d)(\\d\\d)$/, '$1:$2'));
-  return isNaN(d) ? esc(s) : d.toLocaleString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'});
+  return isNaN(d) ? esc(s) : d.toLocaleString('en-GB', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'});
 };
 let S = null;
 function toast(msg) {
@@ -1867,7 +1867,7 @@ async function post(path) {
     const j = await r.json().catch(() => ({}));
     if (r.status === 403 && j.message === 'forbidden') { location.reload(); return; }  // api restarted: new token
     toast(j.message || r.status);
-  } catch (e) { toast('Keine Verbindung'); }
+  } catch (e) { toast('No connection'); }
   refresh();
 }
 function log(el, lines, show) {
@@ -1877,40 +1877,40 @@ function log(el, lines, show) {
 function render() {
   const a = S.apps, k = S.kernel, busy = a.running || k.running;
   $('name').textContent = S.name;
-  $('closes').textContent = S.closes_in ? `schließt in ${Math.ceil(S.closes_in / 60)} min` : '';
+  $('closes').textContent = S.closes_in ? `closes in ${Math.ceil(S.closes_in / 60)} min` : '';
   $('check').disabled = S.checking;
-  $('check').textContent = S.checking ? 'Prüfe …' : 'Erneut prüfen';
+  $('check').textContent = S.checking ? 'Checking …' : 'Check again';
   // apps & system
-  $('a-count').innerHTML = a.running ? '<span class="warn">Wird aktualisiert …</span>'
-    : a.pending == null ? (S.checking ? 'Wird geprüft …' : 'Unbekannt')
-    : a.pending ? `${a.pending} Update${a.pending == 1 ? '' : 's'} verfügbar` : '<span class="ok">Alles aktuell</span>';
-  $('a-checked').textContent = a.checked ? `geprüft ${when(a.checked)}` : '';
+  $('a-count').innerHTML = a.running ? '<span class="warn">Updating …</span>'
+    : a.pending == null ? (S.checking ? 'Checking …' : 'Unknown')
+    : a.pending ? `${a.pending} update${a.pending == 1 ? '' : 's'} available` : '<span class="ok">Up to date</span>';
+  $('a-checked').textContent = a.checked ? `checked ${when(a.checked)}` : '';
   $('a-list').innerHTML = a.packages.map((p) => `<div><span>${esc(p.name)}${a.auto_packages.includes(p.name)
     ? '<span class="tag">Auto-Update</span>' : ''}</span><span class="v">${esc(p.old)} → ${esc(p.new)}</span></div>`).join('')
-    || '<div class="dim">Keine ausstehenden Pakete</div>';
-  $('a-auto').innerHTML = a.auto_update ? `<span class="ok">an</span> – Chrome &amp; AirPlay täglich um ${esc(a.update_time)} Uhr`
-    : '<span class="dim">aus</span> <span class="dim">(Chrome &amp; AirPlay)</span>';
+    || '<div class="dim">No pending packages</div>';
+  $('a-auto').innerHTML = a.auto_update ? `<span class="ok">on</span> – Chrome &amp; AirPlay daily at ${esc(a.update_time)}`
+    : '<span class="dim">off</span> <span class="dim">(Chrome &amp; AirPlay)</span>';
   $('a-last').innerHTML = a.last ? `${when(a.last)} – <span class="${/^ok/.test(a.result) ? 'ok' : 'err'}">${esc(a.result)}</span>` : '–';
   log($('a-log'), a.log, a.running || a.log.length);
   $('a-go').disabled = busy || a.pending === 0;
-  $('a-go').textContent = a.running ? 'Wird aktualisiert …' : 'Jetzt aktualisieren';
+  $('a-go').textContent = a.running ? 'Updating …' : 'Update now';
   // kernel
   $('k-run').textContent = `${k.running_kernel} (Slot ${k.running_slot || '?'})`;
   const lr = k.last_result;
-  $('k-last').innerHTML = lr ? `${when(lr.time)} – ${esc(lr.from)} → ${esc(lr.to)}: ${lr.ok ? '<span class="ok">erfolgreich</span>'
-    : `<span class="err">zurück auf den bisherigen Kernel${lr.reason ? ' (' + esc(lr.reason) + ')' : ''}</span>`}` : '–';
+  $('k-last').innerHTML = lr ? `${when(lr.time)} – ${esc(lr.from)} → ${esc(lr.to)}: ${lr.ok ? '<span class="ok">successful</span>'
+    : `<span class="err">back to the previous kernel${lr.reason ? ' (' + esc(lr.reason) + ')' : ''}</span>`}` : '–';
   const av = k.available;
-  $('k-avail').innerHTML = k.running ? '<span class="warn">Wird installiert …</span>'
+  $('k-avail').innerHTML = k.running ? '<span class="warn">Installing …</span>'
     : k.error ? `<span class="dim">${esc(k.error)}</span>`
-    : k.checking && !k.checked ? 'Wird geprüft …'
-    : k.update_available && av ? `Neuer Kernel ${esc(av.kernel)}` : '<span class="ok">Kernel ist aktuell</span>';
-  $('k-checked').textContent = av ? `Release ${av.tag}${av.published ? ', veröffentlicht ' + when(av.published) : ''}`
-    : k.checked ? `geprüft ${when(k.checked)}` : '';
+    : k.checking && !k.checked ? 'Checking …'
+    : k.update_available && av ? `New kernel ${esc(av.kernel)}` : '<span class="ok">Kernel is up to date</span>';
+  $('k-checked').textContent = av ? `Release ${av.tag}${av.published ? ', published ' + when(av.published) : ''}`
+    : k.checked ? `checked ${when(k.checked)}` : '';
   $('k-list').innerHTML = av && (av.changelog || []).length
-    ? '<ul>' + av.changelog.map((c) => `<li>${esc(c)}</li>`).join('') + '</ul>' : '<div class="dim">Keine Änderungen</div>';
+    ? '<ul>' + av.changelog.map((c) => `<li>${esc(c)}</li>`).join('') + '</ul>' : '<div class="dim">No changes</div>';
   log($('k-log'), k.log, k.running || k.log.length);
   $('k-go').disabled = busy || !k.update_available;
-  $('k-go').textContent = k.running ? 'Wird installiert …' : 'Kernel installieren';
+  $('k-go').textContent = k.running ? 'Installing …' : 'Install kernel';
 }
 async function refresh() {
   try { S = await (await fetch('/api/status')).json(); render(); } catch (e) {}
@@ -1923,10 +1923,10 @@ function ask(title, text, note, yes, fn) {
   $('m-title').textContent = title; $('m-text').textContent = text; $('m-note').textContent = note;
   $('m-yes').textContent = yes; asked = fn; $('modal').style.display = 'flex';
 }
-$('k-go').onclick = () => ask(`Kernel ${S.kernel.available.kernel} installieren?`,
-  'Das Panel startet zum Test neu und ist dabei einige Minuten nicht bedienbar. Läuft der neue Kernel ' +
-  'einwandfrei, wird er übernommen – sonst startet das Panel automatisch wieder mit dem bisherigen Kernel.',
-  'Während des Updates bitte nicht vom Strom trennen.', 'Installieren und neu starten', () => post('/api/kernel/install'));
+$('k-go').onclick = () => ask(`Install kernel ${S.kernel.available.kernel}?`,
+  'The panel restarts for a test and cannot be used for a few minutes. If the new kernel works, ' +
+  'it is kept – otherwise the panel starts again with the previous kernel by itself.',
+  'Do not unplug the panel during the update.', 'Install and restart', () => post('/api/kernel/install'));
 $('m-no').onclick = () => $('modal').style.display = 'none';
 // Skalierung: the dashboard live in a frame, laid out for the simulated resolution and shrunk to the box
 let pvScale = 100;
@@ -1947,17 +1947,17 @@ const pvStep = (d) => {
 };
 // Farbabgleich: the whole screen white, the colour controls at the bottom - to match the panel's white to a bulb
 const WB = [
-  {k: 'color_temp', label: 'Farbtemperatur (von Home Assistant, live)', min: 2202, max: 6500, step: 50,
+  {k: 'color_temp', label: 'Colour temperature (from Home Assistant, live)', min: 2202, max: 6500, step: 50,
     fmt: (v) => `${v} K → Panel ${V.color_temp_effective} K`, send: (v) => cmd('display', {color_temp: v})},
-  {k: 'ct_scale', label: 'Bildschirm-Kelvin', min: 50, max: 150, step: 1, fmt: (v) => `${v} %`},
-  {k: 'ct_red', label: 'Bildschirm-Rot', min: 50, max: 100, step: 1, fmt: (v) => `${v} %`},
-  {k: 'ct_blue', label: 'Bildschirm-Blau', min: 50, max: 100, step: 1, fmt: (v) => `${v} %`},
+  {k: 'ct_scale', label: 'Screen kelvin', min: 50, max: 150, step: 1, fmt: (v) => `${v} %`},
+  {k: 'ct_red', label: 'Screen red', min: 50, max: 100, step: 1, fmt: (v) => `${v} %`},
+  {k: 'ct_blue', label: 'Screen blue', min: 50, max: 100, step: 1, fmt: (v) => `${v} %`},
 ];
 let wbTimer = null;
 function whiteOpen() {
   $('wbbox').innerHTML = WB.map((w) => `<div class="ctl"><div class="lab"><span>${esc(w.label)}</span><b class="val"></b></div>` +
     `<input type="range" min="${w.min}" max="${w.max}" step="${w.step}"></div>`).join('') +
-    '<div class="end"><span class="dim">Weiße Fläche zum Vergleich mit der Lampe</span><button id="wbok">Fertig</button></div>';
+    '<div class="end"><span class="dim">White area to compare with the bulb</span><button id="wbok">Done</button></div>';
   const ctls = $('wbbox').querySelectorAll('.ctl'), held = new Set();
   const rows = WB.map((w, i) => {
     const r = ctls[i].querySelector('input'), val = ctls[i].querySelector('.val');
@@ -1984,9 +1984,9 @@ $('m-yes').onclick = () => { $('modal').style.display = 'none'; asked && asked()
 // system values: sparklines from the api's in-memory history (1 h / 24 h), every 5 s
 let span = 3600;
 const RANGE = {cpu: [0, 100], mem: [0, 100], backlight: [0, 100]};
-const num = (x, d = 0) => x.toLocaleString('de-DE', {maximumFractionDigits: d, minimumFractionDigits: d});
+const num = (x, d = 0) => x.toLocaleString('en-GB', {maximumFractionDigits: d, minimumFractionDigits: d});
 const FMT = {cpu: (x) => `${num(x)} %`, temp: (x) => `${num(x, 1)} °C`, mem: (x) => `${num(x)} %`,
-  rssi: (x) => `${num(x)} dBm`, backlight: (x) => x > 0 ? `an · ${num(x)} %` : 'aus'};
+  rssi: (x) => `${num(x)} dBm`, backlight: (x) => x > 0 ? `on · ${num(x)} %` : 'off'};
 function spark(k, arr, cur) {
   const v = arr.filter((x) => x != null), svg = $('g-' + k), W = 240, H = 50;
   $('v-' + k).textContent = cur == null ? '–' : FMT[k](cur);
@@ -2003,7 +2003,7 @@ async function stats() {
     const s = await (await fetch('/api/stats?span=' + span)).json();
     for (const k in s.series) spark(k, s.series[k], s.now[k]);
     const d = Math.floor(s.uptime / 86400), h = Math.floor(s.uptime % 86400 / 3600), m = Math.floor(s.uptime % 3600 / 60);
-    $('v-up').textContent = d ? `${d} ${d == 1 ? 'Tag' : 'Tage'} ${h} h` : `${h} h ${m} min`;
+    $('v-up').textContent = d ? `${d} ${d == 1 ? 'day' : 'days'} ${h} h` : `${h} h ${m} min`;
     $('v-kern').textContent = s.kernel;
   } catch (e) {}
 }
@@ -2015,46 +2015,46 @@ document.querySelectorAll('.seg button').forEach((b) => b.onclick = () => {
 // "Einstellungen & Service": the MQTT commands (no URLs), same code paths in the api (/api/cmd)
 let tab = 'upd', V = null, built = false;
 const hold = new Set();  // sliders under a finger: not overwritten by the poll
-const ms = (v) => `${num(v)} ms`, min = (v) => v ? `${num(v)} min` : 'nie';
+const ms = (v) => `${num(v)} ms`, min = (v) => v ? `${num(v)} min` : 'never';
 const scaleFmt = (v) => `${v} % · ${Math.round(V.panel_res[0] * 100 / v)}×${Math.round(V.panel_res[1] * 100 / v)}`;
 const TIMES = Array.from({length: 48}, (_, i) => `${String(i >> 1).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 // Sections marked HA mirror the Home Assistant entities (same names, same command() as MQTT); "Nur am Gerät"
 // exists only here. Columns by topic: [Bildschirm] [Browser & Ton] [System + Nur am Gerät].
 const SVC = [
-  {h: 'Bildschirm', ha: true, col: 0, xs: [
-    {t: 'range', k: 'brightness', label: 'Helligkeit', sub: 'Bildschirm-Beleuchtung', min: 1, max: () => V.max_brightness,
+  {h: 'Screen', ha: true, col: 0, xs: [
+    {t: 'range', k: 'brightness', label: 'Brightness', sub: 'Screen light', min: 1, max: () => V.max_brightness,
       fmt: (v) => `${Math.round(100 * v / V.max_brightness)} %`, send: (v) => cmd('display', {brightness: v})},
-    {t: 'range', k: 'color_temp', label: 'Farbtemperatur', sub: 'Bildschirm-Beleuchtung', min: 2202, max: () => 6500, step: 50,
+    {t: 'range', k: 'color_temp', label: 'Colour temperature', sub: 'Screen light', min: 2202, max: () => 6500, step: 50,
       fmt: (v) => `${v} K`, send: (v) => cmd('display', {color_temp: v})},
-    {t: 'wb', k: 'ct_scale', label: 'Bildschirm-Farbe', sub: 'Kelvin, Rot, Blau – mit Weißfläche',
+    {t: 'wb', k: 'ct_scale', label: 'Screen colour', sub: 'Kelvin, red, blue on a white screen',
       fmt: () => `${V.ct_scale} % · R ${V.ct_red} · B ${V.ct_blue}`},
-    {t: 'range', k: 'fade_ms', label: 'Bildschirm-Dimmen', min: 0, max: () => 3000, step: 50, fmt: ms},
-    {t: 'range', k: 'touch_fade_ms', label: 'Bildschirm-Dimmen: Berührung', min: 0, max: () => 3000, step: 10, fmt: ms},
-    {t: 'step', k: 'auto_off', label: 'Bildschirm aus nach', list: [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240], fmt: min},
-    {t: 'switch', k: 'locked', c: 'display_lock', label: 'Bildschirm-Sperre', sub: 'aus, nur die Ein/Aus-Taste weckt'},
+    {t: 'range', k: 'fade_ms', label: 'Screen fade', min: 0, max: () => 3000, step: 50, fmt: ms},
+    {t: 'range', k: 'touch_fade_ms', label: 'Screen fade: touch', min: 0, max: () => 3000, step: 10, fmt: ms},
+    {t: 'step', k: 'auto_off', label: 'Screen off after', list: [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240], fmt: min},
+    {t: 'switch', k: 'locked', c: 'display_lock', label: 'Screen lock', sub: 'off, only the power key wakes it'},
   ]},
-  {h: 'Browser & Ton', ha: true, col: 1, xs: [
-    {t: 'range', k: 'volume', label: 'Ton-Lautstärke', min: 0, max: () => 100, fmt: (v) => `${v} %`},
-    {t: 'scale', k: 'scale', label: 'HA-Skalierung', sub: 'Home Assistant größer oder kleiner', fmt: scaleFmt},
-    {t: 'switch', k: 'hide_header', label: 'HA-Kopfleiste ausblenden', sub: 'Suche & Assist neben die Status-Pillen'},
-    {t: 'switch', k: 'assist_listen', label: 'HA-Assist hört sofort zu', sub: 'Tippen auf Assist startet die Spracherkennung'},
-    {t: 'step', k: 'home_after', label: 'HA-Startseite laden nach', sub: 'wenn der Bildschirm so lange aus ist',
+  {h: 'Browser & audio', ha: true, col: 1, xs: [
+    {t: 'range', k: 'volume', label: 'Audio volume', min: 0, max: () => 100, fmt: (v) => `${v} %`},
+    {t: 'scale', k: 'scale', label: 'HA zoom', sub: 'Home Assistant larger or smaller', fmt: scaleFmt},
+    {t: 'switch', k: 'hide_header', label: 'HA hide header', sub: 'Search & Assist next to the badges'},
+    {t: 'switch', k: 'assist_listen', label: 'HA Assist auto-listen', sub: 'Tapping Assist starts listening'},
+    {t: 'step', k: 'home_after', label: 'HA home page after', sub: 'after the screen has been off that long',
       list: [0, 5, 10, 15, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1440], fmt: min},
-    {t: 'act', c: 'reload', label: 'HA-Seite neu laden', sub: 'schließt diese Seite'},
-    {t: 'act', c: 'restart_kiosk', label: 'HA-Browser neu starten'},
+    {t: 'act', c: 'reload', label: 'HA reload page', sub: 'closes this page'},
+    {t: 'act', c: 'restart_kiosk', label: 'HA restart browser'},
   ]},
   {h: 'System', ha: true, col: 2, xs: [
-    {t: 'switch', k: 'reboot_enabled', label: 'System-Neustart täglich'},
-    {t: 'step', k: 'reboot_time', label: 'System-Neustart: Uhrzeit', list: TIMES, fmt: (v) => `${v} Uhr`},
-    {t: 'switch', k: 'auto_update', label: 'Apps-Update täglich', sub: 'Chrome & AirPlay'},
-    {t: 'step', k: 'update_time', label: 'Apps-Update: Uhrzeit', sub: 'nicht auf die Neustart-Uhrzeit legen', list: TIMES, fmt: (v) => `${v} Uhr`},
-    {t: 'act', c: 'install_updates', label: 'Apps-Update jetzt', sub: 'Chrome & AirPlay'},
-    {t: 'act', c: 'reboot', label: 'System-Neustart', cls: 'danger',
-     confirm: ['Panel neu starten?', 'Das Panel startet neu und ist etwa eine Minute nicht bedienbar.', 'System-Neustart']},
+    {t: 'switch', k: 'reboot_enabled', label: 'System reboot daily'},
+    {t: 'step', k: 'reboot_time', label: 'System reboot: time', list: TIMES, fmt: (v) => `${v}`},
+    {t: 'switch', k: 'auto_update', label: 'Apps update daily', sub: 'Chrome & AirPlay'},
+    {t: 'step', k: 'update_time', label: 'Apps update: time', sub: 'not at the reboot time', list: TIMES, fmt: (v) => `${v}`},
+    {t: 'act', c: 'install_updates', label: 'Apps update now', sub: 'Chrome & AirPlay'},
+    {t: 'act', c: 'reboot', label: 'System reboot', cls: 'danger',
+     confirm: ['Restart the panel?', 'The panel restarts and cannot be used for about a minute.', 'Restart']},
   ]},
-  {h: 'Nur am Gerät', ha: false, col: 2, xs: [
-    {t: 'act', c: 'shutdown', label: 'Herunterfahren', sub: 'vor dem Trennen vom Strom', cls: 'danger',
-     confirm: ['Panel herunterfahren?', 'Das Panel fährt sauber herunter. Einschalten danach nur durch Strom aus und wieder an.', 'Herunterfahren']},
+  {h: 'Device only', ha: false, col: 2, xs: [
+    {t: 'act', c: 'shutdown', label: 'Shut down', sub: 'before unplugging', cls: 'danger',
+     confirm: ['Shut down the panel?', 'The panel shuts down cleanly. To switch it on again, unplug it and plug it back in.', 'Shut down']},
   ]},
 ];
 async function cmd(c, value) {
@@ -2064,18 +2064,18 @@ async function cmd(c, value) {
     const j = await r.json().catch(() => ({}));
     if (r.status === 403 && j.message === 'forbidden') { location.reload(); return; }
     if (j.message && j.message !== 'ok') toast(j.message);
-  } catch (e) { toast('Keine Verbindung'); }
+  } catch (e) { toast('No connection'); }
   settings();
 }
 function lab(x) {
   return `<div class="lab"><span>${esc(x.label)}${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>` +
     (x.t === 'switch' ? '<button class="toggle"></button>' : x.t === 'step' ? '<div class="stp"><button>−</button><b class="val"></b><button>+</button></div>'
-      : x.t === 'scale' ? '<div class="stp"><b class="val"></b><button class="flat" style="width:auto;padding:0 24px;font-size:21px">Anpassen</button></div>'
-      : x.t === 'wb' ? '<div class="stp"><b class="val"></b><button class="flat" style="width:auto;padding:0 24px;font-size:21px">Weißfläche</button></div>'
+      : x.t === 'scale' ? '<div class="stp"><b class="val"></b><button class="flat" style="width:auto;padding:0 24px;font-size:21px">Adjust</button></div>'
+      : x.t === 'wb' ? '<div class="stp"><b class="val"></b><button class="flat" style="width:auto;padding:0 24px;font-size:21px">Adjust</button></div>'
       : `<b class="val${x.url ? ' url' : ''}"></b>`) + '</div>';
 }
 function build() {
-  const sec = (g) => `<section class="${g.ha ? '' : 'local'}"><h2>${esc(g.h)}<span class="tag">${g.ha ? 'auch in Home Assistant' : 'nur hier'}</span></h2>` +
+  const sec = (g) => `<section class="${g.ha ? '' : 'local'}"><h2>${esc(g.h)}<span class="tag">${g.ha ? 'also in Home Assistant' : 'only here'}</span></h2>` +
     g.xs.filter((x) => x.t !== 'act').map((x) => `<div class="ctl">${lab(x)}${x.t === 'range' ? '<input type="range">' : ''}</div>`).join('') +
     `<div class="acts">${g.xs.filter((x) => x.t === 'act').map((x) => `<button class="wide ${x.cls || 'flat'}">${esc(x.label)}` +
       `${x.sub ? ` <span class="dim" style="font-size:18px">(${esc(x.sub)})</span>` : ''}</button>`).join('')}</div></section>`;

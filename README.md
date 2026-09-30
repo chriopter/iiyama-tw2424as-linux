@@ -131,11 +131,11 @@ Only three partitions change; bootloader, `misc` and Android `super` stay untouc
 | [`wallpanel-api`](apps/wallpanel-api/) | Home Assistant integration via MQTT discovery – display on/off (instant standby) + lock, brightness, night shift, volume, home page, return to home page after N min dark, browser scaling, HA top bar tweak, auto reboot with time, reload/restart/reboot buttons, CPU/memory/disk/temperature/WiFi sensors; keeps the kiosk fullscreen and logged in, reloads it when memory runs full while dark; Vol± with on-screen overlay, power key toggles standby | outbound MQTT, no open port |
 | [`wallpanel-airplay`](apps/wallpanel-airplay/) | AirPlay 1 speaker (shairport-sync + avahi) for iPhone/Mac and Home Assistant via Music Assistant; plays through the shared dmix next to Chromium, AirPlay volume = panel volume (same DAC control and scale), optional password | mDNS 5353/udp, 5000/tcp, 6001–6010/udp |
 
-**On-screen update page** (tap the screen 10× within 4 s, or the HA switch *Wartungsseite anzeigen* or button *Wartungsseite umschalten*): updates of
+**On-screen update page** (tap the screen 10× within 4 s, or the HA switch *Maintenance page* or button *Maintenance page toggle*): updates of
 apps, system and kernel with live graphs, and all settings – grouped by topic, marked whether they also exist in
 Home Assistant ([`wallpanel-api`](apps/wallpanel-api/)).
 
-| Updates | Einstellungen & Service |
+| Updates | Settings & service |
 |---|---|
 | ![Update page, tab Updates](docs/images/update-page-updates.png) | ![Update page, tab Einstellungen & Service](docs/images/update-page-settings.png) |
 
@@ -303,16 +303,16 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 
 | Key | Setting (HA name) | Values |
 |---|---|---|
-| `auto_off` | Bildschirm aus nach | minutes, 0 = never |
-| `auto_update`, `update_time` | Apps-Update täglich, Apps-Update: Uhrzeit | true/false; `HH:MM` in 30-min steps (03:30) |
-| `ct_scale` | Bildschirm-Kelvin | 50–150 (%) |
-| `ct_red`, `ct_blue` | Bildschirm-Rot, Bildschirm-Blau | 50–100 (%) |
-| `display_lock`, `standby` | Bildschirm-Sperre, Bildschirm-Ein/Aus | true/false |
-| `fade_ms`, `touch_fade_ms` | Bildschirm-Dimmen (: Berührung) | 0–3000 ms |
-| `hide_header`, `assist_listen` | HA-Kopfleiste ausblenden, HA-Assist hört sofort zu | true/false (off, on) |
-| `home_after`, `home_url` | HA-Startseite laden nach, HA-Startseite | minutes (0 = never); URL, missing = `KIOSK_URL` |
-| `reboot_enabled`, `reboot_time` | System-Neustart täglich, System-Neustart: Uhrzeit | true/false; `HH:MM` in 30-min steps (04:00) |
-| `scale` | HA-Skalierung | 75, 80, 90, 100, 110, 125, 150, 175, 200 |
+| `auto_off` | Screen off after | minutes, 0 = never |
+| `auto_update`, `update_time` | Apps update daily, Apps update: time | true/false; `HH:MM` in 30-min steps (03:30) |
+| `ct_scale` | Screen kelvin | 50–150 (%) |
+| `ct_red`, `ct_blue` | Screen red, Screen blue | 50–100 (%) |
+| `display_lock`, `standby` | Screen lock, Screen on/off | true/false |
+| `fade_ms`, `touch_fade_ms` | Screen fade (: touch) | 0–3000 ms |
+| `hide_header`, `assist_listen` | HA hide header, HA Assist auto-listen | true/false (off, on) |
+| `home_after`, `home_url` | HA home page after, HA home page | minutes (0 = never); URL, missing = `KIOSK_URL` |
+| `reboot_enabled`, `reboot_time` | System reboot daily, System reboot: time | true/false; `HH:MM` in 30-min steps (04:00) |
+| `scale` | HA zoom | 75, 80, 90, 100, 110, 125, 150, 175, 200 |
 | `last_update`, `last_update_result` | – (shown on the update page) | written by the api |
 
 By hand over SSH: `wallpanel-rw run vi /var/lib/wallpanel/api-state.json`, then `rc-service wallpanel-api restart`.
@@ -331,8 +331,8 @@ Signed kernel releases from CI (GitHub releases `kernel-*`): `wallpanel-update c
 rescue keys), test-boots slot B with an automatic health check and promotes it – or falls back to slot A
 ([`system/rootfs/`](system/rootfs/) → "Kernel updates").
 Alpine itself updates from the update page or with `wallpanel-rw run apk upgrade`. New kernel version: see [`system/kernel/`](system/kernel/).
-On the panel: the **update page** (HA switch *Wartungsseite anzeigen* or button *Wartungsseite umschalten*, or tap the screen 10× within 4 s) shows
-pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Apps-Update täglich*
+On the panel: the **update page** (HA switch *Maintenance page* or button *Maintenance page toggle*, or tap the screen 10× within 4 s) shows
+pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Apps update daily*
 covers only Chromium and the AirPlay receiver – never other packages or the kernel
 ([`apps/wallpanel-api/`](apps/wallpanel-api/)).
 </details>
