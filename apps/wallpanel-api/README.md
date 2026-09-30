@@ -14,7 +14,7 @@ names (*config*/*diagnostic* = HA's entity category); English meaning and values
 | *config* **Bildschirm aus nach** | screen off after … without input | `number` | 0–240 min, 0 = never (5) |
 | *config* **Bildschirm-Überblendung** | screen fade | `number` | 0–3000 ms (400) |
 | *config* **Bildschirm-Überblendung bei Berührung** | screen fade when woken by touch | `number` | 0–3000 ms (100) |
-| *config* **Farbton-Abgleich** | tint calibration against real bulbs | `number` | 50–150 % (83) |
+| *config* **Farbton-Kalibrierung** | tint calibration against real bulbs | `number` | 50–150 % (83) |
 | **Lautstärke** | volume | `number` | 0–100 % (30 after a restart) |
 | **Wiedergabe** | playback: sound is playing (AirPlay, browser) | `binary_sensor` | on/off |
 | **Browser** | | | |
@@ -45,7 +45,7 @@ logs it in to HA (`KIOSK_USER`/`KIOSK_PASSWORD`, with backoff), reloads the page
 if the JS heap exceeds `RELOAD_HEAP_MB` (350) or free RAM drops below `RELOAD_MEM_PCT` (15 %).
 Colour temperature ("night shift"): the compositor's gamma ramp via `wallpanel-gamma` (as user `wallpanel`,
 restarted when it or the compositor exits), applied by the VOP's hardware LUT – no rendering cost; 6500 K
-= neutral (no gamma client). **Farbton-Abgleich** calibrates the tint against real bulbs in the mired domain,
+= neutral (no gamma client). **Farbton-Kalibrierung** calibrates the tint against real bulbs in the mired domain,
 keeping 6500 K neutral: `mired_eff = 153.85 + (1e6/K − 153.85) × s`. The default 83 % comes from "3000 K on
 the panel looks like a 2700 K bulb" (3000 K is sent as ~3300 K); HA keeps seeing the requested Kelvin. Needs our cage build ([`system/cage/`](../../system/cage/)): Alpine's cage 0.3.0 only
 advertises the protocol and drops the ramps.
@@ -70,7 +70,7 @@ additionally requires a real finger-down from the touchscreen within the last 20
 The api looks for a new kernel release on GitHub once a day (and whenever the page opens or *Erneut prüfen* is
 tapped), so the page already shows it; installing still needs that touch.
 Second tab **Einstellungen & Service**, grouped by topic; the three sections marked *auch in Home Assistant*
-mirror the HA entities with the same names – **Bildschirm & Ton** (Helligkeit, Farbtemperatur, Farbton-Abgleich,
+mirror the HA entities with the same names – **Bildschirm & Ton** (Helligkeit, Farbtemperatur, Farbton-Kalibrierung,
 Überblendung (+ bei Berührung), Bildschirm aus nach, Bildschirm gesperrt, Lautstärke), **Browser** (Skalierung,
 HA-Kopfleiste ausblenden, Startseite laden nach; Seite neu laden, Browser neu starten) and **System** (Neustart
 täglich, Wartungszeit, Auto-Update Apps; Apps aktualisieren, Neu starten) – and a dashed box **Nur am Gerät**

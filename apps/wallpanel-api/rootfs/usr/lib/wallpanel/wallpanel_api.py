@@ -246,7 +246,7 @@ class Display:
         self.ensure_gamma()  # re-applied right away
 
     def effective_kelvin(self):
-        """Colour calibration (HA number "Farbton-Abgleich"): the panel's tint looked warmer than a bulb of
+        """Colour calibration (HA number "Farbton-Kalibrierung"): the panel's tint looked warmer than a bulb of
         the same nominal temperature (3000 K like 2700 K), so the distance from neutral is scaled in the mired
         domain - 6500 K stays neutral. Default 83 %: 3000 K -> ~3300 K. HA keeps seeing the requested value."""
         neutral = 1e6 / self.KELVIN[1]
@@ -1028,7 +1028,7 @@ class Mqtt:
                                           'step': 10, 'unit_of_measurement': 'ms', 'icon': 'mdi:gesture-tap',
                                           'command_topic': f'{BASE}/touch_fade_ms/set', 'state_topic': f'{BASE}/state',
                                           'value_template': '{{ value_json.touch_fade_ms }}', 'entity_category': 'config'},
-            ('number', 'ct_scale'): {'name': 'Farbton-Abgleich', 'min': Display.CT_SCALE[0], 'max': Display.CT_SCALE[1],
+            ('number', 'ct_scale'): {'name': 'Farbton-Kalibrierung', 'min': Display.CT_SCALE[0], 'max': Display.CT_SCALE[1],
                                      'step': 1, 'unit_of_measurement': '%', 'icon': 'mdi:palette-swatch',
                                      'command_topic': f'{BASE}/ct_scale/set', 'state_topic': f'{BASE}/state',
                                      'value_template': '{{ value_json.display.ct_scale }}', 'entity_category': 'config'},
@@ -1878,7 +1878,7 @@ const SVC = [
       fmt: (v) => `${Math.round(100 * v / V.max_brightness)} %`, send: (v) => cmd('display', {brightness: v})},
     {t: 'range', k: 'color_temp', label: 'Farbtemperatur', sub: 'Bildschirm-Beleuchtung', min: 1000, max: () => 6500, step: 50,
       fmt: (v) => `${v} K`, send: (v) => cmd('display', {color_temp: v})},
-    {t: 'range', k: 'ct_scale', label: 'Farbton-Abgleich', min: 50, max: () => 150, fmt: (v) => `${v} %`},
+    {t: 'range', k: 'ct_scale', label: 'Farbton-Kalibrierung', min: 50, max: () => 150, fmt: (v) => `${v} %`},
     {t: 'range', k: 'fade_ms', label: 'Bildschirm-Überblendung', min: 0, max: () => 3000, step: 50, fmt: ms},
     {t: 'range', k: 'touch_fade_ms', label: 'Bildschirm-Überblendung bei Berührung', min: 0, max: () => 3000, step: 10, fmt: ms},
     {t: 'step', k: 'auto_off', label: 'Bildschirm aus nach', list: [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240], fmt: min},

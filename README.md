@@ -296,7 +296,7 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 |---|---|---|
 | `auto_off` | Bildschirm aus nach | minutes, 0 = never |
 | `auto_update` | Auto-Update Apps | true/false |
-| `ct_scale` | Farbton-Abgleich | 50–150 (%) |
+| `ct_scale` | Farbton-Kalibrierung | 50–150 (%) |
 | `display_lock`, `standby` | Bildschirm gesperrt, Bildschirm an/aus | true/false |
 | `fade_ms`, `touch_fade_ms` | Bildschirm-Überblendung (bei Berührung) | 0–3000 ms |
 | `hide_header` | HA-Kopfleiste ausblenden | true/false |
