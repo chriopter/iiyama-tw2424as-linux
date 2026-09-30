@@ -7,6 +7,8 @@ The root filesystem (Alpine Linux, OpenRC) on `userdata` (ext4, label `wallpanel
 | `packages` | Alpine packages that `tools/install.sh` installs |
 | `overlay/` | copied 1:1 to `/`: hostname, WiFi, Dropbear, USB maintenance access (`wallpanel-usb`), `wallpanel-update` |
 | `overlay/etc/asound.conf` | ALSA `default`: playback via dmix on hw:0,0 (shared, e.g. Chromium + AirPlay), capture = the two digital mics (hw ch2/ch3 via dsnoop, any format through plug) – what Chromium/Assist and `arecord` get |
+| `overlay/etc/conf.d/syslog`, `overlay/etc/periodic/` | flash wear: `/var/log` and `/tmp` are tmpfs (fstab from `write_fstab` in `tools/lib.sh`); syslog capped at 3 MiB, service logs trimmed above 2 MiB (every 15 min), `fstrim` weekly (crond) |
+| `overlay/etc/conf.d/fsck` | boot never stops at a file system check (`fsck -y`, no abort) – the panel stays reachable after a power loss |
 | `overlay/etc/local.d/audio.start` | mixer at boot: DAC → headphone outs/speaker, mic gain `Mic Array DMIC12` 24 dB |
 | `overlay/usr/lib/wallpanel/boot/init` | init in the boot image: mounts `wallpanel-root` or starts **rescue mode** (USB network + SSH) |
 | `overlay/usr/lib/wallpanel/boot/mkboot.py`, `mkrkboot.py` | boot image assembly (rescue initramfs + Android boot image v2), the same code on the PC (`tools/build-bootimg.sh`) and on the device (`wallpanel-update fetch`) |

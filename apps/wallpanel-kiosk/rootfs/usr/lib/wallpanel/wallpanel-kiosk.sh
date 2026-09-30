@@ -51,12 +51,16 @@ if [ "$(cat "$DATA/.extension-id" 2>/dev/null)" != "$v" ]; then
 	echo "$v" > "$DATA/.extension-id"
 fi
 
-# HTTP and code cache in RAM (/run is a tmpfs): they are rewritten all the time and are the bulk of
-# Chromium's eMMC writes; losing them on reboot only costs one slower first load. The profile itself
-# (HA login token, local storage, permissions) stays on the eMMC. Drop the old caches there once.
+# eMMC wear: the HTTP and code cache go to RAM (/run is a tmpfs; lost on reboot = one slower first
+# load), and so do the memory-mapped histogram files (BrowserMetrics/*.pma, 4 MiB, written back every
+# 30 s = ~1.3 GB/day; --disable-features=PersistentHistograms does not stop them), via symlinks.
+# The profile itself (HA login token, local storage, permissions) stays on the eMMC.
 CACHE=$XDG_RUNTIME_DIR/chromium-cache
-mkdir -p "$CACHE"
-rm -rf "$DATA/chromium/Default/Cache" "$DATA/chromium/Default/Code Cache"
+mkdir -p "$CACHE" "$XDG_RUNTIME_DIR/BrowserMetrics"
+rm -rf "$DATA/chromium/Default/Cache" "$DATA/chromium/Default/Code Cache" "$DATA/chromium/BrowserMetrics" \
+	"$DATA/chromium/BrowserMetrics-spare.pma"
+ln -s "$XDG_RUNTIME_DIR/BrowserMetrics" "$DATA/chromium/BrowserMetrics"
+ln -s "$XDG_RUNTIME_DIR/BrowserMetrics-spare.pma" "$DATA/chromium/BrowserMetrics-spare.pma"
 
 # Apply output rotation once the compositor is up
 (

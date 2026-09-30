@@ -1,0 +1,8 @@
+# Unattended panel: never stop the boot at a file system check. After a power loss the ext4 journal
+# is replayed by the kernel; fsck -y repairs whatever else it finds instead of waiting for a person
+# at the console, and the boot continues (SSH/USB maintenance access stays reachable) even if errors
+# are left. Full manual check: rescue mode (README), e2fsck -f on the unmounted wallpanel-root.
+fsck_args="-A -y"
+fsck_abort_on_errors="NO"
+fsck_on_battery="YES"
+fsck_shutdown="NO"

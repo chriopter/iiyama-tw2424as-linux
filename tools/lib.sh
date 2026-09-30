@@ -23,10 +23,11 @@ push_rootfs() {
 		chmod 700 root/.ssh; chmod 600 root/.ssh/authorized_keys"
 }
 
-# write_fstab SSH ROOT: ROOT/etc/fstab - the eMMC root plus RAM (tmpfs) for everything written all the
-# time (logs, /tmp), to spare the flash over years of 24/7 operation. Idempotent (install and sync-apps);
-# other lines are kept. Takes effect at the next boot.
-write_fstab() {
+# setup_storage SSH ROOT: ROOT/etc/fstab - the eMMC root plus RAM (tmpfs) for everything written all
+# the time (logs, /tmp), to spare the flash over years of 24/7 operation; crond for /etc/periodic; the
+# shutdown runlevel that remounts / read-only (clean file system on reboot). Idempotent (install and
+# sync-apps); other fstab lines are kept. Takes effect at the next boot.
+setup_storage() {
 	local ssh=$1 r=$2
 	$ssh "f=$r/etc/fstab; touch \$f; { grep -vE '^[^#[:space:]]+[[:space:]]+(/|/tmp|/var/log)[[:space:]]' \$f
 		echo 'LABEL=wallpanel-root / ext4 defaults,noatime,commit=60 0 1'
@@ -34,7 +35,8 @@ write_fstab() {
 		echo 'tmpfs /var/log tmpfs nosuid,nodev,noexec,size=32m,mode=0755 0 0'
 	} > \$f.new && mv \$f.new \$f
 	# crond runs /etc/periodic: log trimming (15min), fstrim (weekly)
-	ln -sf /etc/init.d/crond $r/etc/runlevels/default/crond"
+	ln -sf /etc/init.d/crond $r/etc/runlevels/default/crond
+	for s in killprocs mount-ro savecache; do ln -sf /etc/init.d/\$s $r/etc/runlevels/shutdown/\$s; done"
 }
 
 # write_conf SSH ROOT: ROOT/etc/wallpanel/wallpanel.conf and trusted certificates (tools/trust/*.crt)

@@ -17,7 +17,7 @@ echo "target: $MODE system, root at $R"
 
 push_rootfs "$SSH" "$R"
 write_conf "$SSH" "$R"
-write_fstab "$SSH" "$R"  # tmpfs for /tmp and /var/log: active after the next reboot
+setup_storage "$SSH" "$R"  # tmpfs for /tmp and /var/log: active after the next reboot
 $SSH "cd $R && grep -qx brcmfmac etc/modules || echo brcmfmac >> etc/modules"
 # kernel update health check (wallpanel-update install-release) in the default runlevel
 $SSH "ln -sf /etc/init.d/wallpanel-kernel-health $R/etc/runlevels/default/wallpanel-kernel-health"

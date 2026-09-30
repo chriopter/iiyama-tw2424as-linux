@@ -86,7 +86,7 @@ cat "$P/system/firmware/vendor/BCM4345C5.hcd" | $SSH 'cat > /mnt/t/lib/firmware/
 say "device configuration (from tools/local.env, never in git)"
 $SSH "umask 077; mkdir -p /mnt/t/etc/wpa_supplicant
 	wpa_passphrase '$WIFI_SSID' '$WIFI_PSK' | grep -v '#psk=' > /mnt/t/etc/wpa_supplicant/wpa_supplicant.conf"
-write_fstab "$SSH" /mnt/t
+setup_storage "$SSH" /mnt/t
 write_conf "$SSH" /mnt/t
 
 say "services and users"
