@@ -811,6 +811,83 @@ ENTITY_IDS = {'screen': 'display', 'auto_off': 'display_auto_off_timeout', 'fade
               'reload': 'reload_page', 'disk_used_pct': 'disk_used'}
 
 
+def command(topic, payload):
+    """One command, by topic (".../<key>/set" or ".../<action>"): MQTT and the on-screen settings page
+    (UpdatePage) both go through here, so they behave the same; the caller publishes the new state."""
+    if topic.endswith('/display/set'):
+        # the screen as a light bulb (HA light, e.g. driven by Adaptive Lighting): on/off = standby,
+        # brightness = backlight, colour temperature = night shift
+        cmd = json.loads(payload)
+        if 'color_temp' in cmd:  # Kelvin (color_temp_kelvin)
+            display.set_kelvin(cmd['color_temp'])
+        if cmd.get('brightness'):
+            display.set_brightness(cmd['brightness'])
+        if cmd.get('state') in ('ON', 'OFF'):
+            if display.locked:
+                print('display locked: ignoring light', cmd['state'], flush=True)
+            else:
+                display.set_standby(cmd['state'] == 'OFF')
+    elif topic.endswith('/brightness/set'):
+        display.set_brightness(round(float(payload) * display.max / 100))
+    elif topic.endswith('/color_temp/set'):
+        display.set_kelvin(float(payload))
+    elif topic.endswith('/screen/set'):
+        if display.locked:
+            print('display locked: ignoring', payload, flush=True)
+        else:
+            display.set_standby(payload.strip().upper() == 'OFF')  # ON also resets the auto-off timer
+    elif topic.endswith('/ct_scale/set'):
+        display.set_ct_scale(payload)
+    elif topic.endswith('/touch_fade_ms/set'):
+        SETTINGS['touch_fade_ms'] = max(0, min(3000, int(float(payload))))
+        save_settings()
+    elif topic.endswith('/fade_ms/set'):
+        SETTINGS['fade_ms'] = max(0, min(3000, int(float(payload))))
+        save_settings()
+    elif topic.endswith('/auto_off/set'):
+        SETTINGS['auto_off'] = max(0, int(float(payload)))
+        save_settings()
+    elif topic.endswith('/display_lock/set'):
+        display.set_locked(payload.strip().upper() == 'ON')
+    elif topic.endswith('/home_url/set'):
+        try:
+            set_home_url(payload)
+        except ValueError as e:
+            print('home_url:', e, flush=True)
+    elif topic.endswith('/home_after/set'):
+        SETTINGS['home_after'] = max(0, int(float(payload)))
+        save_settings()
+    elif topic.endswith('/auto_update/set'):
+        SETTINGS['auto_update'] = payload.strip().upper() == 'ON'
+        save_settings()
+    elif topic.endswith('/install_updates'):  # AUTO_PACKAGES only; the full upgrade is on the update page
+        threading.Thread(target=install_updates, daemon=True).start()
+    elif topic.endswith('/update_page/set'):  # shows the page only; kernel installs need a touch there
+        update_page.show() if payload.strip().upper() == 'ON' else update_page.close()
+    elif topic.endswith('/reboot_enabled/set'):
+        set_reboot_enabled(payload.strip().upper() == 'ON')
+    elif topic.endswith('/volume/set'):
+        volume.set(float(payload))
+    elif topic.endswith('/url/set'):
+        if UpdatePage.is_local(payload.strip()):  # only via the switch
+            print('url: the update page is only shown via its switch', flush=True)
+        elif re.match(r'https?://', payload.strip()):  # never file:, chrome:, javascript: (config holds secrets)
+            browser.navigate(payload.strip())
+        else:
+            print('url: only http(s) URLs are allowed', flush=True)
+    elif topic.endswith('/reboot_time/set'):
+        try:
+            set_reboot_time(payload)
+        except ValueError as e:
+            print('reboot_time:', e, flush=True)
+    elif topic.endswith('/reload'):
+        browser.reload()
+    elif topic.endswith('/restart_kiosk'):
+        restart_kiosk()
+    elif topic.endswith('/reboot'):
+        reboot()
+
+
 class Mqtt:
     def __init__(self):
         import paho.mqtt.client as mqtt
@@ -956,78 +1033,8 @@ class Mqtt:
         if topic == 'homeassistant/status' and payload == 'online':
             self.discovery()
             c.publish(f'{BASE}/availability', 'online', retain=True)
-        elif topic.endswith('/display/set'):
-            # the screen as a light bulb (HA light, e.g. driven by Adaptive Lighting): on/off = standby,
-            # brightness = backlight, colour temperature = night shift
-            cmd = json.loads(payload)
-            if 'color_temp' in cmd:  # Kelvin (color_temp_kelvin)
-                display.set_kelvin(cmd['color_temp'])
-            if cmd.get('brightness'):
-                display.set_brightness(cmd['brightness'])
-            if cmd.get('state') in ('ON', 'OFF'):
-                if display.locked:
-                    print('display locked: ignoring light', cmd['state'], flush=True)
-                else:
-                    display.set_standby(cmd['state'] == 'OFF')
-        elif topic.endswith('/brightness/set'):
-            display.set_brightness(round(float(payload) * display.max / 100))
-        elif topic.endswith('/color_temp/set'):
-            display.set_kelvin(float(payload))
-        elif topic.endswith('/screen/set'):
-            if display.locked:
-                print('display locked: ignoring', payload, flush=True)
-            else:
-                display.set_standby(payload.strip().upper() == 'OFF')  # ON also resets the auto-off timer
-        elif topic.endswith('/ct_scale/set'):
-            display.set_ct_scale(payload)
-        elif topic.endswith('/touch_fade_ms/set'):
-            SETTINGS['touch_fade_ms'] = max(0, min(3000, int(float(payload))))
-            save_settings()
-        elif topic.endswith('/fade_ms/set'):
-            SETTINGS['fade_ms'] = max(0, min(3000, int(float(payload))))
-            save_settings()
-        elif topic.endswith('/auto_off/set'):
-            SETTINGS['auto_off'] = max(0, int(float(payload)))
-            save_settings()
-        elif topic.endswith('/display_lock/set'):
-            display.set_locked(payload.strip().upper() == 'ON')
-        elif topic.endswith('/home_url/set'):
-            try:
-                set_home_url(payload)
-            except ValueError as e:
-                print('home_url:', e, flush=True)
-        elif topic.endswith('/home_after/set'):
-            SETTINGS['home_after'] = max(0, int(float(payload)))
-            save_settings()
-        elif topic.endswith('/auto_update/set'):
-            SETTINGS['auto_update'] = payload.strip().upper() == 'ON'
-            save_settings()
-        elif topic.endswith('/install_updates'):  # AUTO_PACKAGES only; the full upgrade is on the update page
-            threading.Thread(target=install_updates, daemon=True).start()
-        elif topic.endswith('/update_page/set'):  # shows the page only; kernel installs need a touch there
-            update_page.show() if payload.strip().upper() == 'ON' else update_page.close()
-        elif topic.endswith('/reboot_enabled/set'):
-            set_reboot_enabled(payload.strip().upper() == 'ON')
-        elif topic.endswith('/volume/set'):
-            volume.set(float(payload))
-        elif topic.endswith('/url/set'):
-            if UpdatePage.is_local(payload.strip()):  # only via the switch
-                print('url: the update page is only shown via its switch', flush=True)
-            elif re.match(r'https?://', payload.strip()):  # never file:, chrome:, javascript: (config holds secrets)
-                browser.navigate(payload.strip())
-            else:
-                print('url: only http(s) URLs are allowed', flush=True)
-        elif topic.endswith('/reboot_time/set'):
-            try:
-                set_reboot_time(payload)
-            except ValueError as e:
-                print('reboot_time:', e, flush=True)
-        elif topic.endswith('/reload'):
-            browser.reload()
-        elif topic.endswith('/restart_kiosk'):
-            restart_kiosk()
-        elif topic.endswith('/reboot'):
-            reboot()
+        else:
+            command(topic, payload)
         self.publish_state()
 
     def publish_state(self):
@@ -1243,10 +1250,63 @@ class UpdatePage:
                 'kernel': kernel_status(), 'checking': self.checking, 'name': NAME,
                 'closes_in': max(0, int(self.IDLE - (time.time() - max(self.since, display.last_touch)))) if self.on else 0}
 
-    def post(self, path):
+    # "Einstellungen & Service": what MQTT can do, minus URLs (Seitenadresse/Startseite only shown) and
+    # "Bildschirm an/aus" (the page is on screen anyway). Values go through command() like MQTT messages.
+    SETTABLE = ('display', 'display_lock', 'volume', 'ct_scale', 'fade_ms', 'touch_fade_ms', 'auto_off', 'home_after',
+                'reboot_enabled', 'reboot_time', 'auto_update')
+    ACTIONS = ('reload', 'restart_kiosk', 'reboot', 'install_updates')  # all restart something: touch only
+
+    def touched(self):
+        """A real finger on the lit screen within TOUCH_WINDOW (display.last_touch comes from the touchscreen)."""
+        return display.lit and time.time() - display.last_touch <= self.TOUCH_WINDOW
+
+    def settings(self):
+        d = display.state()
+        return {'brightness': d['brightness'], 'max_brightness': d['max_brightness'], 'color_temp': d['color_temp'],
+                'kelvin_range': list(Display.KELVIN), 'ct_scale': d['ct_scale'], 'ct_scale_range': list(Display.CT_SCALE),
+                'locked': d['locked'], 'standby': d['standby'], 'volume': volume.get(),
+                'fade_ms': int(SETTINGS.get('fade_ms', 400)), 'touch_fade_ms': int(SETTINGS.get('touch_fade_ms', 100)),
+                'auto_off': int(SETTINGS.get('auto_off', 5)), 'home_after': home_after(),
+                'reboot_enabled': reboot_enabled(), 'reboot_time': reboot_time(), 'next_reboot': next_reboot(),
+                'auto_update': auto_update(), 'auto_packages': list(AUTO_PACKAGES), 'updating': UPDATE['running'],
+                'url': self.back or home_url(), 'home_url': home_url()}
+
+    def command(self, cmd, value):
+        """-> (http code, message)"""
+        if cmd in self.ACTIONS:
+            if not self.touched():
+                print(f'update page: {cmd} refused (no touch on the screen)', flush=True)
+                return 403, 'Nur per Berührung am Bildschirm möglich.'
+            if cmd == 'reload':  # the dashboard, not this page: back to it, freshly loaded
+                threading.Thread(target=self._close_and_publish, daemon=True).start()
+                return 200, 'Seite wird neu geladen …'
+            if cmd == 'install_updates' and (UPDATE['running'] or kernel_installing()):
+                return 409, 'Es läuft bereits ein Update.'
+            print(f'update page: {cmd}', flush=True)
+            threading.Thread(target=self._command, args=(f'{BASE}/{cmd}', ''), daemon=True).start()
+            return 202, {'restart_kiosk': 'Browser wird neu gestartet …', 'reboot': 'Panel startet neu …',
+                         'install_updates': 'Apps werden aktualisiert …'}[cmd]
+        if cmd not in self.SETTABLE:
+            return 400, 'Unbekannte Einstellung.'
+        try:
+            if cmd == 'display':  # brightness / colour temperature only, never on/off
+                value = json.dumps({k: int(v) for k, v in dict(value).items() if k in ('brightness', 'color_temp')})
+            self._command(f'{BASE}/{cmd}/set', str(value))
+        except (TypeError, ValueError) as e:
+            return 400, f'Ungültiger Wert ({e})'
+        return 200, 'ok'
+
+    def _command(self, topic, payload):
+        command(topic, payload)
+        if MQ:
+            MQ.publish_state()
+
+    def post(self, path, body=None):
         """-> (http code, message)"""
         if not self.on:
             return 409, 'Die Update-Seite ist nicht aktiv.'
+        if path == '/api/cmd':
+            return self.command((body or {}).get('cmd'), (body or {}).get('value'))
         if path == '/api/close':
             threading.Thread(target=self._close_and_publish, daemon=True).start()
             return 200, 'ok'
@@ -1254,12 +1314,14 @@ class UpdatePage:
             self.check()
             return 202, 'Wird geprüft …'
         if path == '/api/apps/update':
+            if not self.touched():  # restarts the browser afterwards
+                return 403, 'Nur per Berührung am Bildschirm möglich.'
             if UPDATE['running'] or kernel_installing():
                 return 409, 'Es läuft bereits ein Update.'
             threading.Thread(target=install_updates, kwargs={'full': True}, daemon=True).start()
             return 202, 'Update gestartet.'
         if path == '/api/kernel/install':
-            if not display.lit or time.time() - display.last_touch > self.TOUCH_WINDOW:
+            if not self.touched():
                 print('update page: kernel install refused (no touch on the screen)', flush=True)
                 return 403, 'Nur per Berührung am Bildschirm möglich.'
             if not (KERNEL['info'] or {}).get('update_available'):
@@ -1323,6 +1385,8 @@ class UpdatePage:
                     self.send(200, PAGE_HTML.replace('__TOKEN__', page.token), 'text/html')
                 elif path == '/api/status':
                     self.send(200, json.dumps(page.status()))
+                elif path == '/api/settings':
+                    self.send(200, json.dumps(page.settings()))
                 elif path == '/api/stats':  # ?span=3600|86400
                     span = 86400 if 'span=86400' in self.path else 3600
                     self.send(200, json.dumps({'span': span, 'uptime': int(uptime()), 'kernel': os.uname().release,
@@ -1331,13 +1395,17 @@ class UpdatePage:
                     self.send(404, '{}')
 
             def do_POST(self):
-                self.rfile.read(min(4096, int(self.headers.get('Content-Length') or 0)))
+                raw = self.rfile.read(min(4096, int(self.headers.get('Content-Length') or 0)))
                 origin = self.headers.get('Origin')
                 if not (self.host_ok() and hmac.compare_digest(self.headers.get('X-Wallpanel-Token', ''), page.token)
                         and origin in (None, page.URL.rstrip('/'))):
                     self.send(403, json.dumps({'message': 'forbidden'}))
                     return
-                code, msg = page.post(self.path.split('?')[0])
+                try:
+                    body = json.loads(raw) if raw else None
+                except ValueError:
+                    body = None
+                code, msg = page.post(self.path.split('?')[0], body if isinstance(body, dict) else None)
                 self.send(code, json.dumps({'message': msg}))
 
         server = http.server.ThreadingHTTPServer(('127.0.0.1', self.PORT), Handler)
@@ -1405,6 +1473,35 @@ button.kernel { background:var(--warn); color:#1a1a1a; }
 button.wide { width:100%; }
 button:disabled, button.kernel:disabled { background:#333; color:#777; }
 #closes { color:var(--dim); font-size:17px; }
+.tab { flex:1; display:flex; flex-direction:column; gap:18px; min-height:0; }
+.tab[hidden] { display:none; }
+.tabs { display:flex; gap:10px; }
+.tabs button { min-height:64px; font-size:23px; padding:0 30px; background:#2a2a2a; }
+.tabs button.sel { background:var(--primary); }
+#tab-svc { display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; }
+#tab-svc[hidden] { display:none; }
+#tab-svc section { gap:10px; overflow:hidden; }
+.ctl { display:flex; flex-direction:column; gap:2px; padding:6px 0; }
+.ctl .lab { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:52px; }
+.ctl .lab small { display:block; color:var(--dim); font-size:16px; }
+.ctl .val { font-weight:500; white-space:nowrap; }
+.ctl .val.url { font-weight:400; font-size:17px; color:var(--dim); overflow:hidden; text-overflow:ellipsis; max-width:60%; }
+input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:48px; margin:0; background:transparent; --p:50%; }
+input[type=range]::-webkit-slider-runnable-track { height:10px; border-radius:5px;
+  background:linear-gradient(to right, var(--primary) var(--p), #3a3a3a var(--p)); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:40px; height:40px; margin-top:-15px; border-radius:50%;
+  background:#fff; box-shadow:0 2px 8px rgba(0,0,0,.6); }
+.toggle { width:96px; min-height:54px; height:54px; padding:0; border-radius:27px; background:#3a3a3a; position:relative; flex:none; }
+.toggle::after { content:''; position:absolute; top:7px; left:7px; width:40px; height:40px; border-radius:50%; background:#aaa;
+  transition:left .15s; }
+.toggle.on { background:var(--primary); }
+.toggle.on::after { left:49px; background:#fff; }
+.stp { display:flex; align-items:center; gap:14px; }
+.stp button { min-height:60px; width:72px; padding:0; font-size:30px; background:#2a2a2a; }
+.stp .val { min-width:110px; text-align:center; }
+.acts { margin-top:auto; display:flex; flex-direction:column; gap:14px; }
+.acts button { min-height:76px; }
+button.danger { background:var(--err); }
 #modal { position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; }
 #modal .box { background:#232323; border-radius:20px; padding:40px 44px; width:880px; display:flex; flex-direction:column;
   gap:22px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
@@ -1414,11 +1511,13 @@ button:disabled, button.kernel:disabled { background:#333; color:#777; }
   border-radius:12px; font-size:21px; display:none; box-shadow:0 8px 30px rgba(0,0,0,.5); }
 </style></head><body>
 <header>
-  <h1>Updates <small id="name"></small></h1>
+  <nav class="tabs"><button data-tab="upd" class="sel">Updates</button><button data-tab="svc">Einstellungen &amp; Service</button></nav>
+  <h1><small id="name"></small></h1>
   <span id="closes"></span>
   <button class="flat" id="check">Erneut prüfen</button>
   <button id="close">✕&nbsp; Schließen</button>
 </header>
+<div id="tab-upd" class="tab">
 <div id="stats">
   <div class="tile"><span class="dim">Prozessor</span><b id="v-cpu">–</b><svg id="g-cpu" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
   <div class="tile"><span class="dim">Temperatur</span><b id="v-temp">–</b><svg id="g-temp" viewBox="0 0 240 50" preserveAspectRatio="none"></svg></div>
@@ -1455,13 +1554,14 @@ button:disabled, button.kernel:disabled { background:#333; color:#777; }
     <button class="wide kernel" id="k-go" disabled>Kernel installieren</button>
   </section>
 </main>
+</div>
+<div id="tab-svc" class="tab" hidden></div>
 <div id="modal"><div class="box">
-  <h3 id="m-title">Kernel installieren?</h3>
-  <div>Das Panel startet zum Test neu und ist dabei einige Minuten nicht bedienbar. Läuft der neue Kernel
-    einwandfrei, wird er übernommen – sonst startet das Panel automatisch wieder mit dem bisherigen Kernel.</div>
-  <div class="dim">Während des Updates bitte nicht vom Strom trennen.</div>
+  <h3 id="m-title"></h3>
+  <div id="m-text"></div>
+  <div class="dim" id="m-note"></div>
   <div class="btns"><button class="flat" id="m-no">Abbrechen</button>
-    <button class="kernel" id="m-yes">Installieren und neu starten</button></div>
+    <button class="kernel" id="m-yes"></button></div>
 </div></div>
 <div id="toast"></div>
 <script>
@@ -1535,12 +1635,17 @@ async function refresh() {
 $('close').onclick = () => post('/api/close');
 $('check').onclick = () => post('/api/check');
 $('a-go').onclick = () => post('/api/apps/update');
-$('k-go').onclick = () => {
-  $('m-title').textContent = `Kernel ${S.kernel.available.kernel} installieren?`;
-  $('modal').style.display = 'flex';
-};
+let asked = null;
+function ask(title, text, note, yes, fn) {
+  $('m-title').textContent = title; $('m-text').textContent = text; $('m-note').textContent = note;
+  $('m-yes').textContent = yes; asked = fn; $('modal').style.display = 'flex';
+}
+$('k-go').onclick = () => ask(`Kernel ${S.kernel.available.kernel} installieren?`,
+  'Das Panel startet zum Test neu und ist dabei einige Minuten nicht bedienbar. Läuft der neue Kernel ' +
+  'einwandfrei, wird er übernommen – sonst startet das Panel automatisch wieder mit dem bisherigen Kernel.',
+  'Während des Updates bitte nicht vom Strom trennen.', 'Installieren und neu starten', () => post('/api/kernel/install'));
 $('m-no').onclick = () => $('modal').style.display = 'none';
-$('m-yes').onclick = () => { $('modal').style.display = 'none'; post('/api/kernel/install'); };
+$('m-yes').onclick = () => { $('modal').style.display = 'none'; asked && asked(); };
 // system values: sparklines from the api's in-memory history (1 h / 24 h), every 5 s
 let span = 3600;
 const RANGE = {cpu: [0, 100], mem: [0, 100], backlight: [0, 100]};
@@ -1572,8 +1677,118 @@ document.querySelectorAll('.seg button').forEach((b) => b.onclick = () => {
   document.querySelectorAll('.seg button').forEach((x) => x.classList.toggle('sel', x === b));
   stats();
 });
+// "Einstellungen & Service": the MQTT commands (no URLs), same code paths in the api (/api/cmd)
+let tab = 'upd', V = null, built = false;
+const hold = new Set();  // sliders under a finger: not overwritten by the poll
+const ms = (v) => `${num(v)} ms`, min = (v) => v ? `${num(v)} min` : 'nie';
+const TIMES = Array.from({length: 48}, (_, i) => `${String(i >> 1).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
+const SVC = [
+  ['Bildschirm', [
+    {t: 'range', k: 'brightness', label: 'Bildschirm-Beleuchtung', sub: 'Helligkeit', min: 1, max: () => V.max_brightness,
+      fmt: (v) => `${Math.round(100 * v / V.max_brightness)} %`, send: (v) => cmd('display', {brightness: v})},
+    {t: 'range', k: 'color_temp', label: 'Bildschirm-Beleuchtung', sub: 'Farbtemperatur', min: 1000, max: () => 6500, step: 50,
+      fmt: (v) => `${v} K`, send: (v) => cmd('display', {color_temp: v})},
+    {t: 'range', k: 'ct_scale', label: 'Farbton-Abgleich', min: 50, max: () => 150, fmt: (v) => `${v} %`},
+    {t: 'range', k: 'fade_ms', label: 'Bildschirm-Überblendung', min: 0, max: () => 3000, step: 50, fmt: ms},
+    {t: 'range', k: 'touch_fade_ms', label: 'Bildschirm-Überblendung bei Berührung', min: 0, max: () => 3000, step: 10, fmt: ms},
+    {t: 'step', k: 'auto_off', label: 'Bildschirm aus nach', list: [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240], fmt: min},
+    {t: 'switch', k: 'locked', c: 'display_lock', label: 'Bildschirm gesperrt', sub: 'schaltet den Bildschirm aus (Ein/Aus-Taste weckt)'},
+    {t: 'info', label: 'Bildschirm an/aus', v: () => V.standby ? 'aus' : 'an'},
+  ]],
+  ['Ton & Seite', [
+    {t: 'range', k: 'volume', label: 'Lautstärke', min: 0, max: () => 100, fmt: (v) => `${v} %`},
+    {t: 'step', k: 'home_after', label: 'Startseite laden nach', sub: 'wenn der Bildschirm so lange aus ist',
+      list: [0, 5, 10, 15, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1440], fmt: min},
+    {t: 'info', label: 'Seitenadresse', v: () => V.url, url: true},
+    {t: 'info', label: 'Startseite', v: () => V.home_url, url: true},
+    {t: 'act', c: 'reload', label: 'Seite neu laden', sub: 'schließt diese Seite'},
+    {t: 'act', c: 'restart_kiosk', label: 'Browser neu starten'},
+  ]],
+  ['Wartung', [
+    {t: 'switch', k: 'reboot_enabled', label: 'Neustart täglich'},
+    {t: 'step', k: 'reboot_time', label: 'Wartungszeit', list: TIMES, fmt: (v) => `${v} Uhr`},
+    {t: 'switch', k: 'auto_update', label: 'Auto-Update Apps', sub: 'Chrome & AirPlay, täglich zur Wartungszeit'},
+    {t: 'act', c: 'install_updates', label: 'Apps aktualisieren', sub: 'Chrome & AirPlay'},
+    {t: 'act', c: 'reboot', label: 'Neu starten', cls: 'danger', confirm: true},
+  ]],
+];
+async function cmd(c, value) {
+  try {
+    const r = await fetch('/api/cmd', {method: 'POST', body: JSON.stringify({cmd: c, value}),
+      headers: {'X-Wallpanel-Token': TOKEN, 'Content-Type': 'application/json'}});
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 403 && j.message === 'forbidden') { location.reload(); return; }
+    if (j.message && j.message !== 'ok') toast(j.message);
+  } catch (e) { toast('Keine Verbindung'); }
+  settings();
+}
+function lab(x) {
+  return `<div class="lab"><span>${esc(x.label)}${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</span>` +
+    (x.t === 'switch' ? '<button class="toggle"></button>' : x.t === 'step' ? '<div class="stp"><button>−</button><b class="val"></b><button>+</button></div>'
+      : `<b class="val${x.url ? ' url' : ''}"></b>`) + '</div>';
+}
+function build() {
+  $('tab-svc').innerHTML = SVC.map(([h, xs]) => `<section><h2>${esc(h)}</h2>` +
+    xs.filter((x) => x.t !== 'act').map((x) => `<div class="ctl">${lab(x)}${x.t === 'range' ? '<input type="range">' : ''}</div>`).join('') +
+    `<div class="acts">${xs.filter((x) => x.t === 'act').map((x) => `<button class="wide ${x.cls || 'flat'}">${esc(x.label)}` +
+      `${x.sub ? ` <span class="dim" style="font-size:18px">(${esc(x.sub)})</span>` : ''}</button>`).join('')}</div></section>`).join('');
+  const secs = $('tab-svc').querySelectorAll('section');
+  SVC.forEach(([, xs], si) => {
+    const ctls = secs[si].querySelectorAll('.ctl'), acts = secs[si].querySelectorAll('.acts button');
+    xs.filter((x) => x.t !== 'act').forEach((x, i) => x.el = ctls[i]);
+    xs.filter((x) => x.t === 'act').forEach((x, i) => x.el = acts[i]);
+    for (const x of xs) {
+      const send = x.send || ((v) => cmd(x.c || x.k, v));
+      if (x.t === 'range') {
+        const r = x.el.querySelector('input');
+        r.min = x.min; r.step = x.step || 1;
+        r.oninput = () => { hold.add(x.k); paint(x, +r.value); };
+        r.onchange = () => { send(+r.value); setTimeout(() => hold.delete(x.k), 1500); };
+      } else if (x.t === 'switch') {
+        x.el.querySelector('.toggle').onclick = () => send(V[x.k] ? 'OFF' : 'ON');
+      } else if (x.t === 'step') {
+        const [dn, up] = x.el.querySelectorAll('.stp button');
+        const go = (d) => {
+          const l = x.list, i = l.indexOf(V[x.k]);
+          const n = i >= 0 ? l[Math.max(0, Math.min(l.length - 1, i + d))]
+            : d > 0 ? l.find((v) => v > V[x.k]) ?? l[l.length - 1] : [...l].reverse().find((v) => v < V[x.k]) ?? l[0];
+          V[x.k] = n; x.el.querySelector('.val').textContent = x.fmt(n); send(n);
+        };
+        dn.onclick = () => go(-1); up.onclick = () => go(1);
+      } else if (x.t === 'act') {
+        x.el.onclick = x.confirm
+          ? () => ask('Panel neu starten?', 'Das Panel startet neu und ist etwa eine Minute nicht bedienbar.', '', 'Neu starten', () => cmd(x.c))
+          : () => cmd(x.c);
+      }
+    }
+  });
+  built = true;
+}
+function paint(x, v) {
+  const r = x.el.querySelector('input');
+  r.style.setProperty('--p', `${100 * (v - x.min) / ((+r.max - x.min) || 1)}%`);
+  x.el.querySelector('.val').textContent = x.fmt(v);
+}
+async function settings() {
+  try { V = await (await fetch('/api/settings')).json(); } catch (e) { return; }
+  if (!built) build();
+  for (const [, xs] of SVC) for (const x of xs) {
+    if (x.t === 'range' && !hold.has(x.k)) { const r = x.el.querySelector('input'); r.max = x.max(); r.value = V[x.k]; paint(x, V[x.k]); }
+    else if (x.t === 'switch') x.el.querySelector('.toggle').classList.toggle('on', !!V[x.k]);
+    else if (x.t === 'step') x.el.querySelector('.val').textContent = x.fmt(V[x.k]);
+    else if (x.t === 'info') x.el.querySelector('.val').textContent = x.v();
+    else if (x.c === 'install_updates') x.el.disabled = V.updating;
+  }
+}
+document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('sel', x === b));
+  $('tab-upd').hidden = tab !== 'upd'; $('tab-svc').hidden = tab !== 'svc'; $('check').hidden = tab !== 'upd';
+  tab === 'svc' ? settings() : stats();
+});
 refresh(); setInterval(refresh, 2000);
-stats(); setInterval(stats, 5000);
+stats(); setInterval(() => tab === 'upd' && stats(), 5000);
+setInterval(() => tab === 'svc' && settings(), 3000);
 </script></body></html>
 """
 
