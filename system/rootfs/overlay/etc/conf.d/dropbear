@@ -1,0 +1,3 @@
+# SSH with key (/root/.ssh/authorized_keys) or root password (set from tools/local.env ROOT_PASSWORD).
+# Never add -s (no passwords) or -w (no root): that locks out the maintenance access.
+DROPBEAR_OPTS=""

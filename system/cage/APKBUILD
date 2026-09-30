@@ -1,0 +1,39 @@
+# Contributor: Will Sinatra <wpsinatra@gmail.com> (Alpine aports community/cage)
+# Maintainer: chriopter <82179548+chriopter@users.noreply.github.com>
+#
+# Wallpanel build of cage, derived from Alpine aports community/cage (commit in VERSION).
+# Local changes: patches/ (gamma control, xwayland option), XWayland and man pages off,
+# no cage-run/-doc subpackages; pkgrel 100+ marks the wallpanel build (sorts above any Alpine
+# rebuild of the same version). Build with ./build.sh cage; sha512sums via ./build.sh export cage.
+pkgname=cage
+pkgver=0.3.0
+pkgrel=100
+pkgdesc="Wayland Kiosk (wallpanel build: gamma control, no XWayland)"
+url="https://www.hjdskes.nl/projects/cage/"
+license="MIT"
+arch="aarch64"
+options="!check" # no test suite
+makedepends="meson wlroots0.20-dev wayland-protocols"
+source="$pkgname-$pkgver.tar.gz::https://github.com/cage-kiosk/cage/archive/refs/tags/v$pkgver.tar.gz
+	0001-Apply-gamma-ramps-from-the-gamma-control-protocol.patch
+	0002-build-Add-an-xwayland-feature-option.patch
+	"
+
+build() {
+	abuild-meson \
+		-Db_lto=true \
+		-Dxwayland=disabled \
+		-Dman-pages=disabled \
+		build
+	meson compile -C build
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C build
+}
+
+sha512sums="
+936105ebc6c6e8609a7f995c512f55ef8858dbfc7be2574e6287b747417d9de9f1a3b6b85695380c7524353a4a8fb040950075b18f016b6c00f76b9c35f99423  cage-0.3.0.tar.gz
+c58d6a54751646f37e2d8263b39f48a15f926193b0d40b3ca5702d5da0b1c2bf9da3dd3e75738ac9e63fcf58709f1e2eda7887a0d957d39254a84e9a944a6eab  0001-Apply-gamma-ramps-from-the-gamma-control-protocol.patch
+d32b4a3e63a147aed4808a452aeae2a3e3cf3b7571f0e114718a15fb77192532fda11c821fb3add8e9ba0f72e8cf486e74321b7d464f41d5115e917bee674fb9  0002-build-Add-an-xwayland-feature-option.patch
+"

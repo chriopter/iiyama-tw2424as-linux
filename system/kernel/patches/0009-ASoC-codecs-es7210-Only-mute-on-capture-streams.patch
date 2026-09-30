@@ -1,0 +1,30 @@
+From d7eac2af67c8711f573e9c467848f2640fd89191 Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 07:45:04 +0200
+Subject: [PATCH 09/12] ASoC: codecs: es7210: Only mute on capture streams
+
+On a multi-codec link, the core also calls mute_stream for the playback
+stream of the link, even though the ES7210 has no playback stream.
+Muting the ADCs then silences a running capture whenever a playback
+stream on the same link stops.
+
+Ignore mute requests for anything but capture.
+---
+ sound/soc/codecs/es7210.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/sound/soc/codecs/es7210.c b/sound/soc/codecs/es7210.c
+index e6d391668..9696203db 100644
+--- a/sound/soc/codecs/es7210.c
++++ b/sound/soc/codecs/es7210.c
+@@ -231,6 +231,10 @@ static int es7210_mute(struct snd_soc_dai *dai, int mute, int stream)
+ 	struct snd_soc_component *component = dai->component;
+ 	unsigned int val = mute ? ES7210_ADC_MUTE : 0;
+ 
++	/* also called for the playback stream of a shared multi-codec link */
++	if (stream != SNDRV_PCM_STREAM_CAPTURE)
++		return 0;
++
+ 	snd_soc_component_update_bits(component, ES7210_ADC12_MUTE,
+ 				      ES7210_ADC_MUTE, val);
+ 	snd_soc_component_update_bits(component, ES7210_ADC34_MUTE,

@@ -1,0 +1,52 @@
+From 34ac6c4cf90d5760fdd02b529333ecb8ef13f348 Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 07:47:28 +0200
+Subject: [PATCH 12/12] arm64: dts: rockchip: Use the digital microphones of
+ iiyama ProLite TW2424AS
+
+The microphones of the ES7210 are two digital microphones on MIC1P
+(ADC1/ADC2); its analog inputs MIC3/MIC4 carry a loopback of the
+loudspeaker signal as echo reference. Enable the digital microphone
+mode for ADC1/ADC2 and name the card inputs accordingly.
+---
+ .../boot/dts/rockchip/rk3399-iiyama-tw2424as.dts | 16 +++++++++++-----
+ 1 file changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as.dts b/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as.dts
+index 2a90ddaaf..d300b09cd 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as.dts
+@@ -128,15 +128,16 @@ sound {
+ 		aux-devs = <&speaker_amp>;
+ 		widgets =
+ 			"Microphone", "Mic Jack",
+-			"Microphone", "Mic Array",
++			"Microphone", "Internal Mics",
++			"Line", "Echo Reference",
+ 			"Headphone", "Headphones",
+ 			"Speaker", "Speaker";
+ 		routing =
+ 			"MIC1", "Mic Jack",
+-			"Mic Array MIC1", "Mic Array",
+-			"Mic Array MIC2", "Mic Array",
+-			"Mic Array MIC3", "Mic Array",
+-			"Mic Array MIC4", "Mic Array",
++			"Mic Array MIC1", "Internal Mics",
++			"Mic Array MIC2", "Internal Mics",
++			"Mic Array MIC3", "Echo Reference",
++			"Mic Array MIC4", "Echo Reference",
+ 			"Headphones", "HPOL",
+ 			"Headphones", "HPOR",
+ 			"Speaker Amp INL", "HPOL",
+@@ -601,6 +602,11 @@ es7210: audio-codec@40 {
+ 		clock-names = "mclk";
+ 		#sound-dai-cells = <0>;
+ 		sound-name-prefix = "Mic Array";
++		/*
++		 * ADC1/ADC2: two digital microphones on MIC1P; ADC3/ADC4:
++		 * analog loopback of the loudspeaker signal (echo reference)
++		 */
++		everest,adc12-dmic;
+ 
+ 		port {
+ 			es7210_ep: endpoint {

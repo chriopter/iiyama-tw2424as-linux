@@ -1,0 +1,23 @@
+#!/sbin/openrc-run
+# SPDX-License-Identifier: MIT
+description="Wallpanel kiosk (cage + Chromium, Home Assistant)"
+supervisor=supervise-daemon
+command=/usr/lib/wallpanel/wallpanel-kiosk.sh
+command_user=wallpanel:wallpanel
+respawn_delay=3
+respawn_max=0
+output_log=/var/log/wallpanel-kiosk.log
+error_log=/var/log/wallpanel-kiosk.log
+
+depend() {
+	need seatd udev
+	after networking wpa_supplicant
+}
+
+start_pre() {
+	checkpath -d -m 0700 -o wallpanel:wallpanel /run/wallpanel
+	checkpath -d -m 0755 -o wallpanel:wallpanel /var/lib/wallpanel
+	# keep the log small on the eMMC: rotate once it exceeds 1 MiB
+	[ "$(stat -c %s /var/log/wallpanel-kiosk.log 2>/dev/null || echo 0)" -lt 1048576 ] || mv -f /var/log/wallpanel-kiosk.log /var/log/wallpanel-kiosk.log.old
+	checkpath -f -m 0644 -o wallpanel:wallpanel /var/log/wallpanel-kiosk.log
+}

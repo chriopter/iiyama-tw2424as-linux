@@ -1,0 +1,6 @@
+# The init script adds -c /etc/wpa_supplicant/wpa_supplicant.conf itself.
+wpa_supplicant_args="-i wlan0"
+# supervise-daemon: never give up. wlan0 appears a few seconds after boot (SDIO + firmware load),
+# and a crashed supplicant must come back in 24/7 operation.
+respawn_delay=3
+respawn_max=0

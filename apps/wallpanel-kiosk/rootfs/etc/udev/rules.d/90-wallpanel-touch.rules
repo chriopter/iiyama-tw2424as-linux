@@ -1,0 +1,3 @@
+# The panel is mounted upside down and the output is rotated by 180 degrees:
+# rotate the touch coordinates the same way.
+ACTION=="add|change", KERNEL=="event*", ATTRS{name}=="Siliconworks SiW HID Touch Controller", ENV{LIBINPUT_CALIBRATION_MATRIX}="-1 0 1 0 -1 1"

@@ -1,0 +1,26 @@
+# /etc/wallpanel/wallpanel.conf – shared by wallpanel-kiosk and wallpanel-api
+# Kiosk
+URL=http://homeassistant.local:8123/
+ROTATION=180
+OUTPUT=DSI-1
+# CHROMIUM_FLAGS=
+
+# Home Assistant via MQTT discovery
+DEVICE_NAME=Wallpanel
+# DEVICE_ID=wallpanel_1
+MQTT_HOST=
+MQTT_PORT=1883
+MQTT_USER=
+MQTT_PASSWORD=
+
+
+# Audio / keys
+MIXER_CARD=0
+# ES8316 codec: DAC (0 dB .. mute); volume % is linear in dB: 100 % = 0 dB, 0.5 dB per %, 0 % = mute
+MIXER_CONTROL=DAC
+VOLUME_STEP=5
+# Volume overlay at the right (default) or left screen edge
+# OSD_SIDE=right
+
+# Daily reboot at HH:MM (empty = off; can also be set from Home Assistant)
+REBOOT_TIME=

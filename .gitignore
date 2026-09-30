@@ -1,0 +1,28 @@
+# Never commit: personal/device data, keys, vendor blobs, large or reproducible files
+tools/local.env
+tools/ssh/
+docs/analysis/raw/
+system/firmware/vendor/
+dumps/
+build/
+__pycache__/
+
+# host tools and downloads (fetched by the scripts)
+tools/platform-tools/
+tools/gcc-*/
+tools/venv/
+tools/bcpkg/
+tools/bin/
+tools/rkdeveloptool/
+tools/apk/
+tools/apk-installer/
+tools/apkstatic/
+tools/*.tar.gz
+
+# local debug state
+tools/debug/.shelly_last_on
+tools/debug/fbtest/*.raw
+tools/trust/
+
+# local apk signing key (./build.sh cage)
+tools/apk-key/

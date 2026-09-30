@@ -1,0 +1,10 @@
+auto lo
+iface lo inet loopback
+
+# udhcpc runs with -b: keeps retrying if the access point is not up yet (e.g. after a power cut)
+auto wlan0
+iface wlan0 inet dhcp
+	# wlan0 appears a few seconds after boot (brcmfmac SDIO + firmware load)
+	pre-up for i in $(seq 1 30); do [ -e /sys/class/net/wlan0 ] && break; sleep 1; done
+	# brcmfmac SDIO bus errors with WiFi power save enabled (see README, Findings)
+	pre-up iw dev wlan0 set power_save off || true

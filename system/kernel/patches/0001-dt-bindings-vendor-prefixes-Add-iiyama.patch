@@ -1,0 +1,24 @@
+From 8b4a8163aef4a2f86cb6dca34ee2a5ad930ce68b Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Tue, 29 Sep 2026 14:59:00 +0200
+Subject: [PATCH 01/12] dt-bindings: vendor-prefixes: Add iiyama
+
+Add the vendor prefix for iiyama Corporation, a maker of monitors and
+panel PCs.
+---
+ Documentation/devicetree/bindings/vendor-prefixes.yaml | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/vendor-prefixes.yaml b/Documentation/devicetree/bindings/vendor-prefixes.yaml
+index 396044f36..789a2b599 100644
+--- a/Documentation/devicetree/bindings/vendor-prefixes.yaml
++++ b/Documentation/devicetree/bindings/vendor-prefixes.yaml
+@@ -785,6 +785,8 @@ patternProperties:
+     description: Ingenieurburo Fur Ic-Technologie (I/F/I)
+   "^ifm,.*":
+     description: ifm electronic gmbh
++  "^iiyama,.*":
++    description: iiyama Corporation
+   "^ilitek,.*":
+     description: ILI Technology Corporation (ILITEK)
+   "^imagis,.*":

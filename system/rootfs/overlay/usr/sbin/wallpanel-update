@@ -1,0 +1,98 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Kernel updates over two slots of the vendor U-Boot:
+#   slot A = partition "boot"     (default at every power-on)
+#   slot B = partition "recovery" (only booted once via the PMUGRF reboot flag)
+# A failed slot-B kernel never sticks: the next power cycle boots slot A again.
+#
+#   wallpanel-update status
+#   wallpanel-update install <boot.img> <modules.tar.gz>
+#                                         write image to slot B + install its kernel modules
+#   wallpanel-update test                 reboot once into slot B
+#   wallpanel-update promote              copy the running slot B to slot A
+# Modules live in /lib/modules/<release>, so a new kernel never replaces the running one's modules.
+set -eu
+A=/dev/disk/by-partlabel/boot
+B=/dev/disk/by-partlabel/recovery
+slot=$(sed -n 's/.*wallpanel\.slot=\([AB]\).*/\1/p' /proc/cmdline)
+
+imgsize() { # android boot image v2: total size from header fields
+	python3 - "$1" <<'PY'
+import struct, sys
+b = open(sys.argv[1], 'rb').read(1664)
+ks, _, rs, _, ss, _, _, ps = struct.unpack_from('<8I', b, 8)
+dtb = struct.unpack_from('<I', b, 1648)[0]
+pg = lambda n: (n + ps - 1) // ps * ps
+print(ps + pg(ks) + pg(rs) + pg(ss) + pg(dtb))
+PY
+}
+
+krel() { # kernel release embedded in a boot image (uncompressed Image)
+	python3 - "$1" <<'PY'
+import re, sys
+m = re.search(rb'Linux version (\S+)', open(sys.argv[1], 'rb').read())
+print(m.group(1).decode() if m else '')
+PY
+}
+
+need_modules() { # dev
+	r=$(krel "$1")
+	[ -n "$r" ] && [ -f "/lib/modules/$r/modules.dep" ] || { echo "kernel modules for '${r:-?}' missing in /lib/modules" >&2; exit 1; }
+}
+
+case ${1:-status} in
+status)
+	echo "running slot: ${slot:-?}  kernel: $(uname -r)"
+	for p in A B; do
+		eval d=\$$p
+		n=$(imgsize "$d")
+		r=$(krel "$d")
+		echo "slot $p ($(basename "$(readlink -f "$d")")): $(head -c "$n" "$d" | sha256sum | cut -c1-16) kernel ${r:-?} modules $([ -f "/lib/modules/$r/modules.dep" ] && echo ok || echo MISSING)"
+	done ;;
+install)
+	img=${2:?usage: wallpanel-update install <boot.img> <modules.tar.gz>}
+	mods=${3:?usage: wallpanel-update install <boot.img> <modules.tar.gz>}
+	head -c 8 "$img" | grep -q "ANDROID!" || { echo "not an android boot image" >&2; exit 1; }
+	r=$(krel "$img"); [ -n "$r" ] || { echo "no kernel release found in $img" >&2; exit 1; }
+	[ "$(tar -tzf "$mods" | head -1 | cut -d/ -f1)" = "$r" ] || { echo "$mods does not hold modules for $r" >&2; exit 1; }
+	# Never replace the modules of the running release: slot A must keep working after a failed test.
+	if [ "$r" = "$(uname -r)" ]; then
+		echo "same release as running ($r): keeping installed modules"
+	else
+		rm -rf "/lib/modules/$r"; tar -xzf "$mods" -C /lib/modules
+	fi
+	depmod -a "$r"; need_modules "$img"
+	echo "modules for $r ready"
+	# mark the copy as slot B in its kernel command line (same length)
+	tmp=$(mktemp); cp "$img" "$tmp"
+	python3 - "$tmp" <<'PY'
+import sys
+p = sys.argv[1]; b = bytearray(open(p, 'rb').read())
+i = b.find(b'wallpanel.slot=', 64, 576)
+if i < 0: sys.exit('no wallpanel.slot= in cmdline')
+b[i + 15] = ord('B'); open(p, 'wb').write(b)
+PY
+	dd if="$tmp" of="$B" bs=1M conv=fsync 2>/dev/null
+	n=$(stat -c%s "$tmp")
+	[ "$(head -c "$n" "$B" | sha256sum | cut -c1-64)" = "$(sha256sum < "$tmp" | cut -c1-64)" ] || { echo "verify failed" >&2; exit 1; }
+	rm -f "$tmp"; echo "slot B written and verified; next: wallpanel-update test" ;;
+test)
+	need_modules "$B"
+	echo "rebooting once into slot B; power-cycle to return to slot A"
+	rc-service wallpanel-kiosk stop 2>/dev/null || true
+	sync; mount -o remount,ro / 2>/dev/null || true
+	exec /usr/sbin/wallpanel-rebootmode recovery ;;
+promote)
+	[ "$slot" = B ] || { echo "only from a running slot B (running: ${slot:-?})" >&2; exit 1; }
+	need_modules "$B"
+	n=$(imgsize "$B"); tmp=$(mktemp); head -c "$n" "$B" > "$tmp"
+	python3 - "$tmp" <<'PY'
+import sys
+p = sys.argv[1]; b = bytearray(open(p, 'rb').read())
+i = b.find(b'wallpanel.slot=', 64, 576); b[i + 15] = ord('A'); open(p, 'wb').write(b)
+PY
+	dd if="$tmp" of="$A" bs=1M conv=fsync 2>/dev/null
+	[ "$(head -c "$n" "$A" | sha256sum | cut -c1-64)" = "$(sha256sum < "$tmp" | cut -c1-64)" ] || { echo "verify failed" >&2; exit 1; }
+	rm -f "$tmp"; echo "slot A updated" ;;
+*) sed -n '3,15p' "$0"; exit 1 ;;
+esac

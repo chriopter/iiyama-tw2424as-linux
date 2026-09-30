@@ -1,0 +1,155 @@
+From f590fdb8d63da9b64bfa745d54530ea1b3d4509d Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 01:39:53 +0200
+Subject: [PATCH 08/12] arm64: dts: rockchip: Add microphone array to iiyama
+ ProLite TW2424AS
+
+The board has an ES7210 microphone array ADC next to the ES8316 codec.
+Both are clock consumers of i2s0 and drive separate SDI lines, so
+describe them as one multi-codec link with audio-graph-card2, replacing
+the simple-audio-card: capture then delivers the ES8316 ADC on channels
+0-1 and ES7210 MIC1-MIC4 on channels 2-5.
+
+Limit i2s0 to stereo playback, as more output channels would switch the
+shared SDI/SDO pins to outputs against the ES7210, and use a card name
+that fits the ALSA driver name field.
+---
+ .../dts/rockchip/rk3399-iiyama-tw2424as.dts   | 97 ++++++++++++++++---
+ 1 file changed, 84 insertions(+), 13 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as.dts b/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as.dts
+index 5094f7ab9..2a90ddaaf 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as.dts
+@@ -116,18 +116,27 @@ speaker_amp: audio-amplifier {
+ 		sound-name-prefix = "Speaker Amp";
+ 	};
+ 
++	/*
++	 * ES8316 (playback, headset mic) and the ES7210 microphone array share
++	 * i2s0 with its clocks; each codec drives its own SDI line(s), so both
++	 * are codecs of a single multi-codec link.
++	 */
+ 	sound {
+-		compatible = "simple-audio-card";
+-		simple-audio-card,format = "i2s";
+-		simple-audio-card,name = "rockchip,es8316-codec";
+-		simple-audio-card,mclk-fs = <256>;
+-		simple-audio-card,aux-devs = <&speaker_amp>;
+-		simple-audio-card,widgets =
++		compatible = "audio-graph-card2";
++		label = "iiyama-tw2424as";
++		links = <&i2s0_port>;
++		aux-devs = <&speaker_amp>;
++		widgets =
+ 			"Microphone", "Mic Jack",
++			"Microphone", "Mic Array",
+ 			"Headphone", "Headphones",
+ 			"Speaker", "Speaker";
+-		simple-audio-card,routing =
++		routing =
+ 			"MIC1", "Mic Jack",
++			"Mic Array MIC1", "Mic Array",
++			"Mic Array MIC2", "Mic Array",
++			"Mic Array MIC3", "Mic Array",
++			"Mic Array MIC4", "Mic Array",
+ 			"Headphones", "HPOL",
+ 			"Headphones", "HPOR",
+ 			"Speaker Amp INL", "HPOL",
+@@ -135,12 +144,39 @@ sound {
+ 			"Speaker", "Speaker Amp OUTL",
+ 			"Speaker", "Speaker Amp OUTR";
+ 
+-		simple-audio-card,cpu {
+-			sound-dai = <&i2s0>;
+-		};
++		multi {
++			#address-cells = <1>;
++			#size-cells = <0>;
+ 
+-		simple-audio-card,codec {
+-			sound-dai = <&es8316>;
++			ports@0 {
++				reg = <0>;
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				port@0 {
++					reg = <0>;
++
++					mcodec_ep: endpoint {
++						remote-endpoint = <&i2s0_ep>;
++					};
++				};
++
++				port@1 {
++					reg = <1>;
++
++					mcodec_es8316_ep: endpoint {
++						remote-endpoint = <&es8316_ep>;
++					};
++				};
++
++				port@2 {
++					reg = <2>;
++
++					mcodec_es7210_ep: endpoint {
++						remote-endpoint = <&es7210_ep>;
++					};
++				};
++			};
+ 		};
+ 	};
+ 
+@@ -550,15 +586,50 @@ es8316: audio-codec@10 {
+ 		clocks = <&cru SCLK_I2S_8CH_OUT>;
+ 		clock-names = "mclk";
+ 		#sound-dai-cells = <0>;
++
++		port {
++			es8316_ep: endpoint {
++				remote-endpoint = <&mcodec_es8316_ep>;
++			};
++		};
++	};
++
++	es7210: audio-codec@40 {
++		compatible = "everest,es7210";
++		reg = <0x40>;
++		clocks = <&cru SCLK_I2S_8CH_OUT>;
++		clock-names = "mclk";
++		#sound-dai-cells = <0>;
++		sound-name-prefix = "Mic Array";
++
++		port {
++			es7210_ep: endpoint {
++				remote-endpoint = <&mcodec_es7210_ep>;
++			};
++		};
+ 	};
+ };
+ 
+ &i2s0 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&i2s0_8ch_bus>;
+-	rockchip,playback-channels = <8>;
++	/*
++	 * Stereo playback only: more output channels would turn the shared
++	 * SDI1-3/SDO3-1 pins into outputs against the ES7210.
++	 */
++	rockchip,playback-channels = <2>;
+ 	rockchip,capture-channels = <8>;
+ 	status = "okay";
++
++	i2s0_port: port {
++		i2s0_ep: endpoint {
++			remote-endpoint = <&mcodec_ep>;
++			bitclock-master;
++			frame-master;
++			dai-format = "i2s";
++			mclk-fs = <256>;
++		};
++	};
+ };
+ 
+ &i2s2 {

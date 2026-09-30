@@ -1,0 +1,575 @@
+From cb7b0b4baa8811ad3f8f9dc78bd9b71e25742a18 Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 01:39:52 +0200
+Subject: [PATCH 07/12] ASoC: codecs: Add Everest ES7210 ADC driver
+
+Add a driver for the Everest Semiconductor ES7210 4-channel audio ADC.
+It supports the chip as clock consumer in the standard I2S, left
+justified and DSP A/B formats, where ADC1/ADC2 are output on SDOUT1 and
+ADC3/ADC4 on SDOUT2, with 16 to 32 bit samples and MCLK at a multiple of
+256 fs.
+
+The analog front end is powered up only while a capture stream runs.
+The register sequences are taken from Everest's vendor driver and the
+datasheet. Per-microphone PGA gain and digital volume are exposed as
+controls.
+---
+ sound/soc/codecs/Kconfig  |  14 ++
+ sound/soc/codecs/Makefile |   2 +
+ sound/soc/codecs/es7210.c | 495 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 511 insertions(+)
+ create mode 100644 sound/soc/codecs/es7210.c
+
+diff --git a/sound/soc/codecs/Kconfig b/sound/soc/codecs/Kconfig
+index e4d139108..a26fc4196 100644
+--- a/sound/soc/codecs/Kconfig
++++ b/sound/soc/codecs/Kconfig
+@@ -125,6 +125,7 @@ config SND_SOC_ALL_CODECS
+ 	imply SND_SOC_ES8389
+ 	imply SND_SOC_ES9356
+ 	imply SND_SOC_ES7134
++	imply SND_SOC_ES7210
+ 	imply SND_SOC_ES7241
+ 	imply SND_SOC_FRAMER
+ 	imply SND_SOC_FS210X
+@@ -1263,6 +1264,19 @@ config SND_SOC_HDMI_CODEC
+ config SND_SOC_ES7134
+ 	tristate "Everest Semi ES7134 CODEC"
+ 
++config SND_SOC_ES7210
++	tristate "Everest Semi ES7210 CODEC"
++	depends on I2C
++	select REGMAP_I2C
++	help
++	  Enable support for the Everest Semiconductor ES7210 4-channel
++	  audio ADC for microphone arrays, controlled over I2C. It is used
++	  with a CPU DAI that provides the bit and frame clocks and
++	  receives its two serial data outputs.
++
++	  To compile this driver as a module, choose M here: the module
++	  will be called snd-soc-es7210.
++
+ config SND_SOC_ES7241
+ 	tristate "Everest Semi ES7241 CODEC"
+ 
+diff --git a/sound/soc/codecs/Makefile b/sound/soc/codecs/Makefile
+index aa0396e5b..57d1cb787 100644
+--- a/sound/soc/codecs/Makefile
++++ b/sound/soc/codecs/Makefile
+@@ -128,6 +128,7 @@ snd-soc-da732x-y := da732x.o
+ snd-soc-da9055-y := da9055.o
+ snd-soc-dmic-y := dmic.o
+ snd-soc-es7134-y := es7134.o
++snd-soc-es7210-y := es7210.o
+ snd-soc-es7241-y := es7241.o
+ snd-soc-es83xx-dsm-common-y := es83xx-dsm-common.o
+ snd-soc-es8311-y := es8311.o
+@@ -569,6 +570,7 @@ obj-$(CONFIG_SND_SOC_DA732X)	+= snd-soc-da732x.o
+ obj-$(CONFIG_SND_SOC_DA9055)	+= snd-soc-da9055.o
+ obj-$(CONFIG_SND_SOC_DMIC)	+= snd-soc-dmic.o
+ obj-$(CONFIG_SND_SOC_ES7134)	+= snd-soc-es7134.o
++obj-$(CONFIG_SND_SOC_ES7210)	+= snd-soc-es7210.o
+ obj-$(CONFIG_SND_SOC_ES7241)	+= snd-soc-es7241.o
+ obj-$(CONFIG_SND_SOC_ES83XX_DSM_COMMON)    += snd-soc-es83xx-dsm-common.o
+ obj-$(CONFIG_SND_SOC_ES8311)    += snd-soc-es8311.o
+diff --git a/sound/soc/codecs/es7210.c b/sound/soc/codecs/es7210.c
+new file mode 100644
+index 000000000..e6d391668
+--- /dev/null
++++ b/sound/soc/codecs/es7210.c
+@@ -0,0 +1,495 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Everest Semiconductor ES7210 4-channel audio ADC
++ *
++ * The register sequences are taken from Everest's vendor driver by David
++ * Yang <yangxiaohua@everest-semi.com> and the datasheet.
++ *
++ * The ES7210 is always a clock consumer here. In the standard (non-TDM)
++ * serial formats it outputs ADC1/ADC2 on SDOUT1 and ADC3/ADC4 on SDOUT2.
++ */
++
++#include <linux/bits.h>
++#include <linux/clk.h>
++#include <linux/i2c.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/regmap.h>
++#include <sound/pcm_params.h>
++#include <sound/soc.h>
++#include <sound/tlv.h>
++
++#define ES7210_RESET			0x00
++#define ES7210_CLK_OFF			0x01
++#define ES7210_MCLK_CTL			0x02
++#define ES7210_DIG_PDN			0x06
++#define ES7210_ADC_OSR			0x07
++#define ES7210_MODE_CFG			0x08
++#define ES7210_TCT0			0x09
++#define ES7210_TCT1			0x0a
++#define ES7210_CHIP_STA			0x0b
++#define ES7210_SDP_CFG1			0x11
++#define ES7210_SDP_CFG2			0x12
++#define ES7210_ADC34_MUTE		0x14
++#define ES7210_ADC12_MUTE		0x15
++#define ES7210_ADC4_VOL			0x1b
++#define ES7210_ADC3_VOL			0x1c
++#define ES7210_ADC2_VOL			0x1d
++#define ES7210_ADC1_VOL			0x1e
++#define ES7210_ADC34_HPF2		0x20
++#define ES7210_ADC34_HPF1		0x21
++#define ES7210_ADC12_HPF2		0x22
++#define ES7210_ADC12_HPF1		0x23
++#define ES7210_CHIP_ID1			0x3d
++#define ES7210_CHIP_ID0			0x3e
++#define ES7210_CHIP_VER			0x3f
++#define ES7210_ANALOG			0x40
++#define ES7210_MICBIAS12		0x41
++#define ES7210_MICBIAS34		0x42
++#define ES7210_MIC_GAIN(n)		(0x43 + (n))
++#define ES7210_MIC_POWER(n)		(0x47 + (n))
++#define ES7210_MIC12_PDN		0x4b
++#define ES7210_MIC34_PDN		0x4c
++
++/* ES7210_RESET */
++#define ES7210_RESET_ALL		0xff
++#define ES7210_RESET_DIG		GENMASK(5, 4)
++#define ES7210_RESET_IDLE		0x32
++#define ES7210_RESET_RUN		0x41
++
++/* ES7210_MCLK_CTL: clock doubler on, DLL bypassed, divider in [4:0] */
++#define ES7210_MCLK_DOUBLER_BYPASS	0xc0
++#define ES7210_MCLK_DIV_MAX		31
++
++/* ES7210_SDP_CFG1 */
++#define ES7210_SDP_WL_MASK		GENMASK(7, 5)
++#define ES7210_SDP_WL_24		0x00
++#define ES7210_SDP_WL_20		0x20
++#define ES7210_SDP_WL_16		0x60
++#define ES7210_SDP_WL_32		0x80
++#define ES7210_SDP_LRP			BIT(4)
++#define ES7210_SDP_FMT_MASK		GENMASK(1, 0)
++#define ES7210_SDP_FMT_I2S		0
++#define ES7210_SDP_FMT_LJ		1
++#define ES7210_SDP_FMT_DSP		3
++
++/* ES7210_ADCxx_MUTE */
++#define ES7210_ADC_MUTE			GENMASK(1, 0)
++
++/* ES7210_MIC_GAIN(n) */
++#define ES7210_MIC_PGA_EN		BIT(4)
++#define ES7210_MIC_GAIN_MASK		GENMASK(3, 0)
++
++#define ES7210_CHIP_ID			0x7210
++
++struct es7210_priv {
++	struct regmap *regmap;
++	struct clk *mclk;
++	unsigned int sysclk;
++};
++
++static const DECLARE_TLV_DB_RANGE(es7210_pga_tlv,
++	0, 10, TLV_DB_SCALE_ITEM(0, 300, 0),
++	11, 14, TLV_DB_SCALE_ITEM(3300, 150, 0)
++);
++
++static const DECLARE_TLV_DB_SCALE(es7210_adc_vol_tlv, -9550, 50, 1);
++
++static const struct snd_kcontrol_new es7210_snd_controls[] = {
++	SOC_SINGLE_TLV("MIC1 Capture Volume", ES7210_MIC_GAIN(0), 0, 14, 0,
++		       es7210_pga_tlv),
++	SOC_SINGLE_TLV("MIC2 Capture Volume", ES7210_MIC_GAIN(1), 0, 14, 0,
++		       es7210_pga_tlv),
++	SOC_SINGLE_TLV("MIC3 Capture Volume", ES7210_MIC_GAIN(2), 0, 14, 0,
++		       es7210_pga_tlv),
++	SOC_SINGLE_TLV("MIC4 Capture Volume", ES7210_MIC_GAIN(3), 0, 14, 0,
++		       es7210_pga_tlv),
++	SOC_SINGLE_TLV("ADC1 Capture Volume", ES7210_ADC1_VOL, 0, 255, 0,
++		       es7210_adc_vol_tlv),
++	SOC_SINGLE_TLV("ADC2 Capture Volume", ES7210_ADC2_VOL, 0, 255, 0,
++		       es7210_adc_vol_tlv),
++	SOC_SINGLE_TLV("ADC3 Capture Volume", ES7210_ADC3_VOL, 0, 255, 0,
++		       es7210_adc_vol_tlv),
++	SOC_SINGLE_TLV("ADC4 Capture Volume", ES7210_ADC4_VOL, 0, 255, 0,
++		       es7210_adc_vol_tlv),
++};
++
++static const struct snd_soc_dapm_widget es7210_dapm_widgets[] = {
++	SND_SOC_DAPM_INPUT("MIC1"),
++	SND_SOC_DAPM_INPUT("MIC2"),
++	SND_SOC_DAPM_INPUT("MIC3"),
++	SND_SOC_DAPM_INPUT("MIC4"),
++
++	SND_SOC_DAPM_ADC("ADC1", "Capture", SND_SOC_NOPM, 0, 0),
++	SND_SOC_DAPM_ADC("ADC2", "Capture", SND_SOC_NOPM, 0, 0),
++	SND_SOC_DAPM_ADC("ADC3", "Capture", SND_SOC_NOPM, 0, 0),
++	SND_SOC_DAPM_ADC("ADC4", "Capture", SND_SOC_NOPM, 0, 0),
++};
++
++static const struct snd_soc_dapm_route es7210_dapm_routes[] = {
++	{ "ADC1", NULL, "MIC1" },
++	{ "ADC2", NULL, "MIC2" },
++	{ "ADC3", NULL, "MIC3" },
++	{ "ADC4", NULL, "MIC4" },
++};
++
++static int es7210_set_dai_sysclk(struct snd_soc_dai *dai, int clk_id,
++				 unsigned int freq, int dir)
++{
++	struct es7210_priv *es7210 = snd_soc_component_get_drvdata(dai->component);
++
++	es7210->sysclk = freq;
++
++	return 0;
++}
++
++static int es7210_set_dai_fmt(struct snd_soc_dai *dai, unsigned int fmt)
++{
++	struct snd_soc_component *component = dai->component;
++	unsigned int val;
++
++	if ((fmt & SND_SOC_DAIFMT_CLOCK_PROVIDER_MASK) != SND_SOC_DAIFMT_CBC_CFC)
++		return -EINVAL;
++
++	if ((fmt & SND_SOC_DAIFMT_INV_MASK) != SND_SOC_DAIFMT_NB_NF)
++		return -EINVAL;
++
++	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
++	case SND_SOC_DAIFMT_I2S:
++		val = ES7210_SDP_FMT_I2S;
++		break;
++	case SND_SOC_DAIFMT_LEFT_J:
++		val = ES7210_SDP_FMT_LJ;
++		break;
++	case SND_SOC_DAIFMT_DSP_A:
++		val = ES7210_SDP_FMT_DSP;
++		break;
++	case SND_SOC_DAIFMT_DSP_B:
++		val = ES7210_SDP_FMT_DSP | ES7210_SDP_LRP;
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	return snd_soc_component_update_bits(component, ES7210_SDP_CFG1,
++					     ES7210_SDP_FMT_MASK | ES7210_SDP_LRP,
++					     val);
++}
++
++static int es7210_hw_params(struct snd_pcm_substream *substream,
++			    struct snd_pcm_hw_params *params,
++			    struct snd_soc_dai *dai)
++{
++	struct snd_soc_component *component = dai->component;
++	struct es7210_priv *es7210 = snd_soc_component_get_drvdata(component);
++	unsigned int rate = params_rate(params);
++	unsigned int mclk, div, wl;
++
++	switch (params_width(params)) {
++	case 16:
++		wl = ES7210_SDP_WL_16;
++		break;
++	case 20:
++		wl = ES7210_SDP_WL_20;
++		break;
++	case 24:
++		wl = ES7210_SDP_WL_24;
++		break;
++	case 32:
++		wl = ES7210_SDP_WL_32;
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	/*
++	 * The ADC core runs at 512 fs: MCLK is doubled and divided by an
++	 * integer, so MCLK has to be a multiple of 256 fs.
++	 */
++	mclk = es7210->sysclk ? es7210->sysclk : clk_get_rate(es7210->mclk);
++	if (!mclk || mclk % (256 * rate)) {
++		dev_err(component->dev, "unsupported MCLK %u Hz for %u Hz\n",
++			mclk, rate);
++		return -EINVAL;
++	}
++
++	div = mclk / (256 * rate);
++	if (div > ES7210_MCLK_DIV_MAX)
++		return -EINVAL;
++
++	/* takes effect when es7210_power_up() restarts the state machine */
++	snd_soc_component_write(component, ES7210_MCLK_CTL,
++				ES7210_MCLK_DOUBLER_BYPASS | div);
++	snd_soc_component_update_bits(component, ES7210_SDP_CFG1,
++				      ES7210_SDP_WL_MASK, wl);
++
++	return 0;
++}
++
++static int es7210_mute(struct snd_soc_dai *dai, int mute, int stream)
++{
++	struct snd_soc_component *component = dai->component;
++	unsigned int val = mute ? ES7210_ADC_MUTE : 0;
++
++	snd_soc_component_update_bits(component, ES7210_ADC12_MUTE,
++				      ES7210_ADC_MUTE, val);
++	snd_soc_component_update_bits(component, ES7210_ADC34_MUTE,
++				      ES7210_ADC_MUTE, val);
++
++	return 0;
++}
++
++static const struct snd_soc_dai_ops es7210_dai_ops = {
++	.set_sysclk	= es7210_set_dai_sysclk,
++	.set_fmt	= es7210_set_dai_fmt,
++	.hw_params	= es7210_hw_params,
++	.mute_stream	= es7210_mute,
++};
++
++static struct snd_soc_dai_driver es7210_dai = {
++	.name = "es7210-hifi",
++	.capture = {
++		.stream_name	= "Capture",
++		.channels_min	= 1,
++		.channels_max	= 4,
++		.rates		= SNDRV_PCM_RATE_8000_48000,
++		.formats	= SNDRV_PCM_FMTBIT_S16_LE |
++				  SNDRV_PCM_FMTBIT_S20_3LE |
++				  SNDRV_PCM_FMTBIT_S24_LE |
++				  SNDRV_PCM_FMTBIT_S32_LE,
++	},
++	.ops = &es7210_dai_ops,
++};
++
++static void es7210_power_up(struct snd_soc_component *component)
++{
++	int i;
++
++	snd_soc_component_write(component, ES7210_CLK_OFF, 0x20);
++	snd_soc_component_write(component, ES7210_DIG_PDN, 0x00);
++	snd_soc_component_write(component, ES7210_ANALOG, 0x43);
++	for (i = 0; i < 4; i++) {
++		snd_soc_component_write(component, ES7210_MIC_POWER(i), 0x08);
++		snd_soc_component_update_bits(component, ES7210_MIC_GAIN(i),
++					      ES7210_MIC_PGA_EN,
++					      ES7210_MIC_PGA_EN);
++	}
++	snd_soc_component_write(component, ES7210_MIC12_PDN, 0x00);
++	snd_soc_component_write(component, ES7210_MIC34_PDN, 0x00);
++
++	/* restart the chip state machine with the new configuration */
++	snd_soc_component_write(component, ES7210_RESET,
++				ES7210_RESET_RUN | ES7210_RESET_DIG);
++	snd_soc_component_write(component, ES7210_RESET, ES7210_RESET_RUN);
++}
++
++static void es7210_power_down(struct snd_soc_component *component)
++{
++	int i;
++
++	for (i = 0; i < 4; i++) {
++		snd_soc_component_update_bits(component, ES7210_MIC_GAIN(i),
++					      ES7210_MIC_PGA_EN, 0);
++		snd_soc_component_write(component, ES7210_MIC_POWER(i), 0xff);
++	}
++	snd_soc_component_write(component, ES7210_MIC12_PDN, 0xff);
++	snd_soc_component_write(component, ES7210_MIC34_PDN, 0xff);
++	snd_soc_component_write(component, ES7210_ANALOG, 0xc0);
++	snd_soc_component_write(component, ES7210_CLK_OFF, 0x7f);
++	snd_soc_component_write(component, ES7210_DIG_PDN, 0x07);
++}
++
++static int es7210_set_bias_level(struct snd_soc_component *component,
++				 enum snd_soc_bias_level level)
++{
++	struct es7210_priv *es7210 = snd_soc_component_get_drvdata(component);
++	struct snd_soc_dapm_context *dapm = snd_soc_component_to_dapm(component);
++	enum snd_soc_bias_level cur = snd_soc_dapm_get_bias_level(dapm);
++	int ret;
++
++	switch (level) {
++	case SND_SOC_BIAS_PREPARE:
++		if (cur != SND_SOC_BIAS_STANDBY)
++			break;
++		ret = clk_prepare_enable(es7210->mclk);
++		if (ret)
++			return ret;
++		es7210_power_up(component);
++		break;
++	case SND_SOC_BIAS_STANDBY:
++		if (cur != SND_SOC_BIAS_PREPARE)
++			break;
++		es7210_power_down(component);
++		clk_disable_unprepare(es7210->mclk);
++		break;
++	default:
++		break;
++	}
++
++	return 0;
++}
++
++static int es7210_component_probe(struct snd_soc_component *component)
++{
++	/* chip init/power-up timing, high-pass filters, 2.87 V MIC bias */
++	snd_soc_component_write(component, ES7210_TCT0, 0x30);
++	snd_soc_component_write(component, ES7210_TCT1, 0x30);
++	snd_soc_component_write(component, ES7210_ADC12_HPF1, 0x2a);
++	snd_soc_component_write(component, ES7210_ADC12_HPF2, 0x0a);
++	snd_soc_component_write(component, ES7210_ADC34_HPF1, 0x2a);
++	snd_soc_component_write(component, ES7210_ADC34_HPF2, 0x0a);
++	snd_soc_component_write(component, ES7210_MICBIAS12, 0x70);
++	snd_soc_component_write(component, ES7210_MICBIAS34, 0x70);
++
++	snd_soc_component_write(component, ES7210_ADC12_MUTE, ES7210_ADC_MUTE);
++	snd_soc_component_write(component, ES7210_ADC34_MUTE, ES7210_ADC_MUTE);
++	es7210_power_down(component);
++
++	return 0;
++}
++
++static const struct snd_soc_component_driver es7210_component_driver = {
++	.probe			= es7210_component_probe,
++	.set_bias_level		= es7210_set_bias_level,
++	.controls		= es7210_snd_controls,
++	.num_controls		= ARRAY_SIZE(es7210_snd_controls),
++	.dapm_widgets		= es7210_dapm_widgets,
++	.num_dapm_widgets	= ARRAY_SIZE(es7210_dapm_widgets),
++	.dapm_routes		= es7210_dapm_routes,
++	.num_dapm_routes	= ARRAY_SIZE(es7210_dapm_routes),
++	.endianness		= 1,
++};
++
++static const struct reg_default es7210_reg_defaults[] = {
++	{ 0x00, 0x32 }, { 0x01, 0x20 }, { 0x02, 0x02 }, { 0x03, 0x04 },
++	{ 0x04, 0x01 }, { 0x05, 0x00 }, { 0x06, 0x00 }, { 0x07, 0x20 },
++	{ 0x08, 0x10 }, { 0x09, 0x40 }, { 0x0a, 0x40 }, { 0x0c, 0x00 },
++	{ 0x0d, 0x09 }, { 0x10, 0x00 }, { 0x11, 0x00 }, { 0x12, 0x00 },
++	{ 0x13, 0x00 }, { 0x14, 0x00 }, { 0x15, 0x00 }, { 0x16, 0x00 },
++	{ 0x17, 0x00 }, { 0x18, 0xf7 }, { 0x19, 0xf7 }, { 0x1a, 0x00 },
++	{ 0x1b, 0xbf }, { 0x1c, 0xbf }, { 0x1d, 0xbf }, { 0x1e, 0xbf },
++	{ 0x20, 0x26 }, { 0x21, 0x26 }, { 0x22, 0x06 }, { 0x23, 0x26 },
++	{ 0x40, 0x80 }, { 0x41, 0x71 }, { 0x42, 0x71 }, { 0x43, 0x00 },
++	{ 0x44, 0x00 }, { 0x45, 0x00 }, { 0x46, 0x00 }, { 0x47, 0x00 },
++	{ 0x48, 0x00 }, { 0x49, 0x00 }, { 0x4a, 0x00 }, { 0x4b, 0xff },
++	{ 0x4c, 0xff },
++};
++
++static bool es7210_readable_reg(struct device *dev, unsigned int reg)
++{
++	switch (reg) {
++	case ES7210_RESET ... 0x0d:
++	case 0x10 ... ES7210_ADC1_VOL:
++	case ES7210_ADC34_HPF2 ... ES7210_ADC12_HPF1:
++	case ES7210_CHIP_ID1 ... ES7210_MIC34_PDN:
++		return true;
++	default:
++		return false;
++	}
++}
++
++static bool es7210_writeable_reg(struct device *dev, unsigned int reg)
++{
++	switch (reg) {
++	case ES7210_CHIP_STA:
++	case ES7210_CHIP_ID1 ... ES7210_CHIP_VER:
++		return false;
++	default:
++		return es7210_readable_reg(dev, reg);
++	}
++}
++
++static bool es7210_volatile_reg(struct device *dev, unsigned int reg)
++{
++	switch (reg) {
++	case ES7210_CHIP_STA:
++	case ES7210_CHIP_ID1 ... ES7210_CHIP_VER:
++		return true;
++	default:
++		return false;
++	}
++}
++
++static const struct regmap_config es7210_regmap_config = {
++	.reg_bits		= 8,
++	.val_bits		= 8,
++	.max_register		= ES7210_MIC34_PDN,
++	.readable_reg		= es7210_readable_reg,
++	.writeable_reg		= es7210_writeable_reg,
++	.volatile_reg		= es7210_volatile_reg,
++	.reg_defaults		= es7210_reg_defaults,
++	.num_reg_defaults	= ARRAY_SIZE(es7210_reg_defaults),
++	.cache_type		= REGCACHE_MAPLE,
++};
++
++static int es7210_i2c_probe(struct i2c_client *i2c)
++{
++	struct device *dev = &i2c->dev;
++	struct es7210_priv *es7210;
++	unsigned int id1, id0;
++	int ret;
++
++	es7210 = devm_kzalloc(dev, sizeof(*es7210), GFP_KERNEL);
++	if (!es7210)
++		return -ENOMEM;
++
++	i2c_set_clientdata(i2c, es7210);
++
++	es7210->regmap = devm_regmap_init_i2c(i2c, &es7210_regmap_config);
++	if (IS_ERR(es7210->regmap))
++		return dev_err_probe(dev, PTR_ERR(es7210->regmap),
++				     "failed to init regmap\n");
++
++	es7210->mclk = devm_clk_get_optional(dev, "mclk");
++	if (IS_ERR(es7210->mclk))
++		return dev_err_probe(dev, PTR_ERR(es7210->mclk),
++				     "failed to get mclk\n");
++
++	ret = regmap_read(es7210->regmap, ES7210_CHIP_ID1, &id1);
++	if (!ret)
++		ret = regmap_read(es7210->regmap, ES7210_CHIP_ID0, &id0);
++	if (ret)
++		return dev_err_probe(dev, ret, "failed to read chip id\n");
++
++	if ((id1 << 8 | id0) != ES7210_CHIP_ID)
++		return dev_err_probe(dev, -ENODEV,
++				     "unknown chip id %02x%02x\n", id1, id0);
++
++	/* software reset: all registers back to their defaults */
++	regcache_cache_bypass(es7210->regmap, true);
++	ret = regmap_write(es7210->regmap, ES7210_RESET, ES7210_RESET_ALL);
++	if (!ret)
++		ret = regmap_write(es7210->regmap, ES7210_RESET,
++				   ES7210_RESET_IDLE);
++	regcache_cache_bypass(es7210->regmap, false);
++	if (ret)
++		return dev_err_probe(dev, ret, "failed to reset\n");
++
++	return devm_snd_soc_register_component(dev, &es7210_component_driver,
++					       &es7210_dai, 1);
++}
++
++static const struct of_device_id es7210_of_match[] = {
++	{ .compatible = "everest,es7210" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, es7210_of_match);
++
++static const struct i2c_device_id es7210_i2c_id[] = {
++	{ "es7210" },
++	{ }
++};
++MODULE_DEVICE_TABLE(i2c, es7210_i2c_id);
++
++static struct i2c_driver es7210_i2c_driver = {
++	.driver = {
++		.name		= "es7210",
++		.of_match_table	= es7210_of_match,
++	},
++	.probe		= es7210_i2c_probe,
++	.id_table	= es7210_i2c_id,
++};
++module_i2c_driver(es7210_i2c_driver);
++
++MODULE_DESCRIPTION("ASoC Everest Semiconductor ES7210 ADC driver");
++MODULE_LICENSE("GPL");

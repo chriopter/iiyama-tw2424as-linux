@@ -1,0 +1,1108 @@
+From 98d565784d9d720623cb83023c4813868ff5bd2c Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Tue, 29 Sep 2026 15:01:51 +0200
+Subject: [PATCH 5/5] arm64: dts: rockchip: Add iiyama ProLite TW2424AS (BSP)
+
+Board DT for the Rockchip BSP kernel: RK808 + SYR827/828, DSI panel via
+TC358775 (vendor init sequence, rotated 180 degrees), AP6256 WiFi/BT, RK628
+HDMI input -> MIPI RX0 -> ISP0, ramoops in the vendor layout.
+
+---
+ arch/arm64/boot/dts/rockchip/Makefile         |    1 +
+ .../rockchip/rk3399-iiyama-tw2424as-linux.dts | 1075 +++++++++++++++++
+ 2 files changed, 1076 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as-linux.dts
+
+diff --git a/arch/arm64/boot/dts/rockchip/Makefile b/arch/arm64/boot/dts/rockchip/Makefile
+index b7a34536d..2cf6d7b17 100644
+--- a/arch/arm64/boot/dts/rockchip/Makefile
++++ b/arch/arm64/boot/dts/rockchip/Makefile
+@@ -67,6 +67,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3368-r88.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-eaidk-610.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-evb.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-evb-ind-lpddr4-linux.dtb
++dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-iiyama-tw2424as-linux.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-ficus.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-firefly.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-gru-bob.dtb
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as-linux.dts b/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as-linux.dts
+new file mode 100644
+index 000000000..f7936adb8
+--- /dev/null
++++ b/arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as-linux.dts
+@@ -0,0 +1,1075 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * iiyama ProLite TW2424AS 24" touch panel PC
++ *
++ * Based on the Rockchip RK3399 EVB IND reference design (RK808 + SYR827/828
++ * power tree). Values derived from the vendor Android 12 device tree.
++ *
++ * Rockchip BSP (kernel develop-6.1) variant: the panel uses the vendor
++ * simple-panel-dsi description, and the RK628 HDMI input is enabled.
++ *
++ * Not yet described: ES7210 mic array, FUSB302 Type-C controller, CDN-DP,
++ * PCIe (no device found on the vendor image), 4G modem slot, accelerometer.
++ */
++
++/dts-v1/;
++#include <dt-bindings/input/linux-event-codes.h>
++#include <dt-bindings/pwm/pwm.h>
++#include <dt-bindings/display/drm_mipi_dsi.h>
++#include "rk3399.dtsi"
++#include "rk3399-opp.dtsi"
++#include "rk3399-linux.dtsi"
++
++/ {
++	model = "iiyama ProLite TW2424AS (Linux)";
++	compatible = "iiyama,tw2424as", "rockchip,linux", "rockchip,rk3399";
++
++	aliases {
++		ethernet0 = &gmac;
++		mmc0 = &sdhci;
++		mmc1 = &sdio0;
++	};
++
++	adc-keys {
++		compatible = "adc-keys";
++		io-channels = <&saradc 1>;
++		io-channel-names = "buttons";
++		keyup-threshold-microvolt = <1800000>;
++		poll-interval = <100>;
++
++		button-volume-up {
++			label = "Volume Up";
++			linux,code = <KEY_VOLUMEUP>;
++			press-threshold-microvolt = <1000>;
++		};
++
++		button-volume-down {
++			label = "Volume Down";
++			linux,code = <KEY_VOLUMEDOWN>;
++			press-threshold-microvolt = <170000>;
++		};
++	};
++
++	backlight: backlight {
++		compatible = "pwm-backlight";
++		pwms = <&pwm2 0 250000 0>;
++		brightness-levels = <0 255>;
++		num-interpolated-steps = <255>;
++		default-brightness-level = <200>;
++		enable-gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_LOW>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&bl_en>;
++	};
++
++	clkin_gmac: external-gmac-clock {
++		compatible = "fixed-clock";
++		clock-frequency = <125000000>;
++		clock-output-names = "clkin_gmac";
++		#clock-cells = <0>;
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++		autorepeat;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pwr_btn>;
++
++		key-power {
++			debounce-interval = <100>;
++			gpios = <&gpio0 RK_PA5 GPIO_ACTIVE_LOW>;
++			label = "GPIO Key Power";
++			linux,code = <KEY_POWER>;
++			wakeup-source;
++		};
++	};
++
++	sdio_pwrseq: sdio-pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		clocks = <&rk808 1>;
++		clock-names = "ext_clock";
++		pinctrl-names = "default";
++		pinctrl-0 = <&wifi_enable_h>;
++		reset-gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>;
++	};
++
++	sound {
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,name = "rockchip,es8316-codec";
++		simple-audio-card,mclk-fs = <256>;
++		simple-audio-card,widgets =
++			"Microphone", "Mic Jack",
++			"Headphone", "Headphones";
++		simple-audio-card,routing =
++			"MIC1", "Mic Jack",
++			"Headphones", "HPOL",
++			"Headphones", "HPOR";
++
++		simple-audio-card,cpu {
++			sound-dai = <&i2s0>;
++		};
++
++		simple-audio-card,codec {
++			sound-dai = <&es8316>;
++		};
++	};
++
++	vcc12v_dcin: regulator-vcc12v-dcin {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc12v_dcin";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <12000000>;
++		regulator-max-microvolt = <12000000>;
++	};
++
++	vcc_12v_lcd: regulator-vcc-12v-lcd {
++		compatible = "regulator-fixed";
++		enable-active-high;
++		gpio = <&gpio1 RK_PA1 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&lcd_12v_en>;
++		regulator-name = "vcc_12v_lcd";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <12000000>;
++		regulator-max-microvolt = <12000000>;
++		vin-supply = <&vcc12v_dcin>;
++	};
++
++	vcc_en_lcd: regulator-vcc-en-lcd {
++		compatible = "regulator-fixed";
++		enable-active-high;
++		gpio = <&gpio1 RK_PA3 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&lcd_en>;
++		regulator-name = "vcc_en_lcd";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <12000000>;
++		regulator-max-microvolt = <12000000>;
++		vin-supply = <&vcc12v_dcin>;
++	};
++
++	vcc3v3_sys: regulator-vcc3v3-sys {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc3v3_sys";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&vcc_sys>;
++	};
++
++	vcc5v0_sys: regulator-vcc5v0-sys {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc5v0_sys";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&vcc12v_dcin>;
++	};
++
++	/* Powers the internal USB touch controller */
++	vcc5v0_usb_tp: regulator-vcc5v0-usb-tp {
++		compatible = "regulator-fixed";
++		enable-active-high;
++		gpio = <&gpio0 RK_PB0 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pwr_usb_tp>;
++		regulator-name = "vcc5v0_usb_tp";
++		regulator-always-on;
++		regulator-boot-on;
++		vin-supply = <&vcc5v0_sys>;
++	};
++
++	vcc_phy: regulator-vcc-phy {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_phy";
++		regulator-always-on;
++		regulator-boot-on;
++	};
++
++	vcc_sys: regulator-vcc-sys {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_sys";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&vcc12v_dcin>;
++	};
++
++	vcc_wl: regulator-vcc-wl {
++		compatible = "regulator-fixed";
++		gpio = <&gpio3 RK_PC0 GPIO_ACTIVE_LOW>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pwr_wl>;
++		regulator-name = "vcc_wl";
++		regulator-always-on;
++		regulator-boot-on;
++		vin-supply = <&vcc3v3_sys>;
++	};
++
++	vdd_log: regulator-vdd-log {
++		compatible = "regulator-fixed";
++		regulator-name = "vdd_log";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <950000>;
++		regulator-max-microvolt = <950000>;
++		vin-supply = <&vcc_sys>;
++	};
++};
++
++&cpu_b0 {
++	cpu-supply = <&vdd_cpu_b>;
++};
++
++&cpu_b1 {
++	cpu-supply = <&vdd_cpu_b>;
++};
++
++&cpu_l0 {
++	cpu-supply = <&vdd_cpu_l>;
++};
++
++&cpu_l1 {
++	cpu-supply = <&vdd_cpu_l>;
++};
++
++&cpu_l2 {
++	cpu-supply = <&vdd_cpu_l>;
++};
++
++&cpu_l3 {
++	cpu-supply = <&vdd_cpu_l>;
++};
++
++&emmc_phy {
++	status = "okay";
++};
++
++&gmac {
++	assigned-clocks = <&cru SCLK_RMII_SRC>;
++	assigned-clock-parents = <&cru SCLK_MAC>;
++	assigned-clock-rates = <125000000>;
++	clock_in_out = "output";
++	phy-supply = <&vcc_phy>;
++	phy-mode = "rgmii";
++	pinctrl-names = "default";
++	pinctrl-0 = <&rgmii_pins>;
++	snps,reset-gpio = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
++	snps,reset-active-low;
++	snps,reset-delays-us = <0 10000 150000>;
++	tx_delay = <0x22>;
++	rx_delay = <0x08>;
++	status = "okay";
++};
++
++&gpio4 {
++	/* Vendor kernel keeps the touch controller USB reset line high */
++	touch-usb-reset-hog {
++		gpio-hog;
++		gpios = <RK_PD0 GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "touch-usb-reset";
++	};
++};
++
++&gpu {
++	mali-supply = <&vdd_gpu>;
++	status = "okay";
++};
++
++&hdmi {
++	pinctrl-names = "default";
++	pinctrl-0 = <&hdmi_i2c_xfer>;
++	status = "okay";
++};
++
++&hdmi_sound {
++	status = "okay";
++};
++
++&i2c0 {
++	clock-frequency = <400000>;
++	i2c-scl-rising-time-ns = <168>;
++	i2c-scl-falling-time-ns = <4>;
++	status = "okay";
++
++	rk808: pmic@1b {
++		compatible = "rockchip,rk808";
++		reg = <0x1b>;
++		interrupt-parent = <&gpio1>;
++		interrupts = <RK_PC5 IRQ_TYPE_LEVEL_LOW>;
++		#clock-cells = <1>;
++		clock-output-names = "xin32k", "rk808-clkout2";
++		pinctrl-names = "default";
++		pinctrl-0 = <&pmic_int_l>;
++		rockchip,system-power-controller;
++		system-power-controller;
++		wakeup-source;
++
++		vcc1-supply = <&vcc_sys>;
++		vcc2-supply = <&vcc_sys>;
++		vcc3-supply = <&vcc_sys>;
++		vcc4-supply = <&vcc_sys>;
++		vcc6-supply = <&vcc_sys>;
++		vcc7-supply = <&vcc_sys>;
++		vcc8-supply = <&vcc3v3_sys>;
++		vcc9-supply = <&vcc_sys>;
++		vcc10-supply = <&vcc_sys>;
++		vcc11-supply = <&vcc_sys>;
++		vcc12-supply = <&vcc3v3_sys>;
++		/*
++		 * No vddio-supply: it points at this PMIC's own DCDC_REG4 and the
++		 * resulting fw_devlink cycle keeps rk808-regulator from probing.
++		 */
++
++		regulators {
++			vdd_center: DCDC_REG1 {
++				regulator-name = "vdd_center";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <750000>;
++				regulator-max-microvolt = <1350000>;
++				regulator-ramp-delay = <6001>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vdd_cpu_l: DCDC_REG2 {
++				regulator-name = "vdd_cpu_l";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <750000>;
++				regulator-max-microvolt = <1350000>;
++				regulator-ramp-delay = <6001>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcc_ddr: DCDC_REG3 {
++				regulator-name = "vcc_ddr";
++				regulator-always-on;
++				regulator-boot-on;
++
++				regulator-state-mem {
++					regulator-on-in-suspend;
++				};
++			};
++
++			vcc_1v8: DCDC_REG4 {
++				regulator-name = "vcc_1v8";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++
++				regulator-state-mem {
++					regulator-on-in-suspend;
++					regulator-suspend-microvolt = <1800000>;
++				};
++			};
++
++			vcc1v8_dvp: LDO_REG1 {
++				regulator-name = "vcc1v8_dvp";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++			};
++
++			vcc3v0_tp: LDO_REG2 {
++				regulator-name = "vcc3v0_tp";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++			};
++
++			vcc1v8_pmu: LDO_REG3 {
++				regulator-name = "vcc1v8_pmu";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++			};
++
++			vccio_sd: LDO_REG4 {
++				regulator-name = "vccio_sd";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <3000000>;
++			};
++
++			vcca3v0_codec: LDO_REG5 {
++				regulator-name = "vcca3v0_codec";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <3000000>;
++				regulator-max-microvolt = <3000000>;
++			};
++
++			vcc_1v5: LDO_REG6 {
++				regulator-name = "vcc_1v5";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1500000>;
++				regulator-max-microvolt = <1500000>;
++			};
++
++			vcca_0v9: LDO_REG7 {
++				regulator-name = "vcca_0v9";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <900000>;
++			};
++
++			vcc_3v0: LDO_REG8 {
++				regulator-name = "vcc_3v0";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <3000000>;
++				regulator-max-microvolt = <3000000>;
++			};
++
++			vcc3v3_s3: SWITCH_REG1 {
++				regulator-name = "vcc3v3_s3";
++				regulator-always-on;
++				regulator-boot-on;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcc3v3_s0: SWITCH_REG2 {
++				regulator-name = "vcc3v3_s0";
++				regulator-always-on;
++				regulator-boot-on;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++		};
++	};
++
++	vdd_cpu_b: regulator@40 {
++		compatible = "silergy,syr827";
++		reg = <0x40>;
++		fcs,suspend-voltage-selector = <1>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&vsel1_gpio>;
++		vsel-gpios = <&gpio1 RK_PC1 GPIO_ACTIVE_HIGH>;
++		regulator-name = "vdd_cpu_b";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <712500>;
++		regulator-max-microvolt = <1500000>;
++		regulator-ramp-delay = <16001>;
++		vin-supply = <&vcc_sys>;
++
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	vdd_gpu: regulator@41 {
++		compatible = "silergy,syr828";
++		reg = <0x41>;
++		fcs,suspend-voltage-selector = <1>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&vsel2_gpio>;
++		vsel-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
++		regulator-name = "vdd_gpu";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <735000>;
++		regulator-max-microvolt = <1400000>;
++		regulator-ramp-delay = <16001>;
++		vin-supply = <&vcc_sys>;
++
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	rtc@51 {
++		compatible = "haoyu,hym8563";
++		reg = <0x51>;
++		#clock-cells = <0>;
++		clock-output-names = "hym8563";
++	};
++};
++
++&i2c1 {
++	clock-frequency = <400000>;
++	i2c-scl-rising-time-ns = <300>;
++	i2c-scl-falling-time-ns = <15>;
++	status = "okay";
++
++	es8316: audio-codec@10 {
++		compatible = "everest,es8316";
++		reg = <0x10>;
++		clocks = <&cru SCLK_I2S_8CH_OUT>;
++		clock-names = "mclk";
++		pinctrl-names = "default";
++		pinctrl-0 = <&i2s_8ch_mclk>;
++		#sound-dai-cells = <0>;
++	};
++};
++
++&i2s0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2s0_8ch_bus>;
++	rockchip,playback-channels = <8>;
++	rockchip,capture-channels = <8>;
++	status = "okay";
++};
++
++&i2s2 {
++	status = "okay";
++};
++
++&io_domains {
++	audio-supply = <&vcc_3v0>;
++	bt656-supply = <&vcc1v8_dvp>;
++	gpio1830-supply = <&vcc_3v0>;
++	sdmmc-supply = <&vccio_sd>;
++	status = "okay";
++};
++
++
++
++&pinctrl {
++	backlight {
++		bl_en: bl-en {
++			rockchip,pins = <1 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
++	buttons {
++		pwr_btn: pwr-btn {
++			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
++
++	i2s0 {
++		i2s_8ch_mclk: i2s-8ch-mclk {
++			rockchip,pins = <4 RK_PA0 1 &pcfg_pull_none>;
++		};
++	};
++
++	lcd {
++		lcd_12v_en: lcd-12v-en {
++			rockchip,pins = <1 RK_PA1 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		lcd_en: lcd-en {
++			rockchip,pins = <1 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
++	pmic {
++		pmic_int_l: pmic-int-l {
++			rockchip,pins = <1 RK_PC5 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++
++		vsel1_gpio: vsel1-pin {
++			rockchip,pins = <1 RK_PC1 RK_FUNC_GPIO &pcfg_pull_down>;
++		};
++
++		vsel2_gpio: vsel2-pin {
++			rockchip,pins = <1 RK_PB6 RK_FUNC_GPIO &pcfg_pull_down>;
++		};
++	};
++
++	usb {
++		pwr_usb_tp: pwr-usb-tp {
++			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
++	wireless-bluetooth {
++		bt_enable_h: bt-enable-h {
++			rockchip,pins = <0 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		bt_host_wake_l: bt-host-wake-l {
++			rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		bt_wake_l: bt-wake-l {
++			rockchip,pins = <2 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
++	wireless-wlan {
++		pwr_wl: pwr-wl {
++			rockchip,pins = <3 RK_PC0 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		wifi_enable_h: wifi-enable-h {
++			rockchip,pins = <0 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		wifi_host_wake_l: wifi-host-wake-l {
++			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++};
++
++
++&pmu_io_domains {
++	pmu1830-supply = <&vcc_1v8>;
++	status = "okay";
++};
++
++&pwm2 {
++	/* The BSP rockchip-pwm driver looks up the "active" state */
++	pinctrl-names = "active";
++	pinctrl-0 = <&pwm2_pin_pull_down>;
++	status = "okay";
++};
++
++&saradc {
++	vref-supply = <&vcc_1v8>;
++	status = "okay";
++};
++
++&sdhci {
++	bus-width = <8>;
++	keep-power-in-suspend;
++	mmc-hs400-1_8v;
++	mmc-hs400-enhanced-strobe;
++	no-sdio;
++	no-sd;
++	non-removable;
++	status = "okay";
++};
++
++/* AMPAK AP6256 (BCM43456) WiFi, SDIO 02d0:a9bf */
++&sdio0 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	bus-width = <4>;
++	cap-sd-highspeed;
++	cap-sdio-irq;
++	keep-power-in-suspend;
++	mmc-pwrseq = <&sdio_pwrseq>;
++	non-removable;
++	pinctrl-names = "default";
++	pinctrl-0 = <&sdio0_bus4 &sdio0_cmd &sdio0_clk>;
++	sd-uhs-sdr104;
++	status = "okay";
++
++	brcmf: wifi@1 {
++		compatible = "brcm,bcm4329-fmac";
++		reg = <1>;
++		interrupt-parent = <&gpio0>;
++		interrupts = <RK_PA3 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-names = "host-wake";
++		pinctrl-names = "default";
++		pinctrl-0 = <&wifi_host_wake_l>;
++	};
++};
++
++&tcphy0 {
++	status = "okay";
++};
++
++&tcphy1 {
++	status = "okay";
++};
++
++&tsadc {
++	rockchip,hw-tshut-mode = <1>;
++	rockchip,hw-tshut-polarity = <1>;
++	status = "okay";
++};
++
++/* AMPAK AP6256 (BCM4345C5) Bluetooth */
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_xfer &uart0_cts &uart0_rts>;
++	status = "okay";
++
++	bluetooth {
++		compatible = "brcm,bcm4345c5";
++		clocks = <&rk808 1>;
++		clock-names = "lpo";
++		device-wakeup-gpios = <&gpio2 RK_PD2 GPIO_ACTIVE_HIGH>;
++		host-wakeup-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
++		shutdown-gpios = <&gpio0 RK_PB1 GPIO_ACTIVE_HIGH>;
++		max-speed = <1500000>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&bt_host_wake_l &bt_wake_l &bt_enable_h>;
++		vbat-supply = <&vcc3v3_sys>;
++		vddio-supply = <&vcc_1v8>;
++	};
++};
++
++
++&u2phy0 {
++	status = "okay";
++};
++
++&u2phy0_host {
++	status = "okay";
++};
++
++&u2phy0_otg {
++	status = "okay";
++};
++
++&u2phy1 {
++	status = "okay";
++};
++
++&u2phy1_host {
++	status = "okay";
++};
++
++&u2phy1_otg {
++	status = "okay";
++};
++
++&usb_host0_ehci {
++	status = "okay";
++};
++
++&usb_host0_ohci {
++	status = "okay";
++};
++
++/* Internal USB: touch controller and hub */
++&usb_host1_ehci {
++	status = "okay";
++};
++
++&usb_host1_ohci {
++	status = "okay";
++};
++
++&usbdrd3_0 {
++	status = "okay";
++};
++
++/*
++ * The Type-C port that connects to a PC. Peripheral mode for bring-up so
++ * the board can expose a USB gadget (serial/ethernet) without the FUSB302.
++ */
++&usbdrd_dwc3_0 {
++	dr_mode = "peripheral";
++	status = "okay";
++};
++
++&usbdrd3_1 {
++	status = "okay";
++};
++
++&usbdrd_dwc3_1 {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&vopb {
++	status = "okay";
++};
++
++&vopb_mmu {
++	status = "okay";
++};
++
++&vopl {
++	status = "okay";
++};
++
++&vopl_mmu {
++	status = "okay";
++};
++
++&dsi {
++	/* TC358775 needs the HS clock running while it receives LP register writes */
++	rockchip,lp-cmd-hs-clk;
++	status = "okay";
++
++	/*
++	 * Toshiba TC358775 DSI-to-dual-LVDS bridge, programmed with DSI generic
++	 * writes (register sequence copied verbatim from the vendor firmware).
++	 */
++	panel@0 {
++		compatible = "simple-panel-dsi";
++		reg = <0>;
++		backlight = <&backlight>;
++		power-supply = <&vcc_en_lcd>;
++		reset-gpios = <&gpio1 RK_PA2 GPIO_ACTIVE_LOW>;
++		/* VIDEO | VIDEO_BURST | NO_EOT_PACKET | LPM, raw vendor value */
++		dsi,flags = <0xa03>;
++		dsi,format = <MIPI_DSI_FMT_RGB888>;
++		dsi,lanes = <4>;
++		bpc = <8>;
++		/* The panel is mounted upside down (Android: primary_display_orientation=180) */
++		rotation = <180>;
++		prepare-delay-ms = <120>;
++		reset-delay-ms = <120>;
++		init-delay-ms = <120>;
++		stbyb-delay-ms = <120>;
++		enable-delay-ms = <120>;
++		disable-delay-ms = <120>;
++		unprepare-delay-ms = <120>;
++		/*
++		 * The first write starts the DSI HS clock after the bridge left reset
++		 * (see rockchip,lp-cmd-hs-clk) and is likely lost; repeat it after
++		 * 20 ms, then the vendor sequence follows unchanged.
++		 */
++		panel-init-sequence = [
++			29 14 06 3c 01 0c 00 0a 00
++			29 05 06 3c 01 0c 00 0a 00
++			29 05 06 14 01 08 00 00 00
++			29 05 06 64 01 0f 00 00 00
++			29 05 06 68 01 0f 00 00 00
++			29 05 06 6c 01 0f 00 00 00
++			29 05 06 70 01 0f 00 00 00
++			29 05 06 34 01 1f 00 00 00
++			29 05 06 10 02 1f 00 00 00
++			29 05 06 04 01 01 00 00 00
++			29 05 06 04 02 01 00 00 00
++			29 05 06 50 04 20 01 f0 03
++			29 05 06 54 04 28 00 46 00
++			29 05 06 58 04 80 07 46 00
++			29 05 06 5c 04 05 00 0a 00
++			29 05 06 60 04 38 04 0f 00
++			29 05 06 64 04 01 00 00 00
++			29 05 06 a0 04 06 80 44 00
++			29 0a 06 a0 04 06 80 04 00
++			29 05 06 04 05 04 00 00 00
++			29 05 06 80 04 00 02 02 03
++			29 05 06 84 04 04 07 05 08
++			29 05 06 88 04 09 0a 0e 0f
++			29 05 06 8c 04 0b 0c 0d 10
++			29 05 06 90 04 16 17 11 12
++			29 05 06 94 04 13 14 15 1b
++			29 05 06 98 04 18 19 1a 06
++			29 32 06 9c 04 33 00 00 00
++		];
++
++		display-timings {
++			native-mode = <&timing_tw2424as>;
++
++			timing_tw2424as: timing0 {
++				clock-frequency = <137860000>;
++				hactive = <1920>;
++				vactive = <1080>;
++				hback-porch = <70>;
++				hsync-len = <40>;
++				hfront-porch = <70>;
++				vback-porch = <10>;
++				vfront-porch = <15>;
++				vsync-len = <5>;
++				hsync-active = <0>;
++				vsync-active = <0>;
++				de-active = <0>;
++				pixelclk-active = <0>;
++			};
++		};
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			port@0 {
++				reg = <0>;
++				panel_in_dsi: endpoint {
++					remote-endpoint = <&dsi_out_panel>;
++				};
++			};
++		};
++	};
++
++	ports {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		port@1 {
++			reg = <1>;
++			dsi_out_panel: endpoint {
++				remote-endpoint = <&panel_in_dsi>;
++			};
++		};
++	};
++};
++
++/* Internal panel on VOP big, HDMI on VOP little (as in the vendor firmware) */
++&dsi_in_vopl {
++	status = "disabled";
++};
++
++&hdmi_in_vopb {
++	status = "disabled";
++};
++
++&display_subsystem {
++	status = "okay";
++};
++
++&route_dsi {
++	status = "okay";
++	connect = <&vopb_out_dsi>;
++};
++
++&route_hdmi {
++	status = "okay";
++	connect = <&vopl_out_hdmi>;
++};
++
++/* HDMI input: RK628 HDMI-to-CSI bridge -> MIPI D-PHY RX0 -> ISP0 */
++&i2c1 {
++	rk628_csi: hdmi-receiver@50 {
++		compatible = "rockchip,rk628-csi-v4l2";
++		reg = <0x50>;
++		interrupt-parent = <&gpio4>;
++		interrupts = <RK_PA5 IRQ_TYPE_LEVEL_HIGH>;
++		reset-gpios = <&gpio4 RK_PA7 GPIO_ACTIVE_LOW>;
++		plugin-det-gpios = <&gpio4 RK_PC7 GPIO_ACTIVE_LOW>;
++		power-gpios = <&gpio4 RK_PC5 GPIO_ACTIVE_HIGH>;
++		rockchip,camera-module-index = <0>;
++		rockchip,camera-module-facing = "back";
++		rockchip,camera-module-name = "RK628-CSI";
++		rockchip,camera-module-lens-name = "NC";
++		scaler-en;
++
++		port {
++			rk628_out: endpoint {
++				remote-endpoint = <&mipi_in_rk628>;
++				data-lanes = <1 2 3 4>;
++			};
++		};
++	};
++};
++
++&mipi_dphy_rx0 {
++	status = "okay";
++
++	ports {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		port@0 {
++			reg = <0>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			mipi_in_rk628: endpoint@1 {
++				reg = <1>;
++				remote-endpoint = <&rk628_out>;
++				data-lanes = <1 2 3 4>;
++			};
++		};
++
++		port@1 {
++			reg = <1>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			dphy_rx0_out: endpoint@0 {
++				reg = <0>;
++				remote-endpoint = <&isp0_mipi_in>;
++			};
++		};
++	};
++};
++
++&rkisp1_0 {
++	status = "okay";
++
++	port {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		isp0_mipi_in: endpoint@0 {
++			reg = <0>;
++			remote-endpoint = <&dphy_rx0_out>;
++		};
++	};
++};
++
++&isp0_mmu {
++	status = "okay";
++};
++
++&i2s1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2s1_2ch_bus>;
++	rockchip,clk-trcm = <2>;
++	status = "okay";
++};
++
++/ {
++	hdmiin_dc: hdmiin-dc {
++		compatible = "rockchip,dummy-codec";
++		#sound-dai-cells = <0>;
++	};
++
++	hdmiin-sound {
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,name = "rockchip,hdmiin";
++		simple-audio-card,bitclock-master = <&hdmiin_codec>;
++		simple-audio-card,frame-master = <&hdmiin_codec>;
++
++		simple-audio-card,cpu {
++			sound-dai = <&i2s1>;
++		};
++
++		hdmiin_codec: simple-audio-card,codec {
++			sound-dai = <&hdmiin_dc>;
++		};
++	};
++};
++
++/* Same magic values as the vendor U-Boot (reboot bootloader/loader work) */
++&pmugrf {
++	reboot-mode {
++		compatible = "syscon-reboot-mode";
++		offset = <0x300>;
++		mode-bootloader = <0x5242c309>;
++		mode-charge = <0x5242c30b>;
++		mode-fastboot = <0x5242c309>;
++		mode-loader = <0x5242c301>;
++		mode-normal = <0x5242c300>;
++		mode-recovery = <0x5242c303>;
++		mode-ums = <0x5242c30c>;
++	};
++};
++
++/*
++ * Same ramoops layout as the vendor Android kernel, so a log written by this
++ * kernel can be read back from /sys/fs/pstore after rebooting into Android.
++ * rk3399-linux.dtsi places the node outside /reserved-memory with a
++ * memory-region phandle, which fs/pstore/ram.c does not support, and uses
++ * two-cell sizes that the driver reads as 0; replace it.
++ */
++/delete-node/ &ramoops;
++/delete-node/ &ramoops_mem;
++
++&{/reserved-memory} {
++	ramoops@110000 {
++		compatible = "ramoops";
++		reg = <0x0 0x110000 0x0 0xf0000>;
++		record-size = <0x20000>;
++		console-size = <0x80000>;
++		ftrace-size = <0x0>;
++		pmsg-size = <0x50000>;
++	};
++};

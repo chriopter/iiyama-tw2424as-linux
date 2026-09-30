@@ -1,0 +1,34 @@
+From bd86881a88c2b9ad1c6f6de3987a2a99a7db9add Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Tue, 29 Sep 2026 15:01:51 +0200
+Subject: [PATCH 3/5] cpufreq: rockchip: Run built-in init after device
+ initcalls
+
+When built in, rockchip_cpufreq_driver_init() is a plain initcall without
+probe deferral and fails permanently if the CPU regulators (e.g. RK808
+vdd_cpu_l) are not registered yet. Run it as late_initcall_sync.
+
+---
+ drivers/cpufreq/rockchip-cpufreq.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/cpufreq/rockchip-cpufreq.c b/drivers/cpufreq/rockchip-cpufreq.c
+index f5e26517c..16a7b210a 100644
+--- a/drivers/cpufreq/rockchip-cpufreq.c
++++ b/drivers/cpufreq/rockchip-cpufreq.c
+@@ -995,7 +995,15 @@ static int __init rockchip_cpufreq_driver_init(void)
+ 	}
+ 	return ret;
+ }
++/*
++ * Built in, this is a plain initcall without probe deferral: run it after all
++ * device initcalls so PMIC regulators (e.g. RK808 vdd_cpu_l) are registered.
++ */
++#ifdef MODULE
+ module_init(rockchip_cpufreq_driver_init);
++#else
++late_initcall_sync(rockchip_cpufreq_driver_init);
++#endif
+ 
+ MODULE_AUTHOR("Finley Xiao <finley.xiao@rock-chips.com>");
+ MODULE_DESCRIPTION("Rockchip cpufreq driver");

@@ -1,0 +1,28 @@
+#!/sbin/openrc-run
+# SPDX-License-Identifier: MIT
+# Maintenance access over the USB-C port: CDC-NCM network (10.42.0.1) + CDC-ACM serial port
+# (root shell on it: wallpanel-console).
+description="Wallpanel USB-C maintenance gadget"
+
+depend() {
+	need localmount
+	before dropbear
+}
+
+start() {
+	ebegin "Starting USB maintenance gadget"
+	mountpoint -q /sys/kernel/config || mount -t configfs configfs /sys/kernel/config
+	G=/sys/kernel/config/usb_gadget/wallpanel
+	if [ ! -d $G ]; then
+		mkdir -p $G && cd $G || return 1
+		echo 0x1d6b > idVendor; echo 0x0104 > idProduct
+		mkdir -p strings/0x409 configs/c.1 functions/ncm.usb0 functions/acm.usb0
+		echo "iiyama TW2424AS wallpanel" > strings/0x409/product
+		ln -s functions/ncm.usb0 configs/c.1/
+		ln -s functions/acm.usb0 configs/c.1/
+		ls /sys/class/udc | head -1 > UDC
+	fi
+	for _ in 1 2 3 4 5; do ip link show usb0 >/dev/null 2>&1 && break; sleep 1; done
+	ip link set usb0 up && ip addr replace 10.42.0.1/24 dev usb0
+	eend 0
+}

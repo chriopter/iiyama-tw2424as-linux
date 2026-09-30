@@ -1,0 +1,15 @@
+#!/sbin/openrc-run
+# SPDX-License-Identifier: MIT
+# Emergency root shell on the USB-C serial port (CDC-ACM, /dev/ttyGS0 on the device, /dev/ttyACM0 on
+# the PC). Only reachable with a cable at the device, independent of SSH/network configuration.
+# getty exits whenever the host closes the port, so it is supervised and restarted.
+description="Wallpanel USB-C serial root console"
+supervisor=supervise-daemon
+command=/sbin/getty
+command_args="-n -l /bin/sh -L 0 ttyGS0 vt100"
+respawn_delay=2
+respawn_max=0
+
+depend() {
+	need wallpanel-usb
+}

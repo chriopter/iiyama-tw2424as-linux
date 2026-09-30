@@ -1,0 +1,5 @@
+VERSION=0.3.0
+URL=https://github.com/cage-kiosk/cage/archive/refs/tags/v0.3.0.tar.gz
+SHA256=f32e6885444e365de3bc076d307c20eff59ee42ed0237219eebd3d2fe597e289
+# APKBUILD derived from Alpine aports 3.24-stable community/cage at this commit ("upgrade to 0.3.0")
+APORTS=86a6e5ca13c5996a996e9947d13bf4d8022acd98

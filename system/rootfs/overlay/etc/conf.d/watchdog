@@ -1,0 +1,4 @@
+# Hardware watchdog (dw_wdt): the board resets if userspace stops feeding it for 30 s
+# (kernel panics reboot on their own after panic=10).
+WATCHDOG_DEV="/dev/watchdog0"
+WATCHDOG_OPTS="-T 30 -t 5"

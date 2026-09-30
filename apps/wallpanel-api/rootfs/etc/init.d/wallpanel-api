@@ -1,0 +1,20 @@
+#!/sbin/openrc-run
+# SPDX-License-Identifier: MIT
+description="Wallpanel API (Home Assistant MQTT discovery, hardware keys)"
+supervisor=supervise-daemon
+command=/usr/bin/python3
+command_args=/usr/lib/wallpanel/wallpanel_api.py
+respawn_delay=5
+respawn_max=0
+output_log=/var/log/wallpanel-api.log
+error_log=/var/log/wallpanel-api.log
+
+depend() {
+	need net
+	after wallpanel-kiosk
+}
+
+start_pre() {
+	# keep the log small on the eMMC: rotate once it exceeds 1 MiB
+	[ "$(stat -c %s /var/log/wallpanel-api.log 2>/dev/null || echo 0)" -lt 1048576 ] || mv -f /var/log/wallpanel-api.log /var/log/wallpanel-api.log.old
+}

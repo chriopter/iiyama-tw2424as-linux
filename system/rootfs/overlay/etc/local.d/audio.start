@@ -1,0 +1,13 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# ES8316: route the DAC to the headphone outputs (they also feed the loudspeaker amplifier, which
+# the kernel only enables while audio plays). Output stage fixed low; the volume is the DAC level
+# (wallpanel-api, HA number "Volume").
+amixer -q -c 0 sset 'Left Headphone Mixer Left DAC' on 2>/dev/null
+amixer -q -c 0 sset 'Right Headphone Mixer Right DAC' on 2>/dev/null
+amixer -q -c 0 sset 'Headphone' 1 2>/dev/null
+amixer -q -c 0 sset 'Headphone Mixer' 0 2>/dev/null
+# ES7210: digital microphones (ADC1/2) +12 dB; echo reference inputs MIC3/4 24 dB (vendor setting)
+amixer -q -c 0 sset 'Mic Array DMIC12' 12dB 2>/dev/null
+for m in 3 4; do amixer -q -c 0 sset "Mic Array MIC$m" 24dB 2>/dev/null; done
+exit 0

@@ -1,0 +1,24 @@
+From dde2c38787c5a6e34feed8e6a9fb9c2dd5851f15 Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Tue, 29 Sep 2026 15:01:50 +0200
+Subject: [PATCH 2/5] clk: rk808: Match the RK808 clkout cell
+
+The RK808 MFD cell is named rk808-clkout but the id_table does not list it,
+so the 32 kHz clock outputs never register and WiFi/BT (LPO) never probe.
+
+---
+ drivers/clk/clk-rk808.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/clk/clk-rk808.c b/drivers/clk/clk-rk808.c
+index 25aa2147b..d9fe6882c 100644
+--- a/drivers/clk/clk-rk808.c
++++ b/drivers/clk/clk-rk808.c
+@@ -202,6 +202,7 @@ static int rk808_clkout_probe(struct platform_device *pdev)
+ 
+ static const struct platform_device_id rk8xx_clk_id_table[] = {
+ 	{ "rk805-clk", 0 },
++	{ "rk808-clkout", 0 },
+ 	{ "rk809-clk", 0 },
+ 	{ "rk816-clk", 0 },
+ 	{ "rk817-clk", 0 },

@@ -1,0 +1,38 @@
+From 53591206b5abe9444eff198a8483620a6af859bb Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 00:44:07 +0200
+Subject: [PATCH 1/2] Apply gamma ramps from the gamma control protocol
+
+Cage creates the wlr gamma control manager, so clients such as wlsunset
+or gammastep find the protocol and send gamma ramps, but the manager is
+never connected to the scene. Nobody handles its set_gamma event and the
+ramps are silently dropped.
+
+Hand the manager to the scene with
+wlr_scene_set_gamma_control_manager_v1(), which applies the requested
+gamma LUT on the next output commit and resets it when the client goes
+away.
+---
+ cage.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/cage.c b/cage.c
+index d524dfd..3e3df0e 100644
+--- a/cage.c
++++ b/cage.c
+@@ -522,11 +522,14 @@ main(int argc, char *argv[])
+ 	}
+ #endif
+ 
+-	if (!wlr_gamma_control_manager_v1_create(server.wl_display)) {
++	struct wlr_gamma_control_manager_v1 *gamma_control_manager =
++		wlr_gamma_control_manager_v1_create(server.wl_display);
++	if (!gamma_control_manager) {
+ 		wlr_log(WLR_ERROR, "Unable to create the gamma control manager");
+ 		ret = 1;
+ 		goto end;
+ 	}
++	wlr_scene_set_gamma_control_manager_v1(server.scene, gamma_control_manager);
+ 
+ 	struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard =
+ 		wlr_virtual_keyboard_manager_v1_create(server.wl_display);

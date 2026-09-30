@@ -1,0 +1,169 @@
+From 1c071234f5d0a9234cfa7da53517185af6f1d6b1 Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 07:46:28 +0200
+Subject: [PATCH 11/12] ASoC: codecs: es7210: Support digital microphones
+
+Each ADC pair of the ES7210 can decode the PDM data of two digital
+microphones on MIC1P or MIC3P instead of digitising the analog inputs.
+Select this mode with the everest,adc12-dmic and everest,adc34-dmic
+properties.
+
+For such a pair, keep the analog PGAs and the microphone bias powered
+down and replace the per-microphone PGA gain controls with the 6 dB
+step digital microphone gain of the pair.
+---
+ sound/soc/codecs/es7210.c | 59 +++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 56 insertions(+), 3 deletions(-)
+
+diff --git a/sound/soc/codecs/es7210.c b/sound/soc/codecs/es7210.c
+index 9696203db..a8ceaf095 100644
+--- a/sound/soc/codecs/es7210.c
++++ b/sound/soc/codecs/es7210.c
+@@ -14,6 +14,7 @@
+ #include <linux/i2c.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
++#include <linux/property.h>
+ #include <linux/regmap.h>
+ #include <sound/pcm_params.h>
+ #include <sound/soc.h>
+@@ -28,6 +29,7 @@
+ #define ES7210_TCT0			0x09
+ #define ES7210_TCT1			0x0a
+ #define ES7210_CHIP_STA			0x0b
++#define ES7210_DMIC_CTL			0x10
+ #define ES7210_SDP_CFG1			0x11
+ #define ES7210_SDP_CFG2			0x12
+ #define ES7210_ADC34_MUTE		0x14
+@@ -73,6 +75,9 @@
+ #define ES7210_SDP_FMT_LJ		1
+ #define ES7210_SDP_FMT_DSP		3
+ 
++/* ES7210_DMIC_CTL: pair 0 = ADC1/ADC2, pair 1 = ADC3/ADC4 */
++#define ES7210_DMIC_ON(p)		BIT(6 + (p))
++
+ /* ES7210_ADCxx_MUTE */
+ #define ES7210_ADC_MUTE			GENMASK(1, 0)
+ 
+@@ -80,12 +85,17 @@
+ #define ES7210_MIC_PGA_EN		BIT(4)
+ #define ES7210_MIC_GAIN_MASK		GENMASK(3, 0)
+ 
++/* ES7210_MICxx_PDN */
++#define ES7210_PDN_MICBIAS		BIT(6)
++#define ES7210_PDN_PGA(n)		BIT(4 + (n))
++
+ #define ES7210_CHIP_ID			0x7210
+ 
+ struct es7210_priv {
+ 	struct regmap *regmap;
+ 	struct clk *mclk;
+ 	unsigned int sysclk;
++	bool dmic[2];
+ };
+ 
+ static const DECLARE_TLV_DB_RANGE(es7210_pga_tlv,
+@@ -93,9 +103,12 @@ static const DECLARE_TLV_DB_RANGE(es7210_pga_tlv,
+ 	11, 14, TLV_DB_SCALE_ITEM(3300, 150, 0)
+ );
+ 
++static const DECLARE_TLV_DB_SCALE(es7210_dmic_tlv, 0, 600, 0);
++
+ static const DECLARE_TLV_DB_SCALE(es7210_adc_vol_tlv, -9550, 50, 1);
+ 
+-static const struct snd_kcontrol_new es7210_snd_controls[] = {
++/* analog PGA gains, two per ADC pair */
++static const struct snd_kcontrol_new es7210_pga_controls[] = {
+ 	SOC_SINGLE_TLV("MIC1 Capture Volume", ES7210_MIC_GAIN(0), 0, 14, 0,
+ 		       es7210_pga_tlv),
+ 	SOC_SINGLE_TLV("MIC2 Capture Volume", ES7210_MIC_GAIN(1), 0, 14, 0,
+@@ -104,6 +117,17 @@ static const struct snd_kcontrol_new es7210_snd_controls[] = {
+ 		       es7210_pga_tlv),
+ 	SOC_SINGLE_TLV("MIC4 Capture Volume", ES7210_MIC_GAIN(3), 0, 14, 0,
+ 		       es7210_pga_tlv),
++};
++
++/* digital microphone gains, one per ADC pair */
++static const struct snd_kcontrol_new es7210_dmic_controls[] = {
++	SOC_SINGLE_TLV("DMIC12 Capture Volume", ES7210_DMIC_CTL, 0, 7, 0,
++		       es7210_dmic_tlv),
++	SOC_SINGLE_TLV("DMIC34 Capture Volume", ES7210_DMIC_CTL, 3, 7, 0,
++		       es7210_dmic_tlv),
++};
++
++static const struct snd_kcontrol_new es7210_snd_controls[] = {
+ 	SOC_SINGLE_TLV("ADC1 Capture Volume", ES7210_ADC1_VOL, 0, 255, 0,
+ 		       es7210_adc_vol_tlv),
+ 	SOC_SINGLE_TLV("ADC2 Capture Volume", ES7210_ADC2_VOL, 0, 255, 0,
+@@ -267,6 +291,7 @@ static struct snd_soc_dai_driver es7210_dai = {
+ 
+ static void es7210_power_up(struct snd_soc_component *component)
+ {
++	struct es7210_priv *es7210 = snd_soc_component_get_drvdata(component);
+ 	int i;
+ 
+ 	snd_soc_component_write(component, ES7210_CLK_OFF, 0x20);
+@@ -274,12 +299,19 @@ static void es7210_power_up(struct snd_soc_component *component)
+ 	snd_soc_component_write(component, ES7210_ANALOG, 0x43);
+ 	for (i = 0; i < 4; i++) {
+ 		snd_soc_component_write(component, ES7210_MIC_POWER(i), 0x08);
++		if (es7210->dmic[i / 2])
++			continue;
+ 		snd_soc_component_update_bits(component, ES7210_MIC_GAIN(i),
+ 					      ES7210_MIC_PGA_EN,
+ 					      ES7210_MIC_PGA_EN);
+ 	}
+-	snd_soc_component_write(component, ES7210_MIC12_PDN, 0x00);
+-	snd_soc_component_write(component, ES7210_MIC34_PDN, 0x00);
++
++	/* digital microphones only need the ADC reference and modulators */
++	for (i = 0; i < 2; i++)
++		snd_soc_component_write(component, ES7210_MIC12_PDN + i,
++					es7210->dmic[i] ?
++					ES7210_PDN_MICBIAS | ES7210_PDN_PGA(0) |
++					ES7210_PDN_PGA(1) : 0x00);
+ 
+ 	/* restart the chip state machine with the new configuration */
+ 	snd_soc_component_write(component, ES7210_RESET,
+@@ -335,6 +367,9 @@ static int es7210_set_bias_level(struct snd_soc_component *component,
+ 
+ static int es7210_component_probe(struct snd_soc_component *component)
+ {
++	struct es7210_priv *es7210 = snd_soc_component_get_drvdata(component);
++	int i, ret;
++
+ 	/* chip init/power-up timing, high-pass filters, 2.87 V MIC bias */
+ 	snd_soc_component_write(component, ES7210_TCT0, 0x30);
+ 	snd_soc_component_write(component, ES7210_TCT1, 0x30);
+@@ -349,6 +384,21 @@ static int es7210_component_probe(struct snd_soc_component *component)
+ 	snd_soc_component_write(component, ES7210_ADC34_MUTE, ES7210_ADC_MUTE);
+ 	es7210_power_down(component);
+ 
++	for (i = 0; i < 2; i++) {
++		if (es7210->dmic[i]) {
++			snd_soc_component_update_bits(component, ES7210_DMIC_CTL,
++						      ES7210_DMIC_ON(i),
++						      ES7210_DMIC_ON(i));
++			ret = snd_soc_add_component_controls(component,
++							     &es7210_dmic_controls[i], 1);
++		} else {
++			ret = snd_soc_add_component_controls(component,
++							     &es7210_pga_controls[2 * i], 2);
++		}
++		if (ret)
++			return ret;
++	}
++
+ 	return 0;
+ }
+ 
+@@ -444,6 +494,9 @@ static int es7210_i2c_probe(struct i2c_client *i2c)
+ 		return dev_err_probe(dev, PTR_ERR(es7210->regmap),
+ 				     "failed to init regmap\n");
+ 
++	es7210->dmic[0] = device_property_read_bool(dev, "everest,adc12-dmic");
++	es7210->dmic[1] = device_property_read_bool(dev, "everest,adc34-dmic");
++
+ 	es7210->mclk = devm_clk_get_optional(dev, "mclk");
+ 	if (IS_ERR(es7210->mclk))
+ 		return dev_err_probe(dev, PTR_ERR(es7210->mclk),

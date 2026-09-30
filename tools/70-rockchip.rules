@@ -1,0 +1,6 @@
+# Rockchip USB devices (maskrom, rockusb loader, U-Boot fastboot/ums, Android adb/mtp)
+# Must sort before 73-seat-late.rules for TAG+="uaccess" to take effect.
+# Install: sudo cp 70-rockchip.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
+SUBSYSTEM=="usb", ATTR{idVendor}=="2207", MODE="0660", GROUP="wheel", TAG+="uaccess"
+# Google ID used by Android fastbootd / U-Boot fastboot
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", MODE="0660", GROUP="wheel", TAG+="uaccess"

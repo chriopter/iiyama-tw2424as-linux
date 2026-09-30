@@ -1,0 +1,54 @@
+From 2b579ebe9043b386f2a5d9d3508c8052976c879e Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Tue, 29 Sep 2026 15:01:51 +0200
+Subject: [PATCH 4/5] drm/bridge: dw-mipi-dsi: Optionally keep HS clock for LP
+ commands
+
+Some DSI bridges, e.g. a Toshiba TC358775 without I2C, only latch register
+writes received in LP mode while the HS clock runs. Add the opt-in DT
+property rockchip,lp-cmd-hs-clk to keep the clock lane in HS for LP
+commands instead of dropping it.
+
+---
+ drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi.c | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi.c b/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi.c
+index 5f76f55dd..4342e1987 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-mipi-dsi.c
+@@ -255,6 +255,13 @@ struct dw_mipi_dsi {
+ 
+ 	struct reset_control *apb_rst;
+ 
++	/*
++	 * Keep the clock lane in HS while sending LP commands. Some DSI bridges
++	 * (e.g. Toshiba TC358775 without I2C) only latch register writes
++	 * received in LP mode while the DSI HS clock is running.
++	 */
++	bool lp_cmd_hs_clk;
++
+ 	unsigned int lane_mbps; /* per lane */
+ 	u32 channel;
+ 	u32 lanes;
+@@ -402,7 +409,10 @@ static void dw_mipi_message_config(struct dw_mipi_dsi *dsi,
+ 	ctrl = dsi_read(dsi, DSI_LPCLK_CTRL);
+ 	if (lpm) {
+ 		val |= ENABLE_LOW_POWER_CMD;
+-		ctrl &= ~PHY_TXREQUESTCLKHS;
++		if (dsi->lp_cmd_hs_clk)
++			ctrl |= PHY_TXREQUESTCLKHS;
++		else
++			ctrl &= ~PHY_TXREQUESTCLKHS;
+ 	} else {
+ 		val &= ~ENABLE_LOW_POWER_CMD;
+ 		ctrl |= PHY_TXREQUESTCLKHS;
+@@ -1204,6 +1214,8 @@ __dw_mipi_dsi_probe(struct platform_device *pdev,
+ 
+ 	dsi->dev = dev;
+ 	dsi->plat_data = plat_data;
++	dsi->lp_cmd_hs_clk = of_property_read_bool(dev->of_node,
++						   "rockchip,lp-cmd-hs-clk");
+ 
+ 	if (!plat_data->phy_ops->init || !plat_data->phy_ops->get_lane_mbps ||
+ 	    !plat_data->phy_ops->get_timing) {

@@ -1,0 +1,43 @@
+From e174cc0fc2c2e38d592e49c6d139f5495f2df05a Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 07:45:50 +0200
+Subject: [PATCH 10/12] ASoC: dt-bindings: everest,es7210: Add digital
+ microphone inputs
+
+The MIC1P and MIC3P pins of the ES7210 can take the PDM data of digital
+microphones clocked by DMIC_CLK, each feeding a pair of ADCs. Add
+properties that select this mode per ADC pair.
+---
+ .../devicetree/bindings/sound/everest,es7210.yaml   | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/sound/everest,es7210.yaml b/Documentation/devicetree/bindings/sound/everest,es7210.yaml
+index 71ce9a7d5..e092ef26e 100644
+--- a/Documentation/devicetree/bindings/sound/everest,es7210.yaml
++++ b/Documentation/devicetree/bindings/sound/everest,es7210.yaml
+@@ -40,6 +40,18 @@ properties:
+     items:
+       - const: mclk
+ 
++  everest,adc12-dmic:
++    type: boolean
++    description:
++      ADC1 and ADC2 take the PDM data of digital microphones on the MIC1P
++      pin (clocked by DMIC_CLK) instead of the analog MIC1 and MIC2 inputs.
++
++  everest,adc34-dmic:
++    type: boolean
++    description:
++      ADC3 and ADC4 take the PDM data of digital microphones on the MIC3P
++      pin (clocked by DMIC_CLK) instead of the analog MIC3 and MIC4 inputs.
++
+   port:
+     $ref: audio-graph-port.yaml#
+     unevaluatedProperties: false
+@@ -66,5 +78,6 @@ examples:
+         clocks = <&cru 10>;
+         clock-names = "mclk";
+         #sound-dai-cells = <0>;
++        everest,adc12-dmic;
+       };
+     };

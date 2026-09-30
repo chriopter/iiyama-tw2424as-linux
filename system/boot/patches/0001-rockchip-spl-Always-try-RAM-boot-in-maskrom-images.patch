@@ -1,0 +1,35 @@
+From a0b45ee4aba13f5f7cae2ae2d2948acfeb590d9f Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Tue, 29 Sep 2026 15:02:12 +0200
+Subject: [PATCH 1/2] rockchip: spl: Always try RAM boot in maskrom images
+
+A maskrom image is only ever loaded over USB, and an external (rkbin) TPL
+runs from IRAM and may clobber the BROM boot source word, so SPL would not
+select BOOT_DEVICE_RAM. Always add it for CONFIG_ROCKCHIP_MASKROM_IMAGE.
+
+---
+ arch/arm/mach-rockchip/spl-boot-order.c | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/mach-rockchip/spl-boot-order.c b/arch/arm/mach-rockchip/spl-boot-order.c
+index d2dd5e10..f76a127e 100644
+--- a/arch/arm/mach-rockchip/spl-boot-order.c
++++ b/arch/arm/mach-rockchip/spl-boot-order.c
+@@ -104,9 +104,14 @@ void board_boot_order(u32 *spl_boot_list)
+ {
+ 	int idx = 0;
+ 
+-	/* Add RAM boot for maskrom mode boot over USB */
+-	if (BROM_BOOTSOURCE_ID_ADDR && CONFIG_IS_ENABLED(RAM_DEVICE) &&
+-	    read_brom_bootsource_id() == BROM_BOOTSOURCE_USB) {
++	/*
++	 * Add RAM boot for maskrom mode boot over USB. A maskrom image is only
++	 * ever loaded over USB, and an external (rkbin) TPL runs from IRAM and
++	 * may clobber the BROM boot source word, so do not depend on it.
++	 */
++	if ((BROM_BOOTSOURCE_ID_ADDR && CONFIG_IS_ENABLED(RAM_DEVICE) &&
++	     read_brom_bootsource_id() == BROM_BOOTSOURCE_USB) ||
++	    (IS_ENABLED(CONFIG_ROCKCHIP_MASKROM_IMAGE) && CONFIG_IS_ENABLED(RAM_DEVICE))) {
+ 		spl_boot_list[idx++] = BOOT_DEVICE_RAM;
+ 	}
+ 

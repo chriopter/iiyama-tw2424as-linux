@@ -1,0 +1,43 @@
+From 4835e6f888b47d3dbea24eac7005ad32aec4a6d3 Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Wed, 30 Sep 2026 00:44:07 +0200
+Subject: [PATCH 2/2] build: Add an xwayland feature option
+
+XWayland support is enabled whenever wlroots was built with it, and
+there is no way to build a Wayland-only cage against such a wlroots.
+Distributions ship one wlroots for all compositors, so kiosks that run a
+single Wayland client still get the XWayland code, the lazy X11 socket
+and DISPLAY in the client environment.
+
+Add an "xwayland" feature option. "auto" (the default) keeps the current
+behaviour, "disabled" builds without XWayland and "enabled" fails if
+wlroots lacks XWayland support.
+---
+ meson.build       | 6 +++++-
+ meson_options.txt | 1 +
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/meson.build b/meson.build
+index 586e999..db8e9cf 100644
+--- a/meson.build
++++ b/meson.build
+@@ -40,7 +40,11 @@ wayland_server = dependency('wayland-server')
+ xkbcommon      = dependency('xkbcommon')
+ math           = cc.find_library('m')
+ 
+-have_xwayland = wlroots.get_variable(pkgconfig: 'have_xwayland', internal: 'have_xwayland') == 'true'
++wlroots_has_xwayland = wlroots.get_variable(pkgconfig: 'have_xwayland', internal: 'have_xwayland') == 'true'
++if get_option('xwayland').enabled() and not wlroots_has_xwayland
++  error('Cannot enable XWayland: wlroots was built without XWayland support')
++endif
++have_xwayland = wlroots_has_xwayland and not get_option('xwayland').disabled()
+ 
+ version = '@0@'.format(meson.project_version())
+ git = find_program('git', native: true, required: false)
+diff --git a/meson_options.txt b/meson_options.txt
+index e40a23d..d64f510 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -1 +1,2 @@
+ option('man-pages', type: 'feature', value: 'auto', description: 'Generate and install man pages')
++option('xwayland', type: 'feature', value: 'auto', description: 'Enable support for X11 applications')

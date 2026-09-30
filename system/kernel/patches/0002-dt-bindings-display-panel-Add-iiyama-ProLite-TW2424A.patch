@@ -1,0 +1,86 @@
+From 9c56f66411b7ddafda4959f4fde613772b1b30ad Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Tue, 29 Sep 2026 14:59:00 +0200
+Subject: [PATCH 02/12] dt-bindings: display: panel: Add iiyama ProLite
+ TW2424AS panel
+
+The internal panel of the iiyama ProLite TW2424AS is a 1920x1080 dual-link
+LVDS panel behind a Toshiba TC358775 bridge whose I2C interface is not
+connected. The bridge is programmed over DSI, so the pair is described as
+one DSI panel.
+---
+ .../display/panel/iiyama,tw2424as-panel.yaml  | 65 +++++++++++++++++++
+ 1 file changed, 65 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/display/panel/iiyama,tw2424as-panel.yaml
+
+diff --git a/Documentation/devicetree/bindings/display/panel/iiyama,tw2424as-panel.yaml b/Documentation/devicetree/bindings/display/panel/iiyama,tw2424as-panel.yaml
+new file mode 100644
+index 000000000..bafce7e34
+--- /dev/null
++++ b/Documentation/devicetree/bindings/display/panel/iiyama,tw2424as-panel.yaml
+@@ -0,0 +1,65 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/display/panel/iiyama,tw2424as-panel.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: iiyama ProLite TW2424AS internal panel
++
++maintainers:
++  - chriopter <82179548+chriopter@users.noreply.github.com>
++
++description:
++  1920x1080 dual-link LVDS panel behind a Toshiba TC358775 bridge. The
++  bridge's I2C interface is not connected, so it is programmed with DSI
++  generic writes and described as a single DSI panel. The reset GPIO drives
++  the bridge reset input.
++
++allOf:
++  - $ref: panel-common.yaml#
++
++properties:
++  compatible:
++    const: iiyama,tw2424as-panel
++
++  reg:
++    maxItems: 1
++
++  power-supply: true
++  reset-gpios: true
++  backlight: true
++  rotation: true
++  port: true
++
++required:
++  - compatible
++  - reg
++  - power-supply
++  - reset-gpios
++  - port
++
++additionalProperties: false
++
++examples:
++  - |
++    #include <dt-bindings/gpio/gpio.h>
++
++    dsi {
++        #address-cells = <1>;
++        #size-cells = <0>;
++
++        panel@0 {
++            compatible = "iiyama,tw2424as-panel";
++            reg = <0>;
++            backlight = <&backlight>;
++            power-supply = <&vcc_lcd>;
++            reset-gpios = <&gpio1 2 GPIO_ACTIVE_LOW>;
++
++            port {
++                endpoint {
++                    remote-endpoint = <&dsi_out>;
++                };
++            };
++        };
++    };
++...

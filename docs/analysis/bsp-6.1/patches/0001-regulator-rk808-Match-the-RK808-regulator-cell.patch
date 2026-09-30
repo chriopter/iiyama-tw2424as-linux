@@ -1,0 +1,25 @@
+From 713181dc983fe142d869cd27e3a34af294acdbf8 Mon Sep 17 00:00:00 2001
+From: chriopter <82179548+chriopter@users.noreply.github.com>
+Date: Tue, 29 Sep 2026 15:01:50 +0200
+Subject: [PATCH 1/5] regulator: rk808: Match the RK808 regulator cell
+
+The id_table lists rk805/809/816/817/818 but not rk808-regulator, the MFD
+cell name used for the RK808, so no regulator is registered on RK808 boards
+(IO domains, SARADC, SDIO power sequence and CPU DVFS never probe).
+
+---
+ drivers/regulator/rk808-regulator.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/regulator/rk808-regulator.c b/drivers/regulator/rk808-regulator.c
+index 02aebf689..2a6afb821 100644
+--- a/drivers/regulator/rk808-regulator.c
++++ b/drivers/regulator/rk808-regulator.c
+@@ -1779,6 +1779,7 @@ static int rk808_regulator_probe(struct platform_device *pdev)
+ 
+ static const struct platform_device_id rk8xx_regulator_id_table[] = {
+ 	{ "rk805-regulator", 0 },
++	{ "rk808-regulator", 0 },
+ 	{ "rk809-regulator", 0 },
+ 	{ "rk816-regulator", 0 },
+ 	{ "rk817-regulator", 0 },

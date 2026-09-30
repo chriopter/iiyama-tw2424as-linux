@@ -1,0 +1,35 @@
+# Maintainer: chriopter <82179548+chriopter@users.noreply.github.com>
+#
+# Wallpanel's own gamma helper (source in this directory, no upstream): holds the wlr-gamma-control
+# of the kiosk output and sets colour temperatures read from stdin without releasing it.
+# pkgver = meson.build project version; bump pkgrel for packaging-only changes, reset it to 0 with a
+# new pkgver. Build with ./build.sh wallpanel-gamma (refreshes sha512sums).
+pkgname=wallpanel-gamma
+pkgver=1.0.0
+pkgrel=0
+pkgdesc="Flicker-free colour temperature for the wallpanel kiosk (wlr-gamma-control from stdin)"
+url="https://github.com/chriopter/iiyama-tw2424as-linux"
+license="MIT"
+arch="aarch64"
+options="!check" # no test suite
+makedepends="meson wayland-dev wlr-protocols"
+source="meson.build
+	wallpanel-gamma.c
+	"
+builddir="$srcdir"
+
+build() {
+	abuild-meson \
+		-Db_lto=true \
+		. build
+	meson compile -C build
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C build
+}
+
+sha512sums="
+a76479d01511beac8d9a991d95e208463f2239d20aed303098f9ac6c9afaa460c809dfc7b85ed007265f1909c2cb1337884b84d93f08612fd35080f8a60d5a1e  meson.build
+d7674e0b7fc8761f8a21aa9f68124fad38453457077a8ee42296b01c0fa103db86231ebf0519d26520f8c0097fd3a0d0e06f6110f62ce2ccfc3084f25c7d9cb9  wallpanel-gamma.c
+"

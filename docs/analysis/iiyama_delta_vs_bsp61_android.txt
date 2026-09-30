@@ -1,0 +1,2165 @@
+~ /
+    + serial-number = ['<serial>']
+~ /aliases
+    - gpio0 = ['/pinctrl/gpio@ff720000']
+    - gpio1 = ['/pinctrl/gpio@ff730000']
+    - gpio2 = ['/pinctrl/gpio@ff780000']
+    - gpio3 = ['/pinctrl/gpio@ff788000']
+    - gpio4 = ['/pinctrl/gpio@ff790000']
+    + mmc0 = ['/dwmmc@fe310000']
+    + mmc1 = ['/dwmmc@fe320000']
+    + mmc2 = ['/sdhci@fe330000']
++ /amba
+    + compatible = ['simple-bus']
+    + #address-cells = 0x2
+    + #size-cells = 0x2
+    + ranges = <bool>
++ /amba/dma-controller@ff6d0000
+    + compatible = ['arm,pl330', 'arm,primecell']
+    + reg = 0x0 0xff6d0000 0x0 0x4000
+    + interrupts = 0x0 0x5 0x4 0x0 0x0 0x6 0x4 0x0
+    + #dma-cells = 0x1
+    + clocks = &/clock-controller@ff760000 &/efuse@ff690000/cpu-leakage@17
+    + clock-names = ['apb_pclk']
+    + arm,pl330-periph-burst = <bool>
+    + iram = 0x1e
+    + rockchip,force-iram = <bool>
++ /amba/dma-controller@ff6e0000
+    + compatible = ['arm,pl330', 'arm,primecell']
+    + reg = 0x0 0xff6e0000 0x0 0x4000
+    + interrupts = 0x0 0x7 0x4 0x0 0x0 0x8 0x4 0x0
+    + #dma-cells = 0x1
+    + clocks = &/clock-controller@ff760000 &/efuse@ff690000/gpu-leakage@18
+    + clock-names = ['apb_pclk']
+    + arm,pl330-periph-burst = <bool>
+~ /backlight
+    ~ brightness-levels: 0x2 0x2 0x2 0x3 0x4 0x5 0x6 0x7 0x8 0x9 0xa 0xb 0xc 0xd 0xe 0xf 0x10 0x11 0x12 0x13 0x14 0x15 0x16 0x17 0x18 0x19 0x1a 0x1b 0x1c 0x1d 0x1e 0x1f 0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x28 0x29 0x2a 0x2b 0x2c 0x2d 0x2e 0x2f 0x30 0x31 0x32 0x33 0x34 0x35 0x36 0x37 0x38 0x39 0x3a 0x3b 0x3c 0x3d 0x3e 0x3f 0x40 0x41 0x42 0x43 0x44 0x45 0x46 0x47 0x48 0x49 0x4a 0x4b 0x4c 0x4d 0x4e 0x4f 0x50 0x51 0x52 0x53 0x54 0x55 0x56 0x57 0x58 0x59 0x5a 0x5b 0x5c 0x5d 0x5e 0x5f 0x60 0x61 0x62 0x63 0x64 0x65 0x66 0x67 0x68 0x69 0x6a 0x6b 0x6c 0x6d 0x6e 0x6f 0x70 0x71 0x72 0x73 0x74 0x75 0x76 0x77 0x78 0x79 0x7a 0x7b 0x7c 0x7d 0x7e 0x7f 0x80 0x81 0x82 0x83 0x84 0x85 0x86 0x87 0x88 0x89 0x8a 0x8b 0x8c 0x8d 0x8e 0x8f 0x90 0x91 0x92 0x93 0x94 0x95 0x96 0x97 0x98 0x99 0x9a 0x9b 0x9c 0x9d 0x9e 0x9f 0xa0 0xa1 0xa2 0xa3 0xa4 0xa5 0xa6 0xa7 0xa8 0xa9 0xaa 0xab 0xac 0xad 0xae 0xaf 0xb0 0xb1 0xb2 0xb3 0xb4 0xb5 0xb6 0xb7 0xb8 0xb9 0xba 0xbb 0xbc 0xbd 0xbe 0xbf 0xc0 0xc1 0xc2 0xc3 0xc4 0xc5 0xc6 0xc7 0xc8 0xc9 0xca 0xcb 0xcc 0xcd 0xce 0xcf 0xd0 0xd1 0xd2 0xd3 0xd4 0xd5 0xd6 0xd7 0xd8 0xd9 0xda 0xdb 0xdc 0xdd 0xde 0xdf 0xe0 0xe1 0xe2 0xe3 0xe4 0xe5 0xe6 0xe7 0xe8 0xe9 0xea 0xeb 0xec 0xed 0xee 0xef 0xf0 0xf1 0xf2 0xf3 0xf4 0xf5 0xf6 0xf7 0xf8 0xf9 0xfa 0xfb 0xfc 0xfd 0xfe 0xff  ->  0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7 0x8 0x9 0xa 0xb 0xc 0xd 0xe 0xf 0x10 0x11 0x12 0x13 0x14 0x15 0x16 0x17 0x18 0x19 0x1a 0x1b 0x1c 0x1d 0x1e 0x1f 0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x28 0x29 0x2a 0x2b 0x2c 0x2d 0x2e 0x2f 0x30 0x31 0x32 0x33 0x34 0x35 0x36 0x37 0x38 0x39 0x3a 0x3b 0x3c 0x3d 0x3e 0x3f 0x40 0x41 0x42 0x43 0x44 0x45 0x46 0x47 0x48 0x49 0x4a 0x4b 0x4c 0x4d 0x4e 0x4f 0x50 0x51 0x52 0x53 0x54 0x55 0x56 0x57 0x58 0x59 0x5a 0x5b 0x5c 0x5d 0x5e 0x5f 0x60 0x61 0x62 0x63 0x64 0x65 0x66 0x67 0x68 0x69 0x6a 0x6b 0x6c 0x6d 0x6e 0x6f 0x70 0x71 0x72 0x73 0x74 0x75 0x76 0x77 0x78 0x79 0x7a 0x7b 0x7c 0x7d 0x7e 0x7f 0x80 0x81 0x82 0x83 0x84 0x85 0x86 0x87 0x88 0x89 0x8a 0x8b 0x8c 0x8d 0x8e 0x8f 0x90 0x91 0x92 0x93 0x94 0x95 0x96 0x97 0x98 0x99 0x9a 0x9b 0x9c 0x9d 0x9e 0x9f 0xa0 0xa1 0xa2 0xa3 0xa4 0xa5 0xa6 0xa7 0xa8 0xa9 0xaa 0xab 0xac 0xad 0xae 0xaf 0xb0 0xb1 0xb2 0xb3 0xb4 0xb5 0xb6 0xb7 0xb8 0xb9 0xba 0xbb 0xbc 0xbd 0xbe 0xbf 0xc0 0xc1 0xc2 0xc3 0xc4 0xc5 0xc6 0xc7 0xc8 0xc9 0xca 0xcb 0xcc 0xcd 0xce 0xcf 0xd0 0xd1 0xd2 0xd3 0xd4 0xd5 0xd6 0xd7 0xd8 0xd9 0xda 0xdb 0xdc 0xdd 0xde 0xdf 0xe0 0xe1 0xe2 0xe3 0xe4 0xe5 0xe6 0xe7 0xe8 0xe9 0xea 0xeb 0xec 0xed 0xee 0xef 0xf0 0xf1 0xf2 0xf3 0xf4 0xf5 0xf6 0xf7 0xf8 0xf9 0xfa 0xfb 0xfc 0xfd 0xfe 0xff
+    ~ enable-gpios: &/pinctrl/gpio@ff730000 &/i2c@ff3c0000/tcs4525@1c 0x0  ->  &/pinctrl/gpio1@ff730000 &/cpus/idle-states/cluster-sleep &/interrupt-controller@fee00000
+    + pinctrl-0 = &/pinctrl/bl_ctrl/bl-en
+    + pinctrl-names = ['default']
+    ~ pwms: &/pwm@ff420020 0x0 0x61a8 0x0  ->  &/pwm@ff420020 0x0 0x3d090 0x0
+    + usbreset-gpios = &/pinctrl/gpio4@ff790000 &/vop@ff8f0000/port/endpoint@2 0x0
+~ /chosen
+    ~ bootargs: ['earlycon=uart8250,mmio32,0xff1a0000 coherent_pool=1m']  ->  ['storagemedia=emmc androidboot.storagemedia=emmc androidboot.mode=normal  androidboot.dtb_idx=0 androidboot.dtbo_idx=0  androidboot.verifiedbootstate=orange androidboot.serialno=<serial> console=ttyFIQ0 firmware_class.path=/vendor/etc/firmware init=/init rootwait ro loop.max_part=7 androidboot.console=ttyFIQ0 androidboot.hardware=rk30board androidboot.boot_devices=fe330000.sdhci androidboot.selinux=permissive buildvariant=userdebug earlycon=uart8250,mmio32,0xff1a0000 androidboot.baseband=N/A androidboot.veritymode=enforcing coherent_pool=1m']
+    + bootargs_ext = ['androidboot.boot_devices=fe330000.sdhci']
+    + linux,initrd-end = 0x0 0xa34d646
+    + linux,initrd-start = 0x0 0xa200000
+- /clock-controller@ff750000
+~ /clock-controller@ff760000
+    ~ assigned-clock-rates: 0x47868c0 0x2faf080 0x2faf080 0x2faf080 0x2faf080 0x5f5e100 0x2faf080 0x8f0d180 0x8f0d180 0x8f0d180 0x2faf080 0x8f0d180 0x2faf080 0x5f5e100 0x47868c0 0x47868c0 0x30a32c00 0x30a32c00 0x23c34600 0xbebc200 0x2faf0800 0x8f0d180 0x47868c0 0x23c3460 0x11e1a300 0x5f5e100 0x2faf080 0x5f5e100 0x2faf080 0x5f5e100 0x5f5e100 0x5f5e100 0x5f5e100 0x5f5e100 0x5f5e100 0x2faf080 0x2faf080 0x2faf080 0x2faf080 0x2faf080 0xbebc200 0x17d78400 0x17d78400 0x5f5e100 0x5f5e100 0x5f5e100 0x17d78400 0x17d78400 0xbebc200 0x5f5e100 0xbebc200 0xbebc200 0x5f5e100 0x17d78400 0x17d78400 0x17d78400 0x17d78400 0x11e1a300 0x17d78400 0xbebc200 0x17d78400 0x11e1a300 0x11e1a300 0x11e1a300 0x11e1a300 0x23c34600 0x5f5e100 0x8f0d180 0x8f0d180 0x17d78400 0x5f5e100 0x17d78400 0x5f5e100  ->  0x47868c0 0x2faf080 0x2faf080 0x2faf080 0x2faf080 0x5f5e100 0x2faf080 0x8f0d180 0x8f0d180 0x8f0d180 0x2faf080 0x8f0d180 0x2faf080 0x5f5e100 0x47868c0 0x47868c0 0x30a32c00 0x30a32c00 0x1dcd6500 0xbebc200 0x2faf0800 0x8f0d180 0x47868c0 0x23c3460 0x11e1a300 0x5f5e100 0x2faf080 0x5f5e100 0x2faf080 0x5f5e100 0x5f5e100 0x5f5e100 0x5f5e100 0x5f5e100 0x5f5e100 0x2faf080 0x2faf080 0x2faf080 0x2faf080 0x2faf080 0xbebc200 0x17d78400 0x17d78400 0x5f5e100 0x5f5e100 0x5f5e100 0x17d78400 0x17d78400 0xbebc200 0x5f5e100 0xbebc200 0xbebc200 0x5f5e100 0x17d78400 0x17d78400 0x17d78400 0x17d78400 0x11e1a300 0x17d78400 0xbebc200 0x17d78400 0x11e1a300 0x11e1a300 0x11e1a300 0x11e1a300 0x23c34600 0x5f5e100 0x8f0d180 0x8f0d180 0x17d78400 0x5f5e100 0x17d78400 0x5f5e100
+    ~ assigned-clocks: &/clock-controller@ff760000 &/dsi@ff960000/ports/port@0/endpoint@0 &/clock-controller@ff760000 &/dsi@ff968000/ports/port@0/endpoint@0 &/clock-controller@ff760000 &/panel &/clock-controller@ff760000 &/pinctrl/i2c5/i2c5-xfer &/clock-controller@ff760000 &/pinctrl/rk-modem/lte-vbat &/clock-controller@ff760000 &/vop@ff8f0000/port/endpoint@2 &/clock-controller@ff760000 0x1cd &/clock-controller@ff760000 &/phy@ff7c0000/port/endpoint@1 &/clock-controller@ff760000 &/phy@ff7c0000/port/endpoint@0 &/clock-controller@ff760000 &/i2s@ff880000 &/clock-controller@ff760000 &/iommu@ff903f00 &/clock-controller@ff760000 &/dsi@ff968000 &/clock-controller@ff760000 &/pinctrl/cif/cif-clkin &/clock-controller@ff760000 &/opp-table-2 &/clock-controller@ff760000 &/clock-controller@ff750000 &/clock-controller@ff760000 &/qos@ffad0000 &/clock-controller@ff760000 &/clock-controller@ff760000 &/clock-controller@ff760000 &/cpus/idle-states/cpu-sleep &/clock-controller@ff760000 &/cpus/cpu@100 &/clock-controller@ff760000 &/dsi@ff960000/ports/port@1/endpoint &/clock-controller@ff760000 &/cpus/cpu@3 &/clock-controller@ff760000 &/dsi@ff960000/ports/port@0/endpoint@0 &/clock-controller@ff760000 &/firmware/android &/clock-controller@ff760000 &/pwm@ff420010 &/clock-controller@ff760000 &/dsi@ff968000/ports/port@0/endpoint@0 &/clock-controller@ff760000 &/firmware/optee &/clock-controller@ff760000 &/video-codec@ff650000 &/clock-controller@ff760000 &/panel &/clock-controller@ff760000 &/vepu@ff650000 &/clock-controller@ff760000 &/phy@ff7c0000/dp-port &/clock-controller@ff760000 &/vop@ff900000/port/endpoint@4 &/clock-controller@ff760000 &/vop@ff8f0000/port/endpoint@4 &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/regulators/LDO_REG2 &/clock-controller@ff760000 &/pinctrl/i2c1/i2c1-xfer &/clock-controller@ff760000 &/pinctrl/gpio@ff730000 &/clock-controller@ff760000 &/pinctrl/gpio@ff720000 &/clock-controller@ff760000 &/pinctrl/gpio@ff790000 &/clock-controller@ff760000 &/pinctrl/hdmiin/hdmiin_gpios &/clock-controller@ff760000 &/pinctrl/i2c2/i2c2-xfer &/clock-controller@ff760000 &/pinctrl/i2c3/i2c3-xfer &/clock-controller@ff760000 &/pinctrl/buttons/pwrbtn &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/codec &/clock-controller@ff760000 &/pinctrl/headphone/hp-det &/clock-controller@ff760000 &/thermal-zones/cpu-thermal/trips/cpu_alert1 &/clock-controller@ff760000 &/gpu@ff9a0000 &/clock-controller@ff760000 &/nocp-vio1-msch0@ffa87800 &/clock-controller@ff760000 &/efuse@ff690000/specification-serial-number@6 &/clock-controller@ff760000 &/pwm@ff420020 &/clock-controller@ff760000 0x1cd &/clock-controller@ff760000 &/qos@ffac8000 &/clock-controller@ff760000 &/qos@ffac8080 &/clock-controller@ff760000 &/pinctrl/i2c7/i2c7-xfer &/clock-controller@ff760000 &/pinctrl/rk-modem/lte-vbat &/clock-controller@ff760000 &/vop@ff8f0000/port/endpoint@2 &/clock-controller@ff760000 &/efuse@ff690000/gpu-leakage@18 &/clock-controller@ff760000 &/pinctrl/pcfg-output-low &/clock-controller@ff760000 &/pinctrl/tsadc/otp-pin &/clock-controller@ff760000 &/pinctrl/wireless-bluetooth/bt-wake-gpio &/clock-controller@ff760000 &/pinctrl/uart0/uart0-rts &/clock-controller@ff760000 &/pinctrl/pcfg-pull-up-8ma &/clock-controller@ff760000 &/opp-table-2 &/clock-controller@ff760000 &/phy@ff7c0000/port/endpoint@1 &/clock-controller@ff760000 &/phy@ff7c0000/port/endpoint@0 &/clock-controller@ff760000 &/i2s@ff880000 &/clock-controller@ff760000 &/iommu@ff903f00 &/clock-controller@ff760000 &/dsi@ff968000 &/clock-controller@ff760000 &/pinctrl/cif/cif-clkin &/clock-controller@ff760000 &/clock-controller@ff750000 &/clock-controller@ff760000 &/qos@ffad0000 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-none-12ma &/clock-controller@ff760000 0x1d9 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-down &/clock-controller@ff760000 0x1db  ->  &/clock-controller@ff760000 &/vop@ff8f0000/port/endpoint@0 &/clock-controller@ff760000 &/backlight &/clock-controller@ff760000 0x1c2 &/clock-controller@ff760000 &/pinctrl/i2c6/i2c6-xfer &/clock-controller@ff760000 &/pinctrl/usb/pwr-usb-tp &/clock-controller@ff760000 &/pinctrl/pcfg-pull-up &/clock-controller@ff760000 0x1cd &/clock-controller@ff760000 &/iommu@ff660480 &/clock-controller@ff760000 &/mpp-srv &/clock-controller@ff760000 &/pinctrl/lcd/lcd-en-gpio &/clock-controller@ff760000 &/pinctrl/hdmi/hdmi-i2c-xfer &/clock-controller@ff760000 &/i2c@ff3c0000/syr828@41 &/clock-controller@ff760000 &/pinctrl/spdif/spdif-bus-1 &/clock-controller@ff760000 &/saradc@ff100000 &/clock-controller@ff760000 &/pinctrl/spi3/spi3-rx &/clock-controller@ff760000 &/pinctrl/spi3/spi3-tx &/clock-controller@ff760000 &/clock-controller@ff760000 &/clock-controller@ff760000 &/cpus/idle-states/cpu-sleep &/clock-controller@ff760000 &/cpus/cpu@100 &/clock-controller@ff760000 &/efuse@ff690000/cpu-leakage@1a &/clock-controller@ff760000 &/cpus/cpu@3 &/clock-controller@ff760000 &/vop@ff8f0000/port/endpoint@0 &/clock-controller@ff760000 0x1c0 &/clock-controller@ff760000 &/efuse@ff690000/center-leakage@19 &/clock-controller@ff760000 &/backlight &/clock-controller@ff760000 0x1c1 &/clock-controller@ff760000 &/efuse@ff690000/wafer-info@1c &/clock-controller@ff760000 0x1c2 &/clock-controller@ff760000 &/syscon@ff770000/io-domains &/clock-controller@ff760000 &/pinctrl/fusb30x/fusb0-int &/clock-controller@ff760000 &/pinctrl/gpio4@ff790000 &/clock-controller@ff760000 &/pinctrl/tp/tp-irq &/clock-controller@ff760000 &/pinctrl/tp/tp-rst &/clock-controller@ff760000 &/pinctrl/i2s0/i2s-8ch-mclk &/clock-controller@ff760000 &/pinctrl/gpio0@ff720000 &/clock-controller@ff760000 &/rk-headset &/clock-controller@ff760000 &/syscon@ff770000/mipi-dphy-rx0/ports/port@0/endpoint@1 &/clock-controller@ff760000 &/pinctrl/i2c2/i2c2-xfer &/clock-controller@ff760000 &/pinctrl/i2c3/i2c3-xfer &/clock-controller@ff760000 &/pinctrl/i2c5/i2c5-xfer &/clock-controller@ff760000 &/display-subsystem/route/route-edp &/clock-controller@ff760000 &/pinctrl/uart0/uart0-rts &/clock-controller@ff760000 &/pinctrl/wireless-bluetooth/bt-reset-gpio &/clock-controller@ff760000 &/pinctrl/tsadc/otp-out &/clock-controller@ff760000 &/qos@ffa98000 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-none-20ma &/clock-controller@ff760000 &/i2c@ff110000/es7210@40 &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@1b &/clock-controller@ff760000 0x1cd &/clock-controller@ff760000 &/pmu-clock-controller@ff750000 &/clock-controller@ff760000 &/pinctrl/spi3/spi3-clk &/clock-controller@ff760000 &/pinctrl/uart0/uart0-xfer &/clock-controller@ff760000 &/pinctrl/usb/pwr-usb-tp &/clock-controller@ff760000 &/pinctrl/pcfg-pull-up &/clock-controller@ff760000 &/hdmiin-dc &/clock-controller@ff760000 &/i2s@ff880000 &/clock-controller@ff760000 &/qos@ffab0000 &/clock-controller@ff760000 &/vcc12v-dcin &/clock-controller@ff760000 &/pinctrl/rk-modem/lte-power-en &/clock-controller@ff760000 &/pinctrl/edp/edp-hpd &/clock-controller@ff760000 &/saradc@ff100000 &/clock-controller@ff760000 &/iommu@ff660480 &/clock-controller@ff760000 &/mpp-srv &/clock-controller@ff760000 &/pinctrl/lcd/lcd-en-gpio &/clock-controller@ff760000 &/pinctrl/hdmi/hdmi-i2c-xfer &/clock-controller@ff760000 &/i2c@ff3c0000/syr828@41 &/clock-controller@ff760000 &/pinctrl/spdif/spdif-bus-1 &/clock-controller@ff760000 &/pinctrl/spi3/spi3-rx &/clock-controller@ff760000 &/pinctrl/spi3/spi3-tx &/clock-controller@ff760000 &/spdif@ff870000 &/clock-controller@ff760000 0x1d9 &/clock-controller@ff760000 &/pinctrl/headphone/hp-det &/clock-controller@ff760000 0x1db
+    - clock-names = ['xin24m']
+    - clocks = &/xin24m
+    - rockchip,grf = &/syscon@ff770000
+~ /cpuinfo
+    ~ nvmem-cells: 0xf9  ->  0xf2
+~ /cpus/cpu@0
+    ~ compatible: ['arm,cortex-a53']  ->  ['arm,cortex-a53', 'arm,armv8']
+    ~ cpu-supply: &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG2  ->  &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+    ~ operating-points-v2: &/opp-table-0  ->  &/opp-table0
+~ /cpus/cpu@1
+    ~ compatible: ['arm,cortex-a53']  ->  ['arm,cortex-a53', 'arm,armv8']
+    ~ cpu-supply: &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG2  ->  &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+    ~ operating-points-v2: &/opp-table-0  ->  &/opp-table0
+~ /cpus/cpu@100
+    ~ compatible: ['arm,cortex-a72']  ->  ['arm,cortex-a72', 'arm,armv8']
+    ~ cpu-supply: &/i2c@ff3c0000/tcs4525@1c  ->  &/i2c@ff3c0000/syr837@40
+    ~ operating-points-v2: &/opp-table-1  ->  &/opp-table1
+- /cpus/cpu@100/thermal-idle
+~ /cpus/cpu@101
+    ~ compatible: ['arm,cortex-a72']  ->  ['arm,cortex-a72', 'arm,armv8']
+    ~ cpu-supply: &/i2c@ff3c0000/tcs4525@1c  ->  &/i2c@ff3c0000/syr837@40
+    ~ operating-points-v2: &/opp-table-1  ->  &/opp-table1
+- /cpus/cpu@101/thermal-idle
+~ /cpus/cpu@2
+    ~ compatible: ['arm,cortex-a53']  ->  ['arm,cortex-a53', 'arm,armv8']
+    ~ cpu-supply: &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG2  ->  &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+    ~ operating-points-v2: &/opp-table-0  ->  &/opp-table0
+~ /cpus/cpu@3
+    ~ compatible: ['arm,cortex-a53']  ->  ['arm,cortex-a53', 'arm,armv8']
+    ~ cpu-supply: &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG2  ->  &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+    ~ operating-points-v2: &/opp-table-0  ->  &/opp-table0
+- /debug
+- /debug@fe430000
+- /debug@fe432000
+- /debug@fe434000
+- /debug@fe436000
+- /debug@fe610000
+- /debug@fe710000
+~ /dfi@ff630000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/pcfg-pull-up-10ma  ->  &/clock-controller@ff760000 &/pinctrl/gmac/rmii-pins
+    - interrupts = 0x0 0x83 0x4 0x0
+~ /display-subsystem
+    + devfreq = 0x15
+    ~ logo-memory-region: 0x15  ->  0x16
+    ~ secure-memory-region: 0x16  ->  0x17
+~ /display-subsystem/route/route-dsi
+    ~ connect: 0x18  ->  0x19
+    + logo,bpp = 0x18
+    + logo,height = 0x438
+    + logo,offset = 0x5ef000
+    + logo,width = 0x780
+    + logo,ymirror = 0x0
+    + overscan,bottom_margin = 0x64
+    + overscan,left_margin = 0x64
+    + overscan,right_margin = 0x64
+    + overscan,top_margin = 0x64
+    ~ status: ['disabled']  ->  ['okay']
+    + video,aspect_ratio = 0x0
+    + video,clock = 0x21a84
+    + video,crtc_hsync_end = 0x7ee
+    + video,crtc_vsync_end = 0x44c
+    + video,flags = 0xa
+    + video,hdisplay = 0x780
+    + video,vdisplay = 0x438
+    + video,vrefresh = 0x3b
+~ /display-subsystem/route/route-dsi1
+    ~ connect: 0x19  ->  0x1a
+~ /display-subsystem/route/route-edp
+    ~ connect: 0x1a  ->  0x1b
+    ~ status: ['okay']  ->  ['disabled']
+~ /display-subsystem/route/route-hdmi
+    ~ connect: 0x17  ->  0x18
+- /dma-controller@ff6d0000
+- /dma-controller@ff6e0000
++ /dmc
+    + compatible = ['rockchip,rk3399-dmc']
+    + devfreq-events = 0x99
+    + interrupts = 0x0 0x1 0x4 0x0
+    + clocks = &/clock-controller@ff760000 &/pinctrl/i2s1/i2s1-2ch-bus
+    + clock-names = ['dmc_clk']
+    + ddr_timing = 0x9a
+    + status = ['okay']
+    + operating-points-v2 = &/opp-table3
+    + center-supply = &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG1
+    + upthreshold = 0x28
+    + downdifferential = 0x14
+    + system-status-freq = 0x1 0xd0fc0 0x8 0xd0fc0 0x2 0x50140 0x20 0xa2990 0x10 0xd0fc0 0x10000 0xd0fc0 0x2000 0xd0fc0 0x1000 0xd0fc0 0xc00 0xd0fc0 0x4000 0xd0fc0
+    + vop-bw-dmc-freq = 0x0 0x2fa 0x65900 0x2fb 0xbc4 0xa2990 0xbc5 0x1869f 0xd0fc0
+    + vop-pn-msch-readlatency = 0x0 0x20 0x4 0x20
+    + auto-min-freq = 0x50140
+    + auto-freq-en = 0x0
+~ /dp-sound
+    ~ status: ['disabled']  ->  ['okay']
+~ /dp@fec00000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/qos@ffab8000 &/clock-controller@ff760000 &/pinctrl/charger/charge-ok  ->  &/clock-controller@ff760000 &/qos@ffae0000 &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@1b/regulators/LDO_REG1
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffab8000 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-none-18ma &/clock-controller@ff760000 &/pinctrl/charger/charge-ok &/clock-controller@ff760000 &/nocp-video-msch1@ffa8f000  ->  &/clock-controller@ff760000 &/qos@ffae0000 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-down-20ma &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@1b/regulators/LDO_REG1 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-up-18ma
+    + extcon = &/i2c@ff110000/fusb30x@22
+    ~ power-domains: &/power-management@ff310000/power-controller &/reserved-memory/drm-logo@0  ->  &/power-management@ff310000/power-controller &/dmc
+    ~ resets: &/clock-controller@ff760000 &/display-subsystem/route/route-dsi1 &/clock-controller@ff760000 &/rga@ff680000 &/clock-controller@ff760000 &/efuse@ff690000/center-leakage@19 &/clock-controller@ff760000 &/vcc-lcd  ->  &/clock-controller@ff760000 &/dwmmc@fe310000 &/clock-controller@ff760000 &/phy@ff800000/dp-port &/clock-controller@ff760000 &/rng@ff8b8000 &/clock-controller@ff760000 &/xin24m
+~ /dp@fec00000/ports/port/endpoint@0
+    ~ remote-endpoint: &/vop@ff900000/port/endpoint@4  ->  &/vop@ff900000/port/endpoint@3
+~ /dp@fec00000/ports/port/endpoint@1
+    ~ remote-endpoint: &/vop@ff8f0000/port/endpoint@4  ->  &/vop@ff8f0000/port/endpoint@3
+~ /dsi@ff960000
+    ~ clock-names: ['ref', 'pclk', 'phy_cfg', 'grf']  ->  ['ref', 'pclk', 'phy_cfg']
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/i2c8/i2c8-xfer &/clock-controller@ff760000 &/nocp-vio0-msch1@ffa8f400 &/clock-controller@ff760000 &/pinctrl/pwm0/pwm0-pin &/clock-controller@ff760000 &/nocp-video-msch1@ffa8f000  ->  &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@1b/regulators/LDO_REG8 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-up-20ma &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@1b/regulators/LDO_REG4
+    ~ compatible: ['rockchip,rk3399-mipi-dsi', 'snps,dw-mipi-dsi']  ->  ['rockchip,rk3399-mipi-dsi']
+    ~ power-domains: &/power-management@ff310000/power-controller &/opp-table-1  ->  &/power-management@ff310000/power-controller &/opp-table1
+    + reset-gpios = &/pinctrl/gpio1@ff730000 &/cpus/cpu@0 0x0
+    ~ resets: &/clock-controller@ff760000 &/reserved-memory/vendor-storage-rm@00000000  ->  &/clock-controller@ff760000 &/firmware/optee
+    ~ status: ['disabled']  ->  ['okay']
+~ /dsi@ff960000/panel@0
+    + backlight = &/backlight
+    + compatible = ['simple-panel-dsi']
+    + disable-delay-ms = 0x78
+    + dsi,flags = 0xa03
+    + dsi,format = 0x0
+    + dsi,lanes = 0x4
+    + enable-delay-ms = 0x78
+    + init-delay-ms = 0x78
+    + panel-init-sequence = 0x29 0x5 0x6 0x3c 0x1 0xc 0x0 0xa 0x0 0x29 0x5 0x6 0x14 0x1 0x8 0x0 0x0 0x0 0x29 0x5 0x6 0x64 0x1 0xf 0x0 0x0 0x0 0x29 0x5 0x6 0x68 0x1 0xf 0x0 0x0 0x0 0x29 0x5 0x6 0x6c 0x1 0xf 0x0 0x0 0x0 0x29 0x5 0x6 0x70 0x1 0xf 0x0 0x0 0x0 0x29 0x5 0x6 0x34 0x1 0x1f 0x0 0x0 0x0 0x29 0x5 0x6 0x10 0x2 0x1f 0x0 0x0 0x0 0x29 0x5 0x6 0x4 0x1 0x1 0x0 0x0 0x0 0x29 0x5 0x6 0x4 0x2 0x1 0x0 0x0 0x0 0x29 0x5 0x6 0x50 0x4 0x20 0x1 0xf0 0x3 0x29 0x5 0x6 0x54 0x4 0x28 0x0 0x46 0x0 0x29 0x5 0x6 0x58 0x4 0x80 0x7 0x46 0x0 0x29 0x5 0x6 0x5c 0x4 0x5 0x0 0xa 0x0 0x29 0x5 0x6 0x60 0x4 0x38 0x4 0xf 0x0 0x29 0x5 0x6 0x64 0x4 0x1 0x0 0x0 0x0 0x29 0x5 0x6 0xa0 0x4 0x6 0x80 0x44 0x0 0x29 0xa 0x6 0xa0 0x4 0x6 0x80 0x4 0x0 0x29 0x5 0x6 0x4 0x5 0x4 0x0 0x0 0x0 0x29 0x5 0x6 0x80 0x4 0x0 0x2 0x2 0x3 0x29 0x5 0x6 0x84 0x4 0x4 0x7 0x5 0x8 0x29 0x5 0x6 0x88 0x4 0x9 0xa 0xe 0xf 0x29 0x5 0x6 0x8c 0x4 0xb 0xc 0xd 0x10 0x29 0x5 0x6 0x90 0x4 0x16 0x17 0x11 0x12 0x29 0x5 0x6 0x94 0x4 0x13 0x14 0x15 0x1b 0x29 0x5 0x6 0x98 0x4 0x18 0x19 0x1a 0x6 0x29 0x32 0x6 0x9c 0x4 0x33 0x0 0x0 0x0
+    + prepare-delay-ms = 0x78
+    + reset-delay-ms = 0x78
+    + stbyb-delay-ms = 0x78
+    + unprepare-delay-ms = 0x78
++ /dsi@ff960000/panel@0/display-timings
+    + native-mode = 0xc4
++ /dsi@ff960000/panel@0/display-timings/timing1
+    + clock-frequency = 0x83793a0
+    + hactive = 0x780
+    + vactive = 0x438
+    + hback-porch = 0x46
+    + hsync-len = 0x28
+    + hfront-porch = 0x46
+    + vback-porch = 0xa
+    + vfront-porch = 0xf
+    + vsync-len = 0x5
+    + hsync-active = 0x0
+    + vsync-active = 0x0
+    + de-active = 0x0
+    + pixelclk-active = 0x0
++ /dsi@ff960000/ports/port
+    + #address-cells = 0x1
+    + #size-cells = 0x0
++ /dsi@ff960000/ports/port/endpoint@0
+    + reg = 0x0
+    + remote-endpoint = &/vop@ff900000/port/endpoint@1
+    + status = ['okay']
++ /dsi@ff960000/ports/port/endpoint@1
+    + reg = 0x1
+    + remote-endpoint = &/vop@ff8f0000/port/endpoint@0
+    + status = ['disabled']
+- /dsi@ff960000/ports/port@0
+- /dsi@ff960000/ports/port@0/endpoint@0
+- /dsi@ff960000/ports/port@0/endpoint@1
+~ /dsi@ff968000
+    - #phy-cells = 0x0
+    ~ clock-names: ['ref', 'pclk', 'phy_cfg', 'grf']  ->  ['ref', 'pclk', 'phy_cfg']
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/i2c8/i2c8-xfer &/clock-controller@ff760000 &/nocp-vio1-msch1@ffa8f800 &/clock-controller@ff760000 &/pinctrl/pwm1/pwm1-pin &/clock-controller@ff760000 &/nocp-video-msch1@ffa8f000  ->  &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@1b/regulators/LDO_REG8 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-down-4ma &/clock-controller@ff760000 &/sdhci@fe330000
+    ~ compatible: ['rockchip,rk3399-mipi-dsi', 'snps,dw-mipi-dsi']  ->  ['rockchip,rk3399-mipi-dsi']
+    ~ power-domains: &/power-management@ff310000/power-controller &/opp-table-1  ->  &/power-management@ff310000/power-controller &/opp-table1
+    ~ resets: &/clock-controller@ff760000 &/backlight  ->  &/clock-controller@ff760000 &/firmware/android
+~ /dsi@ff968000/ports
+    - #address-cells = 0x1
+    - #size-cells = 0x0
++ /dsi@ff968000/ports/port
+    + #address-cells = 0x1
+    + #size-cells = 0x0
++ /dsi@ff968000/ports/port/endpoint@0
+    + reg = 0x0
+    + remote-endpoint = &/vop@ff900000/port/endpoint@4
++ /dsi@ff968000/ports/port/endpoint@1
+    + reg = 0x1
+    + remote-endpoint = &/vop@ff8f0000/port/endpoint@4
+- /dsi@ff968000/ports/port@0
+- /dsi@ff968000/ports/port@0/endpoint@0
+- /dsi@ff968000/ports/port@0/endpoint@1
++ /dwmmc@fe310000
+    + compatible = ['rockchip,rk3399-dw-mshc', 'rockchip,rk3288-dw-mshc']
+    + reg = 0x0 0xfe310000 0x0 0x4000
+    + interrupts = 0x0 0x40 0x4 0x0
+    + max-frequency = 0x8f0d180
+    + clocks = &/clock-controller@ff760000 0x1ee &/clock-controller@ff760000 &/pinctrl/i2c7/i2c7-xfer &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG1 &/clock-controller@ff760000 &/iommu@ff650800
+    + clock-names = ['biu', 'ciu', 'ciu-drive', 'ciu-sample']
+    + fifo-depth = 0x100
+    + power-domains = &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-0
+    + resets = &/clock-controller@ff760000 &/qos@ffa74000
+    + reset-names = ['reset']
+    + status = ['okay']
+    + clock-frequency = 0x8f0d180
+    + clock-freq-min-max = 0x30d40 0x8f0d180
+    + supports-sdio = <bool>
+    + bus-width = 0x4
+    + disable-wp = <bool>
+    + cap-sd-highspeed = <bool>
+    + cap-sdio-irq = <bool>
+    + keep-power-in-suspend = <bool>
+    + mmc-pwrseq = &/sdio-pwrseq
+    + non-removable = <bool>
+    + num-slots = 0x1
+    + pinctrl-names = ['default']
+    + pinctrl-0 = &/pinctrl/sdio0/sdio0-bus4 &/pinctrl/sdio0/sdio0-cmd &/pinctrl/sdio0/sdio0-clk
+    + sd-uhs-sdr104 = <bool>
++ /dwmmc@fe320000
+    + compatible = ['rockchip,rk3399-dw-mshc', 'rockchip,rk3288-dw-mshc']
+    + reg = 0x0 0xfe320000 0x0 0x4000
+    + interrupts = 0x0 0x41 0x4 0x0
+    + max-frequency = 0x8f0d180
+    + assigned-clocks = &/clock-controller@ff760000 0x1cd
+    + assigned-clock-rates = 0xbebc200
+    + clocks = &/clock-controller@ff760000 0x1ce &/clock-controller@ff760000 &/pinctrl/i2c6/i2c6-xfer &/clock-controller@ff760000 &/ddr_timing &/clock-controller@ff760000 &/opp-table3
+    + clock-names = ['biu', 'ciu', 'ciu-drive', 'ciu-sample']
+    + fifo-depth = 0x100
+    + power-domains = &/power-management@ff310000/power-controller &/vop@ff900000/port/endpoint@0
+    + resets = &/clock-controller@ff760000 &/qos@ffa76000
+    + reset-names = ['reset']
+    + status = ['disabled']
+    + clock-frequency = 0x8f0d180
+    + clock-freq-min-max = 0x186a0 0x8f0d180
+    + supports-sd = <bool>
+    + bus-width = 0x4
+    + cap-mmc-highspeed = <bool>
+    + cap-sd-highspeed = <bool>
+    + disable-wp = <bool>
+    + num-slots = 0x1
+    + sd-uhs-sdr104 = <bool>
+    + pinctrl-names = ['default']
+    + pinctrl-0 = &/pinctrl/sdmmc/sdmmc-clk &/pinctrl/sdmmc/sdmmc-cmd &/pinctrl/sdmmc/sdmmc-cd &/pinctrl/sdmmc/sdmmc-bus4
+~ /edp@ff970000
+    ~ clock-names: ['dp', 'pclk', 'grf']  ->  ['dp']
+    ~ clocks: &/clock-controller@ff760000 &/nocp-vio1-msch0@ffa87800 &/clock-controller@ff760000 &/nocp-gpu-msch1@ffa8e400 &/clock-controller@ff760000 &/nocp-video-msch1@ffa8f000  ->  &/clock-controller@ff760000 &/pinctrl/pcfg-pull-none-10ma
+    - pinctrl-0 = &/pinctrl/edp/edp-hpd
+    - pinctrl-names = ['default']
+    ~ power-domains: &/power-management@ff310000/power-controller &/vop@ff8f0000/port/endpoint@3  ->  &/power-management@ff310000/power-controller &/vop@ff900000/port/endpoint@1
+    ~ resets: &/clock-controller@ff760000 &/serial@ff190000  ->  &/clock-controller@ff760000 &/spi@ff1f0000
+    ~ status: ['okay']  ->  ['disabled']
+~ /efuse@ff690000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/pcfg-pull-down-8ma  ->  &/clock-controller@ff760000 &/pinctrl/sdio0/sdio0-cd
++ /es8316-sound
+    + status = ['okay']
+    + compatible = ['simple-audio-card']
+    + simple-audio-card,format = ['i2s']
+    + simple-audio-card,name = ['rockchip,es8316-codec']
+    + simple-audio-card,mclk-fs = 0x100
+    + simple-audio-card,widgets = ['Microphone', 'Mic Jack', 'Headphone', 'Headphone Jack']
+    + simple-audio-card,routing = ['Mic Jack', 'MICBIAS1', 'IN1P', 'Mic Jack', 'Headphone Jack', 'HPOL', 'Headphone Jack', 'HPOR']
++ /es8316-sound/simple-audio-card,dai-link@0
+    + format = ['i2s']
++ /es8316-sound/simple-audio-card,dai-link@0/codec
+    + sound-dai = &/i2c@ff110000/es8316@10
+    + system-clock-frequency = 0xbb8000
++ /es8316-sound/simple-audio-card,dai-link@0/cpu
+    + sound-dai = &/i2s@ff880000
+    + system-clock-frequency = 0xbb8000
++ /es8316-sound/simple-audio-card,dai-link@1
+    + format = ['i2s']
++ /es8316-sound/simple-audio-card,dai-link@1/codec
+    + sound-dai = &/i2c@ff110000/es7210@40
+    + system-clock-frequency = 0xbb8000
++ /es8316-sound/simple-audio-card,dai-link@1/cpu
+    + sound-dai = &/i2s@ff880000
+    + system-clock-frequency = 0xbb8000
+~ /ethernet@fe300000
+    ~ assigned-clock-parents: &/external-gmac-clock  ->  &/clock-controller@ff760000 &/gpu@ff9a0000
+    + assigned-clock-rates = 0x7735940
+    ~ assigned-clocks: &/clock-controller@ff760000 &/pinctrl/pwm3a/pwm3a-pin  ->  &/clock-controller@ff760000 &/rkisp1@ff910000/port/endpoint@0
+    ~ clock_in_out: ['input']  ->  ['output']
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/spi5/spi5-cs0 &/clock-controller@ff760000 &/pinctrl/spi5/spi5-tx &/clock-controller@ff760000 &/pinctrl/spi5/spi5-rx &/clock-controller@ff760000 &/pinctrl/spi5/spi5-clk &/clock-controller@ff760000 &/tsadc@ff260000 &/clock-controller@ff760000 &/opp-table-2 &/clock-controller@ff760000 &/nocp-hp-msch0@ffa86800  ->  &/clock-controller@ff760000 &/gpu@ff9a0000 &/clock-controller@ff760000 &/tsadc@ff260000 &/clock-controller@ff760000 &/thermal-zones/soc-thermal/trips/trip-point-1 &/clock-controller@ff760000 &/pinctrl/spi5/spi5-cs0 &/clock-controller@ff760000 &/pinctrl/tsadc/otp-gpio &/clock-controller@ff760000 &/saradc@ff100000 &/clock-controller@ff760000 &/nocp-vio1-msch1@ffa8f800
+    + local-mac-address = <mac>
+    ~ pinctrl-0: &/pinctrl/gmac/rgmii-pins  ->  &/pinctrl/gmac-wol/gmac0-pmeb-gpios &/pinctrl/gmac/rgmii-pins
+    ~ power-domains: &/power-management@ff310000/power-controller &/reserved-memory/secure-memory@20000000  ->  &/power-management@ff310000/power-controller &/reserved-memory/drm-logo@00000000
+    ~ resets: &/clock-controller@ff760000 &/pinctrl/spi3/spi3-clk  ->  &/clock-controller@ff760000 &/pinctrl/spi3/spi3-cs0
+    ~ rx_delay: 0x23  ->  0x8
+    ~ snps,reset-gpio: &/pinctrl/gpio@ff788000 &/opp-table-1 &/interrupt-controller@fee00000  ->  &/pinctrl/gpio3@ff788000 &/opp-table1 &/interrupt-controller@fee00000
+    - snps,txpbl = 0x4
+    + wolirq-gpio = &/pinctrl/gpio3@ff788000 &/cpus/idle-states/cluster-sleep &/interrupt-controller@fee00000
++ /external-camera-clock
+    + compatible = ['fixed-clock']
+    + clock-frequency = 0x19bfcc0
+    + clock-output-names = ['CLK_CAMERA_27MHZ']
+    + #clock-cells = 0x0
+~ /fiq-debugger
+    ~ rockchip,irq-mode-enable: 0x1  ->  0x0
+~ /gpio-keys
+    + status = ['okay']
+~ /gpio-keys/power
+    ~ gpios: &/pinctrl/gpio@ff720000 &/cpus/cpu@3 &/interrupt-controller@fee00000  ->  &/pinctrl/gpio0@ff720000 &/cpus/cpu@3 &/interrupt-controller@fee00000
+~ /gpu@ff9a0000
+    ~ clocks: &/clock-controller@ff760000 &/dsi@ff960000/ports/port@1/endpoint  ->  &/clock-controller@ff760000 &/efuse@ff690000/cpu-leakage@1a
+    - dynamic-power-coefficient = 0x2dd
+    ~ interrupt-names: ['job', 'mmu', 'gpu']  ->  ['GPU', 'JOB', 'MMU']
+    ~ interrupts: 0x0 0x14 0x4 0x0 0x0 0x15 0x4 0x0 0x0 0x13 0x4 0x0  ->  0x0 0x13 0x4 0x0 0x0 0x14 0x4 0x0 0x0 0x15 0x4 0x0
+    ~ mali-supply: &/i2c@ff3c0000/tcs4526@10  ->  &/i2c@ff3c0000/syr828@41
+    ~ operating-points-v2: &/opp-table-2  ->  &/opp-table2
+    ~ power-domains: &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/interrupt-controller@fee20000  ->  &/power-management@ff310000/power-controller &/pinctrl/pcie/pci-clkreqn-cpm
+~ /gpu@ff9a0000/power_model
+    + dynamic-coefficient = 0x2dd
++ /hdmi-hdcp2@ff988000
+    + compatible = ['rockchip,rk3399-hdmi-hdcp2']
+    + reg = 0x0 0xff988000 0x0 0x2000
+    + interrupts = 0x0 0x16 0x4 0x0
+    + clocks = &/clock-controller@ff760000 &/hdmiin-sound/simple-audio-card,codec &/clock-controller@ff760000 &/pinctrl/pcfg-output-high &/clock-controller@ff760000 0x1e9
+    + clock-names = ['aclk_hdcp2', 'pclk_hdcp2', 'hdcp2_clk_hdmi']
+    + status = ['disabled']
+~ /hdmi-sound
+    ~ compatible: ['rockchip,hdmi']  ->  ['simple-audio-card']
+    - rockchip,card-name = ['rockchip-hdmi0']
+    - rockchip,codec = &/hdmi@ff940000
+    - rockchip,cpu = &/i2s@ff8a0000
+    - rockchip,jack-det = <bool>
+    - rockchip,mclk-fs = 0x100
+    ~ simple-audio-card,name: ['hdmi-sound']  ->  ['rockchip,hdmi']
+    ~ status: ['okay']  ->  ['disabled']
+~ /hdmi@ff940000
+    ~ clock-names: ['iahb', 'isfr', 'cec', 'grf', 'ref']  ->  ['iahb', 'isfr', 'vpll', 'grf', 'cec']
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/pcfg-pull-none-10ma &/clock-controller@ff760000 &/qos@ffab0080 &/clock-controller@ff760000 &/qos@ffab0000 &/clock-controller@ff760000 &/nocp-video-msch1@ffa8f000 &/clock-controller@ff760000 &/cpus/cpu@101  ->  &/clock-controller@ff760000 &/pinctrl/pcfg-pull-down-18ma &/clock-controller@ff760000 &/qos@ffac0080 &/clock-controller@ff760000 &/cpus/cpu@101 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-up-18ma &/clock-controller@ff760000 &/qos@ffac0000
+    ~ power-domains: &/power-management@ff310000/power-controller &/reserved-memory/drm-logo@0  ->  &/power-management@ff310000/power-controller &/dmc
+~ /hdmi@ff940000/ports
+    - #address-cells = 0x1
+    - #size-cells = 0x0
++ /hdmi@ff940000/ports/port
+    + #address-cells = 0x1
+    + #size-cells = 0x0
++ /hdmi@ff940000/ports/port/endpoint@0
+    + reg = 0x0
+    + remote-endpoint = &/vop@ff900000/port/endpoint@2
+    + status = ['disabled']
++ /hdmi@ff940000/ports/port/endpoint@1
+    + reg = 0x1
+    + remote-endpoint = &/vop@ff8f0000/port/endpoint@2
+- /hdmi@ff940000/ports/port@0
+- /hdmi@ff940000/ports/port@0/endpoint@0
+- /hdmi@ff940000/ports/port@0/endpoint@1
+- /hdmi@ff940000/ports/port@1
++ /hdmiin-dc
+    + status = ['okay']
+    + compatible = ['rockchip,dummy-codec']
+    + #sound-dai-cells = 0x0
+    + rockchip,cpu = &/i2s@ff890000
++ /hdmiin-sound
+    + compatible = ['simple-audio-card']
+    + simple-audio-card,format = ['i2s']
+    + simple-audio-card,name = ['rockchip,hdmiin']
+    + simple-audio-card,bitclock-master = 0xe0
+    + simple-audio-card,frame-master = 0xe0
+    + status = ['okay']
++ /hdmiin-sound/simple-audio-card,codec
+    + sound-dai = &/hdmiin-dc
++ /hdmiin-sound/simple-audio-card,cpu
+    + sound-dai = &/i2s@ff890000
+~ /i2c@ff110000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/phy@ff7c0000/dp-port  ->  &/clock-controller@ff760000 &/pinctrl/fusb30x/fusb0-int
+    ~ clocks: &/clock-controller@ff760000 &/phy@ff7c0000/dp-port &/clock-controller@ff760000 &/voppwm@ff8f01a0  ->  &/clock-controller@ff760000 &/pinctrl/fusb30x/fusb0-int &/clock-controller@ff760000 &/mipi-dphy-tx1rx1@ff968000
++ /i2c@ff110000/es7210@40
+    + status = ['okay']
+    + #sound-dai-cells = 0x0
+    + compatible = ['MicArray_0']
+    + reg = 0x40
+    + clocks = &/clock-controller@ff760000 &/pinctrl/spi1/spi1-rx
+    + clock-names = ['mclk']
+    + pinctrl-names = ['default']
++ /i2c@ff110000/es8316@10
+    + #sound-dai-cells = 0x0
+    + compatible = ['everest,es8316']
+    + reg = 0x10
+    + clocks = &/clock-controller@ff760000 &/pinctrl/spi1/spi1-rx
+    + clock-names = ['mclk']
+    + pinctrl-names = ['default']
+    + pinctrl-0 = &/pinctrl/i2s0/i2s-8ch-mclk
+    + spk-con-gpio = &/pinctrl/gpio0@ff720000 &/energy-costs/rk3399-cluster-cost0 0x0
+    + spk_volume = 0x22
+    + extcon = &/rk-headset
+    + status = ['okay']
++ /i2c@ff110000/fusb30x@22
+    + compatible = ['fairchild,fusb302']
+    + reg = 0x22
+    + pinctrl-names = ['default']
+    + pinctrl-0 = &/pinctrl/fusb30x/fusb0-int
+    + int-n-gpios = &/pinctrl/gpio4@ff790000 &/energy-costs/rk3399-cluster-cost1 0x0
+    + vbus-5v-gpios = &/pinctrl/gpio4@ff790000 &/vop@ff900000/port/endpoint@1 0x0
+    + status = ['okay']
+- /i2c@ff110000/gsl3673@40
++ /i2c@ff110000/rk628_csi_v4l2@50
+    + reg = 0x50
+    + compatible = ['rockchip,rk628-csi-v4l2']
+    + interrupt-parent = &/pinctrl/gpio4@ff790000
+    + interrupts = 0x5 0x4
+    + reset-gpios = &/pinctrl/gpio4@ff790000 &/cpus/cpu@101 &/interrupt-controller@fee00000
+    + plugin-det-gpios = &/pinctrl/gpio4@ff790000 &/reserved-memory/secure-memory@20000000 &/interrupt-controller@fee00000
+    + power-gpios = &/pinctrl/gpio4@ff790000 &/dmc 0x0
+    + rockchip,camera-module-index = 0x0
+    + rockchip,camera-module-facing = ['back']
+    + rockchip,camera-module-name = ['RK628-CSI']
+    + rockchip,camera-module-lens-name = ['NC']
+    + scaler-en = 0x1
++ /i2c@ff110000/rk628_csi_v4l2@50/port
++ /i2c@ff110000/rk628_csi_v4l2@50/port/endpoint
+    + remote-endpoint = &/syscon@ff770000/mipi-dphy-rx0/ports/port@0/endpoint@1
+    + data-lanes = 0x1 0x2 0x3 0x4
+- /i2c@ff110000/tc358749x@f
++ /i2c@ff110000/ts@38
+    + status = ['okay']
+    + compatible = ['ft5x_ts_sunty']
+    + reg = 0x38
+    + irq-gpio = &/pinctrl/gpio4@ff790000 &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-0 &/clock-controller@ff760000
+    + reset-gpio = &/pinctrl/gpio4@ff790000 &/sram@ff8d0000 0x0
+    + screen_max_x = 0x780
+    + screen_max_y = 0x438
+    + revert_x_flag = 0x0
+    + revert_y_flag = 0x0
+    + pinctrl-names = ['default']
+    + pinctrl-0 = &/pinctrl/tp/tp-irq &/pinctrl/tp/tp-rst
+~ /i2c@ff120000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/vop@ff900000/port/endpoint@4  ->  &/clock-controller@ff760000 &/pinctrl/gpio4@ff790000
+    ~ clocks: &/clock-controller@ff760000 &/vop@ff900000/port/endpoint@4 &/clock-controller@ff760000 &/vop@ff900000  ->  &/clock-controller@ff760000 &/pinctrl/gpio4@ff790000 &/clock-controller@ff760000 &/edp@ff970000
+~ /i2c@ff130000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/vop@ff8f0000/port/endpoint@4  ->  &/clock-controller@ff760000 &/pinctrl/tp/tp-irq
+    ~ clocks: &/clock-controller@ff760000 &/vop@ff8f0000/port/endpoint@4 &/clock-controller@ff760000 &/voppwm@ff9001a0  ->  &/clock-controller@ff760000 &/pinctrl/tp/tp-irq &/clock-controller@ff760000 &/hdmi-hdcp2@ff988000
+~ /i2c@ff140000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/regulators/LDO_REG2  ->  &/clock-controller@ff760000 &/pinctrl/tp/tp-rst
+    ~ clocks: &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/regulators/LDO_REG2 &/clock-controller@ff760000 &/rkisp1@ff910000  ->  &/clock-controller@ff760000 &/pinctrl/tp/tp-rst &/clock-controller@ff760000 &/gpu@ff9a0000/power_model
+~ /i2c@ff150000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/pinctrl/i2c1/i2c1-xfer  ->  &/clock-controller@ff760000 &/pinctrl/i2s0/i2s-8ch-mclk
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/i2c1/i2c1-xfer &/clock-controller@ff760000 &/isp0@ff910000  ->  &/clock-controller@ff760000 &/pinctrl/i2s0/i2s-8ch-mclk &/clock-controller@ff760000 &/nocp-cci-msch0@ffa86000
+- /i2c@ff150000/cw2015@62
+~ /i2c@ff160000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/pinctrl/gpio@ff730000  ->  &/clock-controller@ff760000 &/pinctrl/gpio0@ff720000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/gpio@ff730000 &/clock-controller@ff760000 &/isp1@ff920000  ->  &/clock-controller@ff760000 &/pinctrl/gpio0@ff720000 &/clock-controller@ff760000 &/nocp-gpu-msch0@ffa86400
+~ /i2c@ff3c0000
+    ~ assigned-clocks: &/clock-controller@ff750000 &/cpus/idle-states/cpu-sleep  ->  &/pmu-clock-controller@ff750000 &/cpus/idle-states/cpu-sleep
+    ~ clocks: &/clock-controller@ff750000 &/cpus/idle-states/cpu-sleep &/clock-controller@ff750000 &/syscon@ff320000  ->  &/pmu-clock-controller@ff750000 &/cpus/idle-states/cpu-sleep &/pmu-clock-controller@ff750000 &/vop@ff900000/port/endpoint@0
++ /i2c@ff3c0000/hym8563@51
+    + compatible = ['rtc,hym8563']
+    + reg = 0x51
+    + #clock-cells = 0x0
+    + status = ['okay']
++ /i2c@ff3c0000/pmic@1b
+    + compatible = ['rockchip,rk808']
+    + reg = 0x1b
+    + interrupt-parent = &/pinctrl/gpio1@ff730000
+    + interrupts = 0x15 0x8
+    + pinctrl-names = ['default']
+    + pinctrl-0 = &/pinctrl/pmic/pmic-int-l
+    + rockchip,system-power-controller = <bool>
+    + wakeup-source = <bool>
+    + #clock-cells = 0x1
+    + clock-output-names = ['rk808-clkout1', 'rk808-clkout2']
+    + vcc1-supply = &/vcc-sys
+    + vcc2-supply = &/vcc-sys
+    + vcc3-supply = &/vcc-sys
+    + vcc4-supply = &/vcc-sys
+    + vcc6-supply = &/vcc-sys
+    + vcc7-supply = &/vcc-sys
+    + vcc8-supply = &/vcc3v3-sys
+    + vcc9-supply = &/vcc-sys
+    + vcc10-supply = &/vcc-sys
+    + vcc11-supply = &/vcc-sys
+    + vcc12-supply = &/vcc3v3-sys
+    + vddio-supply = &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG4
++ /i2c@ff3c0000/pmic@1b/regulators
++ /i2c@ff3c0000/pmic@1b/regulators/DCDC_REG1
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0xb71b0
+    + regulator-max-microvolt = 0x149970
+    + regulator-ramp-delay = 0x1771
+    + regulator-name = ['vdd_center']
++ /i2c@ff3c0000/pmic@1b/regulators/DCDC_REG1/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
++ /i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0xb71b0
+    + regulator-max-microvolt = 0x149970
+    + regulator-ramp-delay = 0x1771
+    + regulator-name = ['vdd_cpu_l']
++ /i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
++ /i2c@ff3c0000/pmic@1b/regulators/DCDC_REG3
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-name = ['vcc_ddr']
++ /i2c@ff3c0000/pmic@1b/regulators/DCDC_REG3/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
++ /i2c@ff3c0000/pmic@1b/regulators/DCDC_REG4
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0x1b7740
+    + regulator-max-microvolt = 0x1b7740
+    + regulator-name = ['vcc_1v8']
++ /i2c@ff3c0000/pmic@1b/regulators/DCDC_REG4/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
+    + regulator-suspend-microvolt = 0x1b7740
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG1
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0x1b7740
+    + regulator-max-microvolt = 0x1b7740
+    + regulator-name = ['vcc1v8_dvp']
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG1/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
+    + regulator-suspend-microvolt = 0x1b7740
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG2
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0x1b7740
+    + regulator-max-microvolt = 0x1b7740
+    + regulator-name = ['vcc3v0_tp']
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG2/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
+    + regulator-suspend-microvolt = 0x1b7740
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG3
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0x1b7740
+    + regulator-max-microvolt = 0x1b7740
+    + regulator-name = ['vcc1v8_pmu']
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG3/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
+    + regulator-suspend-microvolt = 0x1b7740
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG4
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0x1b7740
+    + regulator-max-microvolt = 0x2dc6c0
+    + regulator-name = ['vccio_sd']
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG4/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
+    + regulator-suspend-microvolt = 0x2dc6c0
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG5
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0x2dc6c0
+    + regulator-max-microvolt = 0x2dc6c0
+    + regulator-name = ['vcca3v0_codec']
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG5/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
+    + regulator-suspend-microvolt = 0x2dc6c0
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG6
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0x16e360
+    + regulator-max-microvolt = 0x16e360
+    + regulator-name = ['vcc_1v5']
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG6/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
+    + regulator-suspend-microvolt = 0x16e360
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG7
+    + regulator-name = ['vcc_0v9a']
+    + regulator-min-microvolt = 0xdbba0
+    + regulator-max-microvolt = 0xdbba0
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG7/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
+    + regulator-suspend-microvolt = 0xdbba0
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG8
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0x2dc6c0
+    + regulator-max-microvolt = 0x2dc6c0
+    + regulator-name = ['vcc_3v0']
++ /i2c@ff3c0000/pmic@1b/regulators/LDO_REG8/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
+    + regulator-suspend-microvolt = 0x2dc6c0
++ /i2c@ff3c0000/pmic@1b/regulators/SWITCH_REG1
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-name = ['vcc3v3_s3']
++ /i2c@ff3c0000/pmic@1b/regulators/SWITCH_REG1/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
++ /i2c@ff3c0000/pmic@1b/regulators/SWITCH_REG2
+    + regulator-boot-on = <bool>
+    + regulator-always-on = <bool>
+    + regulator-name = ['vcc3v3_s0']
++ /i2c@ff3c0000/pmic@1b/regulators/SWITCH_REG2/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
++ /i2c@ff3c0000/pmic@1b/rtc
+    + status = ['disabled']
+- /i2c@ff3c0000/pmic@20
+- /i2c@ff3c0000/pmic@20/codec
+- /i2c@ff3c0000/pmic@20/pwrkey
+- /i2c@ff3c0000/pmic@20/regulators
+- /i2c@ff3c0000/pmic@20/regulators/DCDC_REG1
+- /i2c@ff3c0000/pmic@20/regulators/DCDC_REG1/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/DCDC_REG2
+- /i2c@ff3c0000/pmic@20/regulators/DCDC_REG2/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/DCDC_REG3
+- /i2c@ff3c0000/pmic@20/regulators/DCDC_REG3/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/DCDC_REG4
+- /i2c@ff3c0000/pmic@20/regulators/DCDC_REG4/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/DCDC_REG5
+- /i2c@ff3c0000/pmic@20/regulators/DCDC_REG5/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG1
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG1/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG2
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG2/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG3
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG3/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG4
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG4/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG5
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG5/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG6
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG6/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG7
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG7/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG8
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG8/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG9
+- /i2c@ff3c0000/pmic@20/regulators/LDO_REG9/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/SWITCH_REG1
+- /i2c@ff3c0000/pmic@20/regulators/SWITCH_REG1/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/regulators/SWITCH_REG2
+- /i2c@ff3c0000/pmic@20/regulators/SWITCH_REG2/regulator-state-mem
+- /i2c@ff3c0000/pmic@20/rtc
++ /i2c@ff3c0000/syr828@41
+    + compatible = ['silergy,syr828']
+    + status = ['okay']
+    + reg = 0x41
+    + vin-supply = &/vcc-sys
+    + regulator-compatible = ['fan53555-reg']
+    + pinctrl-0 = &/pinctrl/pmic/vsel2-gpio
+    + vsel-gpios = &/pinctrl/gpio1@ff730000 &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2 0x0
+    + regulator-name = ['vdd_gpu']
+    + regulator-min-microvolt = 0xb3718
+    + regulator-max-microvolt = 0x155cc0
+    + regulator-ramp-delay = 0x3e81
+    + fcs,suspend-voltage-selector = 0x1
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
++ /i2c@ff3c0000/syr828@41/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
++ /i2c@ff3c0000/syr837@40
+    + compatible = ['silergy,syr827']
+    + reg = 0x40
+    + vin-supply = &/vcc-sys
+    + regulator-compatible = ['fan53555-reg']
+    + pinctrl-0 = &/pinctrl/pmic/vsel1-gpio
+    + vsel-gpios = &/pinctrl/gpio1@ff730000 &/energy-costs/rk3399-cluster-cost1 0x0
+    + regulator-name = ['vdd_cpu_b']
+    + regulator-min-microvolt = 0xadf34
+    + regulator-max-microvolt = 0x16e360
+    + regulator-ramp-delay = 0x3e81
+    + fcs,suspend-voltage-selector = 0x1
+    + regulator-always-on = <bool>
+    + regulator-initial-state = 0x3
++ /i2c@ff3c0000/syr837@40/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
+- /i2c@ff3c0000/tcs4525@1c
+- /i2c@ff3c0000/tcs4525@1c/regulator-state-mem
+- /i2c@ff3c0000/tcs4526@10
+- /i2c@ff3c0000/tcs4526@10/regulator-state-mem
+~ /i2c@ff3d0000
+    ~ assigned-clocks: &/clock-controller@ff750000 &/cpus/idle-states/cluster-sleep  ->  &/pmu-clock-controller@ff750000 &/cpus/idle-states/cluster-sleep
+    ~ clocks: &/clock-controller@ff750000 &/cpus/idle-states/cluster-sleep &/clock-controller@ff750000 &/dfi@ff630000  ->  &/pmu-clock-controller@ff750000 &/cpus/idle-states/cluster-sleep &/pmu-clock-controller@ff750000 &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-0
+- /i2c@ff3d0000/bq25700@6b
+- /i2c@ff3d0000/fusb302@22
+- /i2c@ff3d0000/fusb302@22/connector
+- /i2c@ff3d0000/fusb302@22/connector/altmodes
+- /i2c@ff3d0000/fusb302@22/connector/altmodes/altmode@0
+- /i2c@ff3d0000/fusb302@22/connector/ports
+- /i2c@ff3d0000/fusb302@22/connector/ports/port@0
+- /i2c@ff3d0000/fusb302@22/connector/ports/port@0/endpoint
+- /i2c@ff3d0000/fusb302@22/connector/ports/port@1
+- /i2c@ff3d0000/fusb302@22/connector/ports/port@1/endpoint
+- /i2c@ff3d0000/fusb302@22/ports
+- /i2c@ff3d0000/fusb302@22/ports/port@0
+- /i2c@ff3d0000/fusb302@22/ports/port@0/endpoint@0
++ /i2c@ff3d0000/kxtj2@e
+    + status = ['okay']
+    + compatible = ['gs_kxtj9']
+    + reg = 0xe
+    + type = 0x2
+    + irq_enable = 0x0
+    + poll_delay_ms = 0x1e
+    + power-off-in-suspend = 0x1
+    + layout = 0x2
+- /i2c@ff3d0000/mpu6500@68
+- /i2c@ff3d0000/mpu_acc@68
+- /i2c@ff3d0000/mpu_gyro@68
++ /i2c@ff3d0000/nfc-bcm2079x@76
+    + compatible = ['nfc-bcm2079x.ap6441']
+    + reg = 0x76
+    + en_gpio = &/pinctrl/gpio1@ff730000 &/i2c@ff3c0000/syr837@40 0x0
+    + wake_gpio = &/pinctrl/gpio0@ff720000 &/cpus/cpu@0 0x0
+    + irq_gpio = &/pinctrl/gpio0@ff720000 &/opp-table0 &/interrupt-controller@fee00000
+    + status = ['disabled']
++ /i2c@ff3d0000/sensor@18
+    + status = ['okay']
+    + compatible = ['bma2xx_acc']
+    + reg = 0x18
+    + type = 0x2
+    + irq_enable = 0x0
+    + poll_delay_ms = 0xa
+    + power-off-in-suspend = 0x1
+    + layout = 0x2
+- /i2c@ff3d0000/sensor@d
+~ /i2c@ff3e0000
+    ~ assigned-clocks: &/clock-controller@ff750000 &/opp-table-0  ->  &/pmu-clock-controller@ff750000 &/opp-table0
+    ~ clocks: &/clock-controller@ff750000 &/opp-table-0 &/clock-controller@ff750000 &/ddr_timing  ->  &/pmu-clock-controller@ff750000 &/opp-table0 &/pmu-clock-controller@ff750000 &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-1
+~ /i2s@ff880000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/regulators/LDO_REG4  ->  &/clock-controller@ff760000 &/hdmi@ff940000/ports/port/endpoint@1
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/spi0/spi0-tx &/clock-controller@ff760000 0x1d4  ->  &/clock-controller@ff760000 &/pinctrl/spi0/spi0-cs0 &/clock-controller@ff760000 0x1d4
+    ~ dmas: 0x65 0x0 0x65 0x1  ->  0xa7 0x0 0xa7 0x1
+    - pinctrl-1 = &/pinctrl/i2s0/i2s0-8ch-bus-bclk-off
+    ~ pinctrl-names: ['bclk_on', 'bclk_off']  ->  ['default']
+    ~ power-domains: &/power-management@ff310000/power-controller &/dfi@ff630000  ->  &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-0
+    ~ resets: &/clock-controller@ff760000 &/efuse@ff690000/cpu-leakage@17 &/clock-controller@ff760000 &/dsi@ff968000/ports/port@0/endpoint@0  ->  &/clock-controller@ff760000 &/hdmiin-sound/simple-audio-card,codec &/clock-controller@ff760000 &/backlight
+    ~ status: ['disabled']  ->  ['okay']
+~ /i2s@ff890000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/regulators/SWITCH_REG1  ->  &/clock-controller@ff760000 &/dp@fec00000/ports/port/endpoint@1
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/spi0/spi0-rx &/clock-controller@ff760000 0x1d5  ->  &/clock-controller@ff760000 &/pinctrl/spi1/spi1-clk &/clock-controller@ff760000 0x1d5
+    ~ dmas: 0x65 0x2 0x65 0x3  ->  0xa7 0x2 0xa7 0x3
+    ~ power-domains: &/power-management@ff310000/power-controller &/dfi@ff630000  ->  &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-0
+    ~ resets: &/clock-controller@ff760000 &/efuse@ff690000/gpu-leakage@18 &/clock-controller@ff760000 &/dp@fec00000/ports/port/endpoint@0  ->  &/clock-controller@ff760000 &/hdmiin-dc &/clock-controller@ff760000 &/dsi@ff960000/ports/port@1/endpoint
+    + rockchip,clk-trcm = 0x2
+~ /i2s@ff8a0000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/mmc@fe330000  ->  &/clock-controller@ff760000 &/dsi@ff968000/ports/port/endpoint@1
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/spi0/spi0-cs0 &/clock-controller@ff760000 0x1d6  ->  &/clock-controller@ff760000 &/pinctrl/spi1/spi1-tx &/clock-controller@ff760000 0x1d6
+    ~ dmas: 0x65 0x4  ->  0xa7 0x4
+    ~ power-domains: &/power-management@ff310000/power-controller &/dfi@ff630000  ->  &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-0
+    ~ resets: &/clock-controller@ff760000 &/saradc@ff100000 &/clock-controller@ff760000 &/pinctrl/pwm0/vop0-pwm-pin  ->  &/clock-controller@ff760000 &/spdif-out &/clock-controller@ff760000 &/dsi@ff960000/panel@0/display-timings/timing1
+~ /iep@ff670000
+    ~ clocks: &/clock-controller@ff760000 &/efuse@ff690000/gpu-leakage@18 &/clock-controller@ff760000 0x1dd  ->  &/clock-controller@ff760000 &/hdmiin-dc &/clock-controller@ff760000 0x1dd
+    ~ power-domains: &/power-management@ff310000/power-controller &/pcie@f8000000/interrupt-controller  ->  &/power-management@ff310000/power-controller &/pinctrl/gpio2@ff780000
+~ /interrupt-controller@fee00000/interrupt-controller@fee20000
+    - #msi-cells = 0x1
+~ /iommu@ff650800
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/uart0/uart0-rts &/clock-controller@ff760000 0x1ea  ->  &/clock-controller@ff760000 &/pinctrl/rk-modem/lte-power-en &/clock-controller@ff760000 0x1ea
+    + interrupt-names = ['vpu_mmu']
+    ~ power-domains: &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG1  ->  &/power-management@ff310000/power-controller &/pcie@f8000000/interrupt-controller
+~ /iommu@ff660480
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/wireless-bluetooth/bt-wake-gpio &/clock-controller@ff760000 0x1ec  ->  &/clock-controller@ff760000 &/vcc12v-dcin &/clock-controller@ff760000 0x1ec
+    + interrupt-names = ['rkvdec_mmu']
+    ~ power-domains: &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-0  ->  &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/interrupt-controller@fee20000
+~ /iommu@ff670800
+    ~ clocks: &/clock-controller@ff760000 &/efuse@ff690000/gpu-leakage@18 &/clock-controller@ff760000 0x1dd  ->  &/clock-controller@ff760000 &/hdmiin-dc &/clock-controller@ff760000 0x1dd
+    + interrupt-names = ['iep_mmu']
+    ~ power-domains: &/power-management@ff310000/power-controller &/pcie@f8000000/interrupt-controller  ->  &/power-management@ff310000/power-controller &/pinctrl/gpio2@ff780000
+~ /iommu@ff8f3f00
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/pcfg-pull-down &/clock-controller@ff760000 0x1db  ->  &/clock-controller@ff760000 &/pinctrl/headphone/hp-det &/clock-controller@ff760000 0x1db
+    + interrupt-names = ['vopl_mmu']
+    ~ power-domains: &/power-management@ff310000/power-controller &/i2c@ff3c0000/tcs4525@1c  ->  &/power-management@ff310000/power-controller &/i2c@ff3c0000/syr837@40
+    - rockchip,disable-device-link-resume = <bool>
+~ /iommu@ff903f00
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/pcfg-pull-none-12ma &/clock-controller@ff760000 0x1d9  ->  &/clock-controller@ff760000 &/spdif@ff870000 &/clock-controller@ff760000 0x1d9
+    + interrupt-names = ['vopb_mmu']
+    - rockchip,disable-device-link-resume = <bool>
+~ /iommu@ff914000
+    ~ clocks: &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20 &/clock-controller@ff760000 0x1e3  ->  &/clock-controller@ff760000 &/pinctrl/wireless-bluetooth/uart0-gpios &/clock-controller@ff760000 0x1e3
+    + interrupt-names = ['isp0_mmu']
+~ /iommu@ff924000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/sdio-pwrseq/wifi-enable-h &/clock-controller@ff760000 0x1e4  ->  &/clock-controller@ff760000 &/pinctrl/rk-modem/lte-vbat &/clock-controller@ff760000 0x1e4
+    + interrupt-names = ['isp1_mmu']
+- /isp0@ff910000
+- /isp0@ff910000/ports
+- /isp0@ff910000/ports/port@0
+- /isp1@ff920000
+- /isp1@ff920000/ports
+- /isp1@ff920000/ports/port@0
++ /memory
+    + reg = 0x0 0x200000 0x0 0x8200000 0x0 0xa200000 0x0 0xede00000 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0
+    + device_type = ['memory']
+- /memory-controller
+~ /mipi-dphy-tx1rx1@ff968000
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffa5c000 &/clock-controller@ff760000 &/pinctrl/pwm1/pwm1-pin &/clock-controller@ff760000 &/nocp-video-msch1@ffa8f000 &/clock-controller@ff760000 &/nocp-vio1-msch1@ffa8f800  ->  &/clock-controller@ff760000 &/qos@ffa60100 &/clock-controller@ff760000 &/sdhci@fe330000 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-up-18ma &/clock-controller@ff760000 &/pinctrl/pcfg-pull-down-4ma
+    ~ power-domains: &/power-management@ff310000/power-controller &/opp-table-1  ->  &/power-management@ff310000/power-controller &/opp-table1
+- /mmc@fe310000
+- /mmc@fe320000
+- /mmc@fe330000
+- /opp-table-0
+- /opp-table-0/opp-1008000000
+- /opp-table-0/opp-1200000000
+- /opp-table-0/opp-1416000000
+- /opp-table-0/opp-408000000
+- /opp-table-0/opp-600000000
+- /opp-table-0/opp-816000000
+- /opp-table-1
+- /opp-table-1/opp-1008000000
+- /opp-table-1/opp-1200000000
+- /opp-table-1/opp-1416000000
+- /opp-table-1/opp-1608000000
+- /opp-table-1/opp-1800000000
+- /opp-table-1/opp-408000000
+- /opp-table-1/opp-600000000
+- /opp-table-1/opp-816000000
+- /opp-table-2
+- /opp-table-2/opp-200000000
+- /opp-table-2/opp-300000000
+- /opp-table-2/opp-400000000
+- /opp-table-2/opp-600000000
+- /opp-table-2/opp-800000000
+- /opp-table-3
+- /opp-table-3/opp-200000000
+- /opp-table-3/opp-300000000
+- /opp-table-3/opp-328000000
+- /opp-table-3/opp-400000000
+- /opp-table-3/opp-416000000
+- /opp-table-3/opp-528000000
+- /opp-table-3/opp-600000000
+- /opp-table-3/opp-666000000
+- /opp-table-3/opp-800000000
+- /opp-table-3/opp-856000000
+- /opp-table-3/opp-928000000
++ /opp-table0
+    + compatible = ['operating-points-v2']
+    + opp-shared = <bool>
+    + rockchip,temp-hysteresis = 0x1388
+    + rockchip,low-temp = 0x0
+    + rockchip,low-temp-min-volt = 0xdbba0
+    + nvmem-cells = 0xd0 0xd1 0xd2
+    + nvmem-cell-names = ['cpu_leakage', 'specification_serial_number', 'customer_demand']
+    + clocks = &/clock-controller@ff760000 &/interrupt-controller@fee00000
+    + rockchip,avs-scale = 0x14
+    + rockchip,bin-scaling-sel = 0x0 0x1e 0x1 0x22
+    + rockchip,pvtm-voltage-sel = 0x0 0x2308c 0x0 0x2308d 0x24414 0x1 0x24415 0x251c0 0x2 0x251c1 0xf423f 0x3
+    + rockchip,pvtm-freq = 0x639c0
+    + rockchip,pvtm-volt = 0xf4240
+    + rockchip,pvtm-ch = 0x0 0x0
+    + rockchip,pvtm-sample-time = 0x3e8
+    + rockchip,pvtm-number = 0xa
+    + rockchip,pvtm-error = 0x3e8
+    + rockchip,pvtm-ref-temp = 0x29
+    + rockchip,pvtm-temp-prop = 0x73 0x42
+    + rockchip,pvtm-thermal-zone = ['soc-thermal']
++ /opp-table0/opp-1008000000
+    + opp-hz = 0x0 0x3c14dc00
+    + opp-microvolt = 0xe1d48 0xe1d48 0x1312d0
+    + opp-microvolt-L0 = 0xe1d48 0xe1d48 0x1312d0
+    + opp-microvolt-L1 = 0xdbba0 0xdbba0 0x1312d0
+    + opp-microvolt-L2 = 0xd59f8 0xd59f8 0x1312d0
+    + opp-microvolt-L3 = 0xcf850 0xcf850 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table0/opp-1200000000
+    + opp-hz = 0x0 0x47868c00
+    + opp-microvolt = 0xf4240 0xf4240 0x1312d0
+    + opp-microvolt-L0 = 0xf4240 0xf4240 0x1312d0
+    + opp-microvolt-L1 = 0xee098 0xee098 0x1312d0
+    + opp-microvolt-L2 = 0xe7ef0 0xe7ef0 0x1312d0
+    + opp-microvolt-L3 = 0xe1d48 0xe1d48 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table0/opp-1416000000
+    + opp-hz = 0x0 0x54667200
+    + opp-microvolt = 0x112a88 0x112a88 0x1312d0
+    + opp-microvolt-L0 = 0x112a88 0x112a88 0x1312d0
+    + opp-microvolt-L1 = 0x10c8e0 0x10c8e0 0x1312d0
+    + opp-microvolt-L2 = 0x106738 0x106738 0x124f80
+    + opp-microvolt-L3 = 0x100590 0x100590 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table0/opp-408000000
+    + opp-hz = 0x0 0x18519600
+    + opp-microvolt = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L0 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L1 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L2 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L3 = 0xc96a8 0xc96a8 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table0/opp-600000000
+    + opp-hz = 0x0 0x23c34600
+    + opp-microvolt = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L0 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L1 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L2 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L3 = 0xc96a8 0xc96a8 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table0/opp-816000000
+    + opp-hz = 0x0 0x30a32c00
+    + opp-microvolt = 0xcf850 0xcf850 0x1312d0
+    + opp-microvolt-L0 = 0xcf850 0xcf850 0x1312d0
+    + opp-microvolt-L1 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L2 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L3 = 0xc96a8 0xc96a8 0x1312d0
+    + clock-latency-ns = 0x9c40
+    + opp-suspend = <bool>
++ /opp-table1
+    + compatible = ['operating-points-v2']
+    + opp-shared = <bool>
+    + rockchip,temp-hysteresis = 0x1388
+    + rockchip,low-temp = 0x0
+    + rockchip,low-temp-min-volt = 0xdbba0
+    + nvmem-cells = 0xd3 0xd1 0xd2
+    + nvmem-cell-names = ['cpu_leakage', 'specification_serial_number', 'customer_demand']
+    + clocks = &/clock-controller@ff760000 &/cpus/cpu@0
+    + rockchip,avs-scale = 0x8
+    + rockchip,bin-scaling-sel = 0x0 0x8 0x1 0x11
+    + rockchip,pvtm-voltage-sel = 0x0 0x24608 0x0 0x24609 0x25d78 0x1 0x25d79 0x26d18 0x2 0x26d19 0x274e8 0x3 0x274e9 0xf423f 0x4
+    + rockchip,pvtm-freq = 0x639c0
+    + rockchip,pvtm-volt = 0xf4240
+    + rockchip,pvtm-ch = 0x1 0x0
+    + rockchip,pvtm-sample-time = 0x3e8
+    + rockchip,pvtm-number = 0xa
+    + rockchip,pvtm-error = 0x3e8
+    + rockchip,pvtm-ref-temp = 0x29
+    + rockchip,pvtm-temp-prop = 0x47 0x23
+    + rockchip,pvtm-thermal-zone = ['soc-thermal']
++ /opp-table1/opp-1008000000
+    + opp-hz = 0x0 0x3c14dc00
+    + opp-microvolt = 0xd59f8 0xd59f8 0x1312d0
+    + opp-microvolt-L0 = 0xd59f8 0xd59f8 0x1312d0
+    + opp-microvolt-L1 = 0xcf850 0xcf850 0x1312d0
+    + opp-microvolt-L2 = 0xcf850 0xcf850 0x1312d0
+    + opp-microvolt-L3 = 0xcf850 0xcf850 0x1312d0
+    + opp-microvolt-L4 = 0xcf850 0xcf850 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table1/opp-1200000000
+    + opp-hz = 0x0 0x47868c00
+    + opp-microvolt = 0xe7ef0 0xe7ef0 0x1312d0
+    + opp-microvolt-L0 = 0xe7ef0 0xe7ef0 0x1312d0
+    + opp-microvolt-L1 = 0xe1d48 0xe1d48 0x1312d0
+    + opp-microvolt-L2 = 0xdbba0 0xdbba0 0x1312d0
+    + opp-microvolt-L3 = 0xd59f8 0xd59f8 0x1312d0
+    + opp-microvolt-L4 = 0xd59f8 0xd59f8 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table1/opp-1416000000
+    + opp-hz = 0x0 0x54667200
+    + opp-microvolt = 0xfa3e8 0xfa3e8 0x1312d0
+    + opp-microvolt-L0 = 0xfa3e8 0xfa3e8 0x1312d0
+    + opp-microvolt-L1 = 0xf4240 0xf4240 0x1312d0
+    + opp-microvolt-L2 = 0xf4240 0xf4240 0x1312d0
+    + opp-microvolt-L3 = 0xee098 0xee098 0x1312d0
+    + opp-microvolt-L4 = 0xee098 0xee098 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table1/opp-1608000000
+    + opp-hz = 0x0 0x5fd82200
+    + opp-microvolt = 0x10c8e0 0x10c8e0 0x1312d0
+    + opp-microvolt-L0 = 0x10c8e0 0x10c8e0 0x1312d0
+    + opp-microvolt-L1 = 0x106738 0x106738 0x1312d0
+    + opp-microvolt-L2 = 0x100590 0x100590 0x1312d0
+    + opp-microvolt-L3 = 0xfa3e8 0xfa3e8 0x1312d0
+    + opp-microvolt-L4 = 0xfa3e8 0xfa3e8 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table1/opp-1800000000
+    + opp-hz = 0x0 0x6b49d200
+    + opp-microvolt = 0x124f80 0x124f80 0x1312d0
+    + opp-microvolt-L0 = 0x124f80 0x124f80 0x1312d0
+    + opp-microvolt-L1 = 0x11edd8 0x11edd8 0x1312d0
+    + opp-microvolt-L2 = 0x118c30 0x118c30 0x1312d0
+    + opp-microvolt-L3 = 0x112a88 0x112a88 0x1312d0
+    + opp-microvolt-L4 = 0x10c8e0 0x10c8e0 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table1/opp-408000000
+    + opp-hz = 0x0 0x18519600
+    + opp-microvolt = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L0 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L1 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L2 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L3 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L4 = 0xc96a8 0xc96a8 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table1/opp-600000000
+    + opp-hz = 0x0 0x23c34600
+    + opp-microvolt = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L0 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L1 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L2 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L3 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L4 = 0xc96a8 0xc96a8 0x1312d0
+    + clock-latency-ns = 0x9c40
++ /opp-table1/opp-816000000
+    + opp-hz = 0x0 0x30a32c00
+    + opp-microvolt = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L0 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L1 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L2 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L3 = 0xc96a8 0xc96a8 0x1312d0
+    + opp-microvolt-L4 = 0xc96a8 0xc96a8 0x1312d0
+    + clock-latency-ns = 0x9c40
+    + opp-suspend = <bool>
++ /opp-table2
+    + compatible = ['operating-points-v2']
+    + rockchip,thermal-zone = ['soc-thermal']
+    + rockchip,temp-hysteresis = 0x1388
+    + rockchip,low-temp = 0x0
+    + rockchip,low-temp-min-volt = 0xdbba0
+    + nvmem-cells = 0xd4
+    + nvmem-cell-names = ['gpu_leakage']
+    + rockchip,pvtm-voltage-sel = 0x0 0x1d8a8 0x0 0x1d8a9 0x1ea3c 0x1 0x1ea3d 0x1f5f4 0x2 0x1f5f5 0xf423f 0x3
+    + rockchip,pvtm-freq = 0x30d40
+    + rockchip,pvtm-volt = 0xdbba0
+    + rockchip,pvtm-ch = 0x3 0x0
+    + rockchip,pvtm-sample-time = 0x3e8
+    + rockchip,pvtm-number = 0xa
+    + rockchip,pvtm-error = 0x3e8
+    + rockchip,pvtm-ref-temp = 0x29
+    + rockchip,pvtm-temp-prop = 0x2e 0xc
+    + rockchip,pvtm-thermal-zone = ['gpu-thermal']
++ /opp-table2/opp-200000000
+    + opp-hz = 0x0 0xbebc200
+    + opp-microvolt = 0xc96a8
+    + opp-microvolt-L0 = 0xc96a8
+    + opp-microvolt-L1 = 0xc96a8
+    + opp-microvolt-L2 = 0xc96a8
+    + opp-microvolt-L3 = 0xc96a8
++ /opp-table2/opp-300000000
+    + opp-hz = 0x0 0x11e1a300
+    + opp-microvolt = 0xc96a8
+    + opp-microvolt-L0 = 0xc96a8
+    + opp-microvolt-L1 = 0xc96a8
+    + opp-microvolt-L2 = 0xc96a8
+    + opp-microvolt-L3 = 0xc96a8
++ /opp-table2/opp-400000000
+    + opp-hz = 0x0 0x17d78400
+    + opp-microvolt = 0xc96a8
+    + opp-microvolt-L0 = 0xc96a8
+    + opp-microvolt-L1 = 0xc96a8
+    + opp-microvolt-L2 = 0xc96a8
+    + opp-microvolt-L3 = 0xc96a8
++ /opp-table2/opp-600000000
+    + opp-hz = 0x0 0x23c34600
+    + opp-microvolt = 0xe1d48
+    + opp-microvolt-L0 = 0xe1d48
+    + opp-microvolt-L1 = 0xe1d48
+    + opp-microvolt-L2 = 0xdbba0
+    + opp-microvolt-L3 = 0xdbba0
++ /opp-table2/opp-800000000
+    + opp-hz = 0x0 0x2faf0800
+    + opp-microvolt = 0x10c8e0
+    + opp-microvolt-L0 = 0x10c8e0
+    + opp-microvolt-L1 = 0x106738
+    + opp-microvolt-L2 = 0x100590
+    + opp-microvolt-L3 = 0xfa3e8
++ /opp-table3
+    + compatible = ['operating-points-v2']
++ /opp-table3/opp-200000000
+    + opp-hz = 0x0 0xbebc200
+    + opp-microvolt = 0xdbba0
+    + status = ['disabled']
++ /opp-table3/opp-300000000
+    + opp-hz = 0x0 0x11e1a300
+    + opp-microvolt = 0xdbba0
+    + status = ['disabled']
++ /opp-table3/opp-328000000
+    + opp-hz = 0x0 0x138ce200
+    + opp-microvolt = 0xdbba0
++ /opp-table3/opp-400000000
+    + opp-hz = 0x0 0x17d78400
+    + opp-microvolt = 0xdbba0
+    + status = ['disabled']
++ /opp-table3/opp-416000000
+    + opp-hz = 0x0 0x18cba800
+    + opp-microvolt = 0xdbba0
++ /opp-table3/opp-528000000
+    + opp-hz = 0x0 0x1f78a400
+    + opp-microvolt = 0xdbba0
+    + status = ['disabled']
++ /opp-table3/opp-600000000
+    + opp-hz = 0x0 0x23c34600
+    + opp-microvolt = 0xdbba0
+    + status = ['disabled']
++ /opp-table3/opp-666000000
+    + opp-hz = 0x0 0x27b25a80
+    + opp-microvolt = 0xdbba0
++ /opp-table3/opp-800000000
+    + opp-hz = 0x0 0x2faf0800
+    + opp-microvolt = 0xdbba0
+    + status = ['disabled']
++ /opp-table3/opp-856000000
+    + opp-hz = 0x0 0x33058600
+    + opp-microvolt = 0xdbba0
++ /opp-table3/opp-928000000
+    + opp-hz = 0x0 0x37502800
+    + opp-microvolt = 0xdbba0
+    + status = ['disabled']
+~ /panel
+    - enable-gpios = &/pinctrl/gpio@ff730000 &/energy-costs/rk3399-cluster-cost0 0x0
+    - height-mm = 0xa0
+    - power-supply = &/vcc-lcd
+    + reset-delay-ms = 0x14
+    - reset-gpios = &/pinctrl/gpio@ff730000 &/vop@ff900000/port/endpoint@2 &/interrupt-controller@fee00000
+    - width-mm = 0x78
+~ /panel/display-timings
+    ~ native-mode: 0xfe  ->  0xc4
+~ /pcie@f8000000
+    ~ clocks: &/clock-controller@ff760000 &/memory-controller &/clock-controller@ff760000 &/pinctrl/pwm0/vop0-pwm-pin &/clock-controller@ff760000 &/iep@ff670000 &/clock-controller@ff760000 &/pinctrl/ak8963/ak8963-irq-gpio  ->  &/clock-controller@ff760000 &/vop@ff900000/port/endpoint@4 &/clock-controller@ff760000 &/dsi@ff960000/panel@0/display-timings/timing1 &/clock-controller@ff760000 &/phy@ff800000 &/clock-controller@ff760000 &/iommu@ff670800
+    ~ ep-gpios: &/pinctrl/gpio@ff780000 &/cpus/cpu@2 0x0  ->  &/pinctrl/gpio2@ff780000 &/cpus/cpu@2 0x0
+    - power-domains = &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG2
+    ~ ranges: 0x82000000 0x0 0xfa000000 0x0 0xfa000000 0x0 0x1e00000 0x81000000 0x0 0xfbe00000 0x0 0xfbe00000 0x0 0x100000  ->  0x83000000 0x0 0xfa000000 0x0 0xfa000000 0x0 0x1e00000 0x81000000 0x0 0xfbe00000 0x0 0xfbe00000 0x0 0x100000
+    ~ resets: &/clock-controller@ff760000 &/qos@ffaa0080 &/clock-controller@ff760000 &/qos@ffaa8000 &/clock-controller@ff760000 &/qos@ffaa8080 &/clock-controller@ff760000 &/qos@ffac8000 &/clock-controller@ff760000 &/qos@ffac8080 &/clock-controller@ff760000 &/qos@ffaa0000 &/clock-controller@ff760000 &/qos@ffa90000  ->  &/clock-controller@ff760000 &/qos@ffac8000 &/clock-controller@ff760000 &/qos@ffac8080 &/clock-controller@ff760000 &/qos@ffad0000 &/clock-controller@ff760000 &/pmu-clock-controller@ff750000 &/clock-controller@ff760000 &/pinctrl/spi3/spi3-clk &/clock-controller@ff760000 &/qos@ffaa8080 &/clock-controller@ff760000 &/qos@ffaa8000
+~ /phy@ff7c0000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/qos@ffa70000  ->  &/clock-controller@ff760000 &/qos@ffaa0000
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffa70000 &/clock-controller@ff760000 &/qos@ffa76000  ->  &/clock-controller@ff760000 &/qos@ffaa0000 &/clock-controller@ff760000 &/qos@ffa90000
+    + extcon = &/i2c@ff110000/fusb30x@22
+    - orientation-switch = <bool>
+    ~ resets: &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG5 &/clock-controller@ff760000 &/pinctrl/pmic/soc-slppin-gpio &/clock-controller@ff760000 &/efuse@ff690000/wafer-info@1c  ->  &/clock-controller@ff760000 &/pinctrl/pwm1/pwm1-pin &/clock-controller@ff760000 &/pinctrl/pwm0/pwm0-pin &/clock-controller@ff760000 &/voppwm@ff8f01a0
+    + rockchip,external-psm = 0xe588 0xe 0x1e
+    + rockchip,pipe-status = 0xe5c0 0x0 0x0
+    + rockchip,typec-conn-dir = 0xe580 0x0 0x10
+    + rockchip,uphy-dp-sel = 0x6268 0x13 0x13
+    + rockchip,usb3-host-disable = 0x2434 0x0 0x10
+    + rockchip,usb3-host-port = 0x2434 0xc 0x1c
+    + rockchip,usb3tousb2-en = 0xe580 0x3 0x13
+    - svid = 0xff01
+- /phy@ff7c0000/port
+- /phy@ff7c0000/port/endpoint@0
+- /phy@ff7c0000/port/endpoint@1
+~ /phy@ff800000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/qos@ffa90000  ->  &/clock-controller@ff760000 &/qos@ffaa8000
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffa90000 &/clock-controller@ff760000 &/qos@ffa70080  ->  &/clock-controller@ff760000 &/qos@ffaa8000 &/clock-controller@ff760000 &/qos@ffaa0080
+    ~ resets: &/clock-controller@ff760000 &/dp@fec00000 &/clock-controller@ff760000 &/usb@fe800000/usb@fe800000/port/endpoint@0 &/clock-controller@ff760000 &/syscon@ff770000/io-domains  ->  &/clock-controller@ff760000 &/iommu@ff650800 &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG1 &/clock-controller@ff760000 &/vop@ff900000
+    + rockchip,external-psm = 0xe594 0xe 0x1e
+    + rockchip,pipe-status = 0xe5c0 0x10 0x10
+    + rockchip,typec-conn-dir = 0xe58c 0x0 0x10
+    + rockchip,uphy-dp-sel = 0x6268 0x3 0x13
+    + rockchip,usb3-host-disable = 0x2444 0x0 0x10
+    + rockchip,usb3-host-port = 0x2444 0xc 0x1c
+    + rockchip,usb3tousb2-en = 0xe58c 0x3 0x13
+~ /pinctrl/ak8963/ak8963-irq-gpio
+    ~ rockchip,pins: 0x1 0x0 0x0 0xd7  ->  0x1 0x0 0x0 0xca
++ /pinctrl/bl_ctrl
++ /pinctrl/bl_ctrl/bl-en
+    + rockchip,pins = 0x1 0xa 0x0 0xca
+~ /pinctrl/buttons/pwrbtn
+    ~ rockchip,pins: 0x0 0x5 0x0 0xda  ->  0x0 0x5 0x0 0xcd
+- /pinctrl/charger
+- /pinctrl/charger/charge-ok
+- /pinctrl/cif
+- /pinctrl/cif/cif-clkin
+- /pinctrl/cif/cif-clkouta
+~ /pinctrl/clock/clk-32k
+    ~ rockchip,pins: 0x0 0x0 0x2 0xd7  ->  0x0 0x0 0x2 0xca
+~ /pinctrl/edp/edp-hpd
+    ~ rockchip,pins: 0x4 0x17 0x2 0xd7  ->  0x4 0x17 0x2 0xca
++ /pinctrl/fusb30x
++ /pinctrl/fusb30x/fusb0-int
+    + rockchip,pins = 0x1 0x2 0x0 0xcd 0x1 0x12 0x0 0xcd
++ /pinctrl/gmac-wol
++ /pinctrl/gmac-wol/gmac0-pmeb-gpios
+    + rockchip,pins = 0x3 0xa 0x0 0xca
+~ /pinctrl/gmac/rgmii-pins
+    ~ rockchip,pins: 0x3 0x11 0x1 0xd8 0x3 0xe 0x1 0xd7 0x3 0xd 0x1 0xd7 0x3 0xc 0x1 0xd8 0x3 0xb 0x1 0xd7 0x3 0x9 0x1 0xd7 0x3 0x8 0x1 0xd7 0x3 0x7 0x1 0xd7 0x3 0x6 0x1 0xd7 0x3 0x5 0x1 0xd8 0x3 0x4 0x1 0xd8 0x3 0x3 0x1 0xd7 0x3 0x2 0x1 0xd7 0x3 0x1 0x1 0xd8 0x3 0x0 0x1 0xd8  ->  0x3 0x11 0x1 0xcb 0x3 0xe 0x1 0xca 0x3 0xd 0x1 0xca 0x3 0xc 0x1 0xcb 0x3 0xb 0x1 0xca 0x3 0x9 0x1 0xca 0x3 0x8 0x1 0xca 0x3 0x7 0x1 0xca 0x3 0x6 0x1 0xca 0x3 0x5 0x1 0xcb 0x3 0x4 0x1 0xcb 0x3 0x3 0x1 0xca 0x3 0x2 0x1 0xca 0x3 0x1 0x1 0xcb 0x3 0x0 0x1 0xcb
+~ /pinctrl/gmac/rmii-pins
+    ~ rockchip,pins: 0x3 0xd 0x1 0xd7 0x3 0xc 0x1 0xd8 0x3 0xb 0x1 0xd7 0x3 0xa 0x1 0xd7 0x3 0x9 0x1 0xd7 0x3 0x8 0x1 0xd7 0x3 0x7 0x1 0xd7 0x3 0x6 0x1 0xd7 0x3 0x5 0x1 0xd8 0x3 0x4 0x1 0xd8  ->  0x3 0xd 0x1 0xca 0x3 0xc 0x1 0xcb 0x3 0xb 0x1 0xca 0x3 0xa 0x1 0xca 0x3 0x9 0x1 0xca 0x3 0x8 0x1 0xca 0x3 0x7 0x1 0xca 0x3 0x6 0x1 0xca 0x3 0x5 0x1 0xcb 0x3 0x4 0x1 0xcb
++ /pinctrl/gpio0@ff720000
+    + compatible = ['rockchip,gpio-bank']
+    + reg = 0x0 0xff720000 0x0 0x100
+    + clocks = &/pmu-clock-controller@ff750000 &/reserved-memory/secure-memory@20000000
+    + interrupts = 0x0 0xe 0x4 0x0
+    + gpio-controller = <bool>
+    + #gpio-cells = 0x2
+    + interrupt-controller = <bool>
+    + #interrupt-cells = 0x2
++ /pinctrl/gpio1@ff730000
+    + compatible = ['rockchip,gpio-bank']
+    + reg = 0x0 0xff730000 0x0 0x100
+    + clocks = &/pmu-clock-controller@ff750000 &/vop@ff8f0000/port/endpoint@2
+    + interrupts = 0x0 0xf 0x4 0x0
+    + gpio-controller = <bool>
+    + #gpio-cells = 0x2
+    + interrupt-controller = <bool>
+    + #interrupt-cells = 0x2
++ /pinctrl/gpio2@ff780000
+    + compatible = ['rockchip,gpio-bank']
+    + reg = 0x0 0xff780000 0x0 0x100
+    + clocks = &/clock-controller@ff760000 &/rkisp1@ff920000
+    + interrupts = 0x0 0x10 0x4 0x0
+    + gpio-controller = <bool>
+    + #gpio-cells = 0x2
+    + interrupt-controller = <bool>
+    + #interrupt-cells = 0x2
++ /pinctrl/gpio3@ff788000
+    + compatible = ['rockchip,gpio-bank']
+    + reg = 0x0 0xff788000 0x0 0x100
+    + clocks = &/clock-controller@ff760000 &/hdmi-sound
+    + interrupts = 0x0 0x11 0x4 0x0
+    + gpio-controller = <bool>
+    + #gpio-cells = 0x2
+    + interrupt-controller = <bool>
+    + #interrupt-cells = 0x2
++ /pinctrl/gpio4@ff790000
+    + compatible = ['rockchip,gpio-bank']
+    + reg = 0x0 0xff790000 0x0 0x100
+    + clocks = &/clock-controller@ff760000 &/hdmi@ff940000/ports/port
+    + interrupts = 0x0 0x12 0x4 0x0
+    + gpio-controller = <bool>
+    + #gpio-cells = 0x2
+    + interrupt-controller = <bool>
+    + #interrupt-cells = 0x2
+- /pinctrl/gpio@ff720000
+- /pinctrl/gpio@ff730000
+- /pinctrl/gpio@ff780000
+- /pinctrl/gpio@ff788000
+- /pinctrl/gpio@ff790000
+~ /pinctrl/hdmi/hdmi-cec
+    ~ rockchip,pins: 0x4 0x17 0x1 0xd7  ->  0x4 0x17 0x1 0xca
+~ /pinctrl/hdmi/hdmi-i2c-xfer
+    ~ rockchip,pins: 0x4 0x11 0x3 0xd7 0x4 0x10 0x3 0xd7  ->  0x4 0x11 0x3 0xca 0x4 0x10 0x3 0xca
+- /pinctrl/hdmiin
+- /pinctrl/hdmiin/hdmiin_gpios
+~ /pinctrl/headphone/hp-det
+    ~ rockchip,pins: 0x0 0xb 0x0 0xda  ->  0x4 0x1d 0x0 0xcd
+~ /pinctrl/i2c0/i2c0-xfer
+    ~ rockchip,pins: 0x1 0xf 0x2 0xd7 0x1 0x10 0x2 0xd7  ->  0x1 0xf 0x2 0xca 0x1 0x10 0x2 0xca
+~ /pinctrl/i2c1/i2c1-xfer
+    ~ rockchip,pins: 0x4 0x2 0x1 0xd7 0x4 0x1 0x1 0xd7  ->  0x4 0x2 0x1 0xca 0x4 0x1 0x1 0xca
+~ /pinctrl/i2c2/i2c2-xfer
+    ~ rockchip,pins: 0x2 0x1 0x2 0xd9 0x2 0x0 0x2 0xd9  ->  0x2 0x1 0x2 0xcc 0x2 0x0 0x2 0xcc
+~ /pinctrl/i2c3/i2c3-xfer
+    ~ rockchip,pins: 0x4 0x11 0x1 0xd7 0x4 0x10 0x1 0xd7  ->  0x4 0x11 0x1 0xca 0x4 0x10 0x1 0xca
+~ /pinctrl/i2c3/i2c3_gpio
+    ~ rockchip,pins: 0x4 0x11 0x0 0xd7 0x4 0x10 0x0 0xd7  ->  0x4 0x11 0x0 0xca 0x4 0x10 0x0 0xca
+~ /pinctrl/i2c4/i2c4-xfer
+    ~ rockchip,pins: 0x1 0xc 0x1 0xd7 0x1 0xb 0x1 0xd7  ->  0x1 0xc 0x1 0xca 0x1 0xb 0x1 0xca
+~ /pinctrl/i2c5/i2c5-xfer
+    ~ rockchip,pins: 0x3 0xb 0x2 0xd7 0x3 0xa 0x2 0xd7  ->  0x3 0xb 0x2 0xca 0x3 0xa 0x2 0xca
+~ /pinctrl/i2c6/i2c6-xfer
+    ~ rockchip,pins: 0x2 0xa 0x2 0xd7 0x2 0x9 0x2 0xd7  ->  0x2 0xa 0x2 0xca 0x2 0x9 0x2 0xca
+~ /pinctrl/i2c7/i2c7-xfer
+    ~ rockchip,pins: 0x2 0x8 0x2 0xd7 0x2 0x7 0x2 0xd7  ->  0x2 0x8 0x2 0xca 0x2 0x7 0x2 0xca
+~ /pinctrl/i2c8/i2c8-xfer
+    ~ rockchip,pins: 0x1 0x15 0x1 0xd7 0x1 0x14 0x1 0xd7  ->  0x1 0x15 0x1 0xca 0x1 0x14 0x1 0xca
+~ /pinctrl/i2s0/i2s-8ch-mclk
+    ~ rockchip,pins: 0x4 0x0 0x1 0xd7  ->  0x4 0x0 0x1 0xca
+~ /pinctrl/i2s0/i2s0-2ch-bus
+    ~ rockchip,pins: 0x3 0x18 0x1 0xd7 0x3 0x19 0x1 0xd7 0x3 0x1a 0x1 0xd7 0x3 0x1b 0x1 0xd7 0x3 0x1f 0x1 0xd7 0x4 0x0 0x1 0xd7  ->  0x3 0x18 0x1 0xca 0x3 0x19 0x1 0xca 0x3 0x1a 0x1 0xca 0x3 0x1b 0x1 0xca 0x3 0x1f 0x1 0xca 0x4 0x0 0x1 0xca
+- /pinctrl/i2s0/i2s0-2ch-bus-bclk-off
+~ /pinctrl/i2s0/i2s0-8ch-bus
+    ~ rockchip,pins: 0x3 0x18 0x1 0xd7 0x3 0x1a 0x1 0xd7 0x3 0x1b 0x1 0xd7 0x3 0x1c 0x1 0xd7 0x3 0x1d 0x1 0xd7 0x3 0x1e 0x1 0xd7 0x3 0x1f 0x1 0xd7  ->  0x3 0x18 0x1 0xca 0x3 0x1a 0x1 0xca 0x3 0x1b 0x1 0xca 0x3 0x1c 0x1 0xca 0x3 0x1d 0x1 0xca 0x3 0x1f 0x1 0xca
+- /pinctrl/i2s0/i2s0-8ch-bus-bclk-off
+~ /pinctrl/i2s1/i2s1-2ch-bus
+    ~ rockchip,pins: 0x4 0x3 0x1 0xd7 0x4 0x5 0x1 0xd7 0x4 0x6 0x1 0xd7 0x4 0x7 0x1 0xd7  ->  0x4 0x3 0x1 0xca 0x4 0x4 0x1 0xca 0x4 0x8 0x1 0xca 0x4 0x6 0x1 0xca 0x4 0x9 0x1 0xca
+- /pinctrl/i2s1/i2s1-2ch-bus-bclk-off
+~ /pinctrl/isp/cif-clkout
+    ~ rockchip,pins: 0x2 0xb 0x3 0xd7  ->  0x2 0xb 0x3 0xca
+~ /pinctrl/isp/isp-dvp-d0d7
+    ~ rockchip,pins: 0x2 0x0 0x3 0xd7 0x2 0x1 0x3 0xd7 0x2 0x2 0x3 0xd7 0x2 0x3 0x3 0xd7 0x2 0x4 0x3 0xd7 0x2 0x5 0x3 0xd7 0x2 0x6 0x3 0xd7 0x2 0x7 0x3 0xd7 0x2 0x8 0x3 0xd7 0x2 0x9 0x3 0xd7 0x2 0xa 0x3 0xd7  ->  0x2 0x0 0x3 0xca 0x2 0x1 0x3 0xca 0x2 0x2 0x3 0xca 0x2 0x3 0x3 0xca 0x2 0x4 0x3 0xca 0x2 0x5 0x3 0xca 0x2 0x6 0x3 0xca 0x2 0x7 0x3 0xca 0x2 0x8 0x3 0xca 0x2 0x9 0x3 0xca 0x2 0xa 0x3 0xca
++ /pinctrl/lcd
+- /pinctrl/lcd-panel
+- /pinctrl/lcd-panel/lcd-panel-reset
++ /pinctrl/lcd/lcd-12V-gpio
+    + rockchip,pins = 0x1 0x1 0x0 0xca
++ /pinctrl/lcd/lcd-en-gpio
+    + rockchip,pins = 0x1 0x3 0x0 0xca
+~ /pinctrl/mpu6500/mpu6500-irq-gpio
+    ~ rockchip,pins: 0x1 0x16 0x0 0xd7  ->  0x1 0x16 0x0 0xca
+- /pinctrl/pcfg-input-enable
+- /pinctrl/pcfg-input-pull-down
+- /pinctrl/pcfg-input-pull-up
+~ /pinctrl/pcie/pci-clkreqn-cpm
+    ~ rockchip,pins: 0x2 0x1a 0x0 0xd7  ->  0x2 0x1a 0x0 0xca
+~ /pinctrl/pcie/pci-clkreqnb-cpm
+    ~ rockchip,pins: 0x4 0x18 0x0 0xd7  ->  0x4 0x18 0x0 0xca
+~ /pinctrl/pmic/pmic-int-l
+    ~ rockchip,pins: 0x1 0x15 0x0 0xda  ->  0x1 0x15 0x0 0xcd
+~ /pinctrl/pmic/soc-slppin-gpio
+    ~ rockchip,pins: 0x1 0x5 0x0 0xdc  ->  0x1 0x5 0x0 0xcf
+~ /pinctrl/pmic/soc-slppin-slp
+    ~ rockchip,pins: 0x1 0x5 0x1 0xd7  ->  0x1 0x5 0x1 0xca
+~ /pinctrl/pmic/vsel1-gpio
+    ~ rockchip,pins: 0x1 0x11 0x0 0xdb  ->  0x1 0x11 0x0 0xce
+~ /pinctrl/pmic/vsel2-gpio
+    ~ rockchip,pins: 0x1 0xe 0x0 0xdb  ->  0x1 0xe 0x0 0xce
+~ /pinctrl/pwm0/pwm0-pin
+    ~ rockchip,pins: 0x4 0x12 0x1 0xd7  ->  0x4 0x12 0x1 0xca
+~ /pinctrl/pwm0/pwm0-pin-pull-down
+    ~ rockchip,pins: 0x4 0x12 0x1 0xdb  ->  0x4 0x12 0x1 0xce
+~ /pinctrl/pwm0/vop0-pwm-pin
+    ~ rockchip,pins: 0x4 0x12 0x2 0xd7  ->  0x4 0x12 0x2 0xca
+~ /pinctrl/pwm0/vop1-pwm-pin
+    ~ rockchip,pins: 0x4 0x12 0x3 0xd7  ->  0x4 0x12 0x3 0xca
+~ /pinctrl/pwm1/pwm1-pin
+    ~ rockchip,pins: 0x4 0x16 0x1 0xd7  ->  0x4 0x16 0x1 0xca
+~ /pinctrl/pwm1/pwm1-pin-pull-down
+    ~ rockchip,pins: 0x4 0x16 0x1 0xdb  ->  0x4 0x16 0x1 0xce
+~ /pinctrl/pwm2/pwm2-pin
+    ~ rockchip,pins: 0x1 0x13 0x1 0xd7  ->  0x1 0x13 0x1 0xca
+~ /pinctrl/pwm2/pwm2-pin-pull-down
+    ~ rockchip,pins: 0x1 0x13 0x1 0xdb  ->  0x1 0x13 0x1 0xce
+~ /pinctrl/pwm3a/pwm3a-pin
+    ~ rockchip,pins: 0x0 0x6 0x1 0xd7  ->  0x0 0x6 0x1 0xca
+~ /pinctrl/pwm3a/pwm3a-pin-pull-down
+    ~ rockchip,pins: 0x0 0x6 0x1 0xdb  ->  0x0 0x6 0x1 0xce
+~ /pinctrl/pwm3b/pwm3b-pin
+    ~ rockchip,pins: 0x1 0xe 0x1 0xd7  ->  0x1 0xe 0x1 0xca
+~ /pinctrl/pwm3b/pwm3b-pin-pull-down
+    ~ rockchip,pins: 0x1 0xe 0x1 0xdb  ->  0x1 0xe 0x1 0xce
+~ /pinctrl/rk-modem/lte-power-en
+    ~ rockchip,pins: 0x4 0x16 0x0 0xd7  ->  0x1 0xd 0x0 0xca
+~ /pinctrl/rk-modem/lte-reset
+    ~ rockchip,pins: 0x4 0x1c 0x0 0xd7  ->  0x1 0x14 0x0 0xca
+~ /pinctrl/rk-modem/lte-vbat
+    ~ rockchip,pins: 0x4 0x18 0x0 0xd7  ->  0x1 0x17 0x0 0xca
+~ /pinctrl/sdio-pwrseq/wifi-enable-h
+    ~ rockchip,pins: 0x0 0xa 0x0 0xd7  ->  0x0 0xa 0x0 0xca
+~ /pinctrl/sdio0/sdio0-bkpwr
+    ~ rockchip,pins: 0x2 0x1c 0x1 0xda  ->  0x2 0x1c 0x1 0xcd
+~ /pinctrl/sdio0/sdio0-bus1
+    ~ rockchip,pins: 0x2 0x14 0x1 0xda  ->  0x2 0x14 0x1 0xcd
+~ /pinctrl/sdio0/sdio0-bus4
+    ~ rockchip,pins: 0x2 0x14 0x1 0xda 0x2 0x15 0x1 0xda 0x2 0x16 0x1 0xda 0x2 0x17 0x1 0xda  ->  0x2 0x14 0x1 0xcd 0x2 0x15 0x1 0xcd 0x2 0x16 0x1 0xcd 0x2 0x17 0x1 0xcd
+~ /pinctrl/sdio0/sdio0-cd
+    ~ rockchip,pins: 0x2 0x1a 0x1 0xda  ->  0x2 0x1a 0x1 0xcd
+~ /pinctrl/sdio0/sdio0-clk
+    ~ rockchip,pins: 0x2 0x19 0x1 0xd7  ->  0x2 0x19 0x1 0xca
+~ /pinctrl/sdio0/sdio0-cmd
+    ~ rockchip,pins: 0x2 0x18 0x1 0xda  ->  0x2 0x18 0x1 0xcd
+~ /pinctrl/sdio0/sdio0-int
+    ~ rockchip,pins: 0x0 0x4 0x1 0xda  ->  0x0 0x4 0x1 0xcd
+~ /pinctrl/sdio0/sdio0-pwr
+    ~ rockchip,pins: 0x2 0x1b 0x1 0xda  ->  0x2 0x1b 0x1 0xcd
+~ /pinctrl/sdio0/sdio0-wp
+    ~ rockchip,pins: 0x0 0x3 0x1 0xda  ->  0x0 0x3 0x1 0xcd
+~ /pinctrl/sdmmc/sdmmc-bus1
+    ~ rockchip,pins: 0x4 0x8 0x1 0xda  ->  0x4 0x8 0x1 0xcd
+~ /pinctrl/sdmmc/sdmmc-bus4
+    ~ rockchip,pins: 0x4 0x8 0x1 0xda 0x4 0x9 0x1 0xda 0x4 0xa 0x1 0xda 0x4 0xb 0x1 0xda  ->  0x4 0x8 0x1 0xcd 0x4 0x9 0x1 0xcd 0x4 0xa 0x1 0xcd 0x4 0xb 0x1 0xcd
+~ /pinctrl/sdmmc/sdmmc-cd
+    ~ rockchip,pins: 0x0 0x7 0x1 0xda  ->  0x0 0x7 0x1 0xcd
+~ /pinctrl/sdmmc/sdmmc-clk
+    ~ rockchip,pins: 0x4 0xc 0x1 0xd7  ->  0x4 0xc 0x1 0xca
+~ /pinctrl/sdmmc/sdmmc-cmd
+    ~ rockchip,pins: 0x4 0xd 0x1 0xda  ->  0x4 0xd 0x1 0xcd
+~ /pinctrl/sdmmc/sdmmc-wp
+    ~ rockchip,pins: 0x0 0x8 0x1 0xda  ->  0x0 0x8 0x1 0xcd
+~ /pinctrl/spdif/spdif-bus
+    ~ rockchip,pins: 0x4 0x15 0x1 0xd7  ->  0x4 0x15 0x1 0xca
+~ /pinctrl/spdif/spdif-bus-1
+    ~ rockchip,pins: 0x3 0x10 0x3 0xd7  ->  0x3 0x10 0x3 0xca
+~ /pinctrl/spi0/spi0-clk
+    ~ rockchip,pins: 0x3 0x6 0x2 0xda  ->  0x3 0x6 0x2 0xcd
+~ /pinctrl/spi0/spi0-cs0
+    ~ rockchip,pins: 0x3 0x7 0x2 0xda  ->  0x3 0x7 0x2 0xcd
+~ /pinctrl/spi0/spi0-cs1
+    ~ rockchip,pins: 0x3 0x8 0x2 0xda  ->  0x3 0x8 0x2 0xcd
+~ /pinctrl/spi0/spi0-rx
+    ~ rockchip,pins: 0x3 0x4 0x2 0xda  ->  0x3 0x4 0x2 0xcd
+~ /pinctrl/spi0/spi0-tx
+    ~ rockchip,pins: 0x3 0x5 0x2 0xda  ->  0x3 0x5 0x2 0xcd
+~ /pinctrl/spi1/spi1-clk
+    ~ rockchip,pins: 0x1 0x9 0x2 0xda  ->  0x1 0x9 0x2 0xcd
+~ /pinctrl/spi1/spi1-cs0
+    ~ rockchip,pins: 0x1 0xa 0x2 0xda  ->  0x1 0xa 0x2 0xcd
+~ /pinctrl/spi1/spi1-rx
+    ~ rockchip,pins: 0x1 0x7 0x2 0xda  ->  0x1 0x7 0x2 0xcd
+~ /pinctrl/spi1/spi1-tx
+    ~ rockchip,pins: 0x1 0x8 0x2 0xda  ->  0x1 0x8 0x2 0xcd
+~ /pinctrl/spi2/spi2-clk
+    ~ rockchip,pins: 0x2 0xb 0x1 0xda  ->  0x2 0xb 0x1 0xcd
+~ /pinctrl/spi2/spi2-cs0
+    ~ rockchip,pins: 0x2 0xc 0x1 0xda  ->  0x2 0xc 0x1 0xcd
+~ /pinctrl/spi2/spi2-rx
+    ~ rockchip,pins: 0x2 0x9 0x1 0xda  ->  0x2 0x9 0x1 0xcd
+~ /pinctrl/spi2/spi2-tx
+    ~ rockchip,pins: 0x2 0xa 0x1 0xda  ->  0x2 0xa 0x1 0xcd
+~ /pinctrl/spi3/spi3-clk
+    ~ rockchip,pins: 0x1 0x11 0x1 0xda  ->  0x1 0x11 0x1 0xcd
+~ /pinctrl/spi3/spi3-cs0
+    ~ rockchip,pins: 0x1 0x12 0x1 0xda  ->  0x1 0x12 0x1 0xcd
+~ /pinctrl/spi3/spi3-rx
+    ~ rockchip,pins: 0x1 0xf 0x1 0xda  ->  0x1 0xf 0x1 0xcd
+~ /pinctrl/spi3/spi3-tx
+    ~ rockchip,pins: 0x1 0x10 0x1 0xda  ->  0x1 0x10 0x1 0xcd
+~ /pinctrl/spi4/spi4-clk
+    ~ rockchip,pins: 0x3 0x2 0x2 0xda  ->  0x3 0x2 0x2 0xcd
+~ /pinctrl/spi4/spi4-cs0
+    ~ rockchip,pins: 0x3 0x3 0x2 0xda  ->  0x3 0x3 0x2 0xcd
+~ /pinctrl/spi4/spi4-rx
+    ~ rockchip,pins: 0x3 0x0 0x2 0xda  ->  0x3 0x0 0x2 0xcd
+~ /pinctrl/spi4/spi4-tx
+    ~ rockchip,pins: 0x3 0x1 0x2 0xda  ->  0x3 0x1 0x2 0xcd
+~ /pinctrl/spi5/spi5-clk
+    ~ rockchip,pins: 0x2 0x16 0x2 0xda  ->  0x2 0x16 0x2 0xcd
+~ /pinctrl/spi5/spi5-cs0
+    ~ rockchip,pins: 0x2 0x17 0x2 0xda  ->  0x2 0x17 0x2 0xcd
+~ /pinctrl/spi5/spi5-rx
+    ~ rockchip,pins: 0x2 0x14 0x2 0xda  ->  0x2 0x14 0x2 0xcd
+~ /pinctrl/spi5/spi5-tx
+    ~ rockchip,pins: 0x2 0x15 0x2 0xda  ->  0x2 0x15 0x2 0xcd
+~ /pinctrl/suspend/ap-pwroff
+    ~ rockchip,pins: 0x1 0x5 0x1 0xd7  ->  0x1 0x5 0x1 0xca
+~ /pinctrl/suspend/ddrio-pwroff
+    ~ rockchip,pins: 0x0 0x1 0x1 0xd7  ->  0x0 0x1 0x1 0xca
+~ /pinctrl/testclk/test-clkout0
+    ~ rockchip,pins: 0x0 0x0 0x1 0xd7  ->  0x0 0x0 0x1 0xca
+~ /pinctrl/testclk/test-clkout1
+    ~ rockchip,pins: 0x2 0x19 0x2 0xd7  ->  0x2 0x19 0x2 0xca
+~ /pinctrl/testclk/test-clkout2
+    ~ rockchip,pins: 0x0 0x8 0x3 0xd7  ->  0x0 0x8 0x3 0xca
++ /pinctrl/tp
++ /pinctrl/tp/tp-irq
+    + rockchip,pins = 0x4 0x1c 0x0 0xca
++ /pinctrl/tp/tp-rst
+    + rockchip,pins = 0x4 0x1e 0x0 0xca
++ /pinctrl/tsadc/otp-gpio
+    + rockchip,pins = 0x1 0x6 0x0 0xca
+~ /pinctrl/tsadc/otp-out
+    ~ rockchip,pins: 0x1 0x6 0x1 0xd7  ->  0x1 0x6 0x1 0xca
+- /pinctrl/tsadc/otp-pin
+~ /pinctrl/uart0/uart0-cts
+    ~ rockchip,pins: 0x2 0x12 0x1 0xd7  ->  0x2 0x12 0x1 0xca
+~ /pinctrl/uart0/uart0-rts
+    ~ rockchip,pins: 0x2 0x13 0x1 0xd7  ->  0x2 0x13 0x1 0xca
+~ /pinctrl/uart0/uart0-xfer
+    ~ rockchip,pins: 0x2 0x10 0x1 0xda 0x2 0x11 0x1 0xda  ->  0x2 0x10 0x1 0xcd 0x2 0x11 0x1 0xcd
+~ /pinctrl/uart1/uart1-xfer
+    ~ rockchip,pins: 0x3 0xc 0x2 0xda 0x3 0xd 0x2 0xda  ->  0x3 0xc 0x2 0xcd 0x3 0xd 0x2 0xcd
+~ /pinctrl/uart2a/uart2a-xfer
+    ~ rockchip,pins: 0x4 0x8 0x2 0xda 0x4 0x9 0x2 0xda  ->  0x4 0x8 0x2 0xcd 0x4 0x9 0x2 0xcd
+~ /pinctrl/uart2b/uart2b-xfer
+    ~ rockchip,pins: 0x4 0x10 0x2 0xda 0x4 0x11 0x2 0xda  ->  0x4 0x10 0x2 0xcd 0x4 0x11 0x2 0xcd
+~ /pinctrl/uart2c/uart2c-xfer
+    ~ rockchip,pins: 0x4 0x13 0x1 0xda 0x4 0x14 0x1 0xda  ->  0x4 0x13 0x1 0xcd 0x4 0x14 0x1 0xcd
+~ /pinctrl/uart3/uart3-cts
+    ~ rockchip,pins: 0x3 0x10 0x2 0xd7  ->  0x3 0x10 0x2 0xca
+~ /pinctrl/uart3/uart3-rts
+    ~ rockchip,pins: 0x3 0x11 0x2 0xd7  ->  0x3 0x11 0x2 0xca
+~ /pinctrl/uart3/uart3-xfer
+    ~ rockchip,pins: 0x3 0xe 0x2 0xda 0x3 0xf 0x2 0xda  ->  0x3 0xe 0x2 0xcd 0x3 0xf 0x2 0xcd
+~ /pinctrl/uart4/uart4-xfer
+    ~ rockchip,pins: 0x1 0x7 0x1 0xda 0x1 0x8 0x1 0xda  ->  0x1 0x7 0x1 0xcd 0x1 0x8 0x1 0xcd
+~ /pinctrl/uarthdcp/uarthdcp-xfer
+    ~ rockchip,pins: 0x4 0x15 0x2 0xda 0x4 0x16 0x2 0xda  ->  0x4 0x15 0x2 0xcd 0x4 0x16 0x2 0xcd
++ /pinctrl/usb
+- /pinctrl/usb-typec
+- /pinctrl/usb-typec/usbc0-int
+- /pinctrl/usb-typec/vcc5v0-typec0-en
++ /pinctrl/usb/pwr-usb-tp
+    + rockchip,pins = 0x0 0x8 0x0 0xca
+- /pinctrl/usb2
+- /pinctrl/usb2/host-vbus-drv
+~ /pinctrl/usbnet/usbnet-pwr-drv
+    ~ rockchip,pins: 0x4 0x12 0x0 0xd7  ->  0x4 0x12 0x0 0xca
++ /pinctrl/vcc-wl
++ /pinctrl/vcc-wl/pwr-wl
+    + rockchip,pins = 0x3 0x10 0x0 0xca
+- /pinctrl/vcc_sd
+- /pinctrl/vcc_sd/vcc-sd-h
+~ /pinctrl/wireless-bluetooth/bt-irq-gpio
+    ~ rockchip,pins: 0x2 0x1b 0x0 0xdb  ->  0x2 0x1b 0x0 0xce
+~ /pinctrl/wireless-bluetooth/bt-reset-gpio
+    ~ rockchip,pins: 0x0 0x9 0x0 0xd7  ->  0x0 0x9 0x0 0xca
+~ /pinctrl/wireless-bluetooth/bt-wake-gpio
+    ~ rockchip,pins: 0x0 0x4 0x0 0xd7  ->  0x0 0x4 0x0 0xca
+~ /pinctrl/wireless-bluetooth/uart0-gpios
+    ~ rockchip,pins: 0x2 0x13 0x0 0xd7  ->  0x2 0x13 0x0 0xca
++ /pmu-clock-controller@ff750000
+    + compatible = ['rockchip,rk3399-pmucru']
+    + reg = 0x0 0xff750000 0x0 0x1000
+    + #clock-cells = 0x1
+    + #reset-cells = 0x1
+    + assigned-clocks = &/pmu-clock-controller@ff750000 &/interrupt-controller@fee00000 &/pmu-clock-controller@ff750000 &/pinctrl/sdio0/sdio0-cmd
+    + assigned-clock-rates = 0x284af100 0x5c81a40
+~ /pmu_a53
+    ~ interrupts: 0x1 0x7 0x8 0x20  ->  0x1 0x7 0x8 0x1c
+~ /pmu_a72
+    ~ interrupts: 0x1 0x7 0x8 0x21  ->  0x1 0x7 0x8 0x1d
++ /power-management@ff310000/power-controller/pd_edp@25
+    + reg = 0x19
+    + clocks = &/clock-controller@ff760000 &/pinctrl/pcfg-pull-none-10ma
++ /power-management@ff310000/power-controller/pd_emmc@23
+    + reg = 0x17
+    + clocks = &/clock-controller@ff760000 &/pinctrl/usb/pwr-usb-tp
+    + pm_qos = 0x73
++ /power-management@ff310000/power-controller/pd_gmac@22
+    + reg = 0x16
+    + clocks = &/clock-controller@ff760000 &/saradc@ff100000 &/clock-controller@ff760000 &/nocp-vio1-msch1@ffa8f800
+    + pm_qos = 0x74
++ /power-management@ff310000/power-controller/pd_gpu@35
+    + reg = 0x23
+    + clocks = &/clock-controller@ff760000 &/efuse@ff690000/cpu-leakage@1a
+    + pm_qos = 0x72
++ /power-management@ff310000/power-controller/pd_iep@34
+    + reg = 0x22
+    + clocks = &/clock-controller@ff760000 &/hdmiin-dc &/clock-controller@ff760000 0x1dd
+    + pm_qos = 0x6c
++ /power-management@ff310000/power-controller/pd_perihp@14
+    + reg = 0xe
+    + #address-cells = 0x1
+    + #size-cells = 0x0
+    + clocks = &/clock-controller@ff760000 &/vop@ff8f0000/port/endpoint@0
+    + pm_qos = 0x75 0x76 0x77 0x78
++ /power-management@ff310000/power-controller/pd_perihp@14/pd_sd@27
+    + reg = 0x1b
+    + clocks = &/clock-controller@ff760000 0x1ce &/clock-controller@ff760000 &/pinctrl/i2c6/i2c6-xfer
+    + pm_qos = 0x79
++ /power-management@ff310000/power-controller/pd_rga@33
+    + reg = 0x21
+    + clocks = &/clock-controller@ff760000 &/i2s@ff880000 &/clock-controller@ff760000 0x1e5
+    + pm_qos = 0x6d 0x6e
++ /power-management@ff310000/power-controller/pd_sdioaudio@28
+    + reg = 0x1c
+    + clocks = &/clock-controller@ff760000 0x1ee
+    + pm_qos = 0x7a
++ /power-management@ff310000/power-controller/pd_usb3@24
+    + reg = 0x18
+    + clocks = &/clock-controller@ff760000 &/pinctrl/lcd/lcd-en-gpio
+    + pm_qos = 0x7b 0x7c
++ /power-management@ff310000/power-controller/pd_vcodec@31
+    + reg = 0x1f
+    + clocks = &/clock-controller@ff760000 &/pinctrl/rk-modem/lte-power-en &/clock-controller@ff760000 0x1ea
+    + pm_qos = 0x6f
++ /power-management@ff310000/power-controller/pd_vdu@32
+    + reg = 0x20
+    + clocks = &/clock-controller@ff760000 &/vcc12v-dcin &/clock-controller@ff760000 0x1ec
+    + pm_qos = 0x70 0x71
++ /power-management@ff310000/power-controller/pd_vio@15
+    + reg = 0xf
+    + #address-cells = 0x1
+    + #size-cells = 0x0
++ /power-management@ff310000/power-controller/pd_vio@15/pd_hdcp@21
+    + reg = 0x15
+    + clocks = &/clock-controller@ff760000 &/i2c@ff110000/es7210@40 &/clock-controller@ff760000 0x1e7 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-down-8ma
+    + pm_qos = 0x7d
++ /power-management@ff310000/power-controller/pd_vio@15/pd_isp0@19
+    + reg = 0x13
+    + clocks = &/clock-controller@ff760000 &/pinctrl/uart0/uart0-rts &/clock-controller@ff760000 0x1df
+    + pm_qos = 0x7e 0x7f
++ /power-management@ff310000/power-controller/pd_vio@15/pd_isp1@20
+    + reg = 0x14
+    + clocks = &/clock-controller@ff760000 &/pinctrl/wireless-bluetooth/bt-reset-gpio &/clock-controller@ff760000 0x1e0
+    + pm_qos = 0x80 0x81
++ /power-management@ff310000/power-controller/pd_vio@15/pd_tcpc0@RK3399_PD_TCPC0
+    + reg = 0x8
+    + clocks = &/clock-controller@ff760000 &/qos@ffaa0000 &/clock-controller@ff760000 &/qos@ffa90000
++ /power-management@ff310000/power-controller/pd_vio@15/pd_tcpc1@RK3399_PD_TCPC1
+    + reg = 0x9
+    + clocks = &/clock-controller@ff760000 &/qos@ffaa8000 &/clock-controller@ff760000 &/qos@ffaa0080
++ /power-management@ff310000/power-controller/pd_vio@15/pd_vo@16
+    + reg = 0x10
+    + #address-cells = 0x1
+    + #size-cells = 0x0
++ /power-management@ff310000/power-controller/pd_vio@15/pd_vo@16/pd_vopb@17
+    + reg = 0x11
+    + clocks = &/clock-controller@ff760000 &/spdif@ff870000 &/clock-controller@ff760000 0x1d9
+    + pm_qos = 0x82 0x83
++ /power-management@ff310000/power-controller/pd_vio@15/pd_vo@16/pd_vopl@18
+    + reg = 0x12
+    + clocks = &/clock-controller@ff760000 &/pinctrl/headphone/hp-det &/clock-controller@ff760000 0x1db
+    + pm_qos = 0x84
+- /power-management@ff310000/power-controller/power-domain@14
+- /power-management@ff310000/power-controller/power-domain@14/power-domain@27
+- /power-management@ff310000/power-controller/power-domain@15
+- /power-management@ff310000/power-controller/power-domain@15/power-domain@16
+- /power-management@ff310000/power-controller/power-domain@15/power-domain@16/power-domain@17
+- /power-management@ff310000/power-controller/power-domain@15/power-domain@16/power-domain@18
+- /power-management@ff310000/power-controller/power-domain@15/power-domain@19
+- /power-management@ff310000/power-controller/power-domain@15/power-domain@20
+- /power-management@ff310000/power-controller/power-domain@15/power-domain@21
+- /power-management@ff310000/power-controller/power-domain@22
+- /power-management@ff310000/power-controller/power-domain@23
+- /power-management@ff310000/power-controller/power-domain@24
+- /power-management@ff310000/power-controller/power-domain@25
+- /power-management@ff310000/power-controller/power-domain@28
+- /power-management@ff310000/power-controller/power-domain@31
+- /power-management@ff310000/power-controller/power-domain@32
+- /power-management@ff310000/power-controller/power-domain@33
+- /power-management@ff310000/power-controller/power-domain@34
+- /power-management@ff310000/power-controller/power-domain@35
+- /power-management@ff310000/power-controller/power-domain@8
+- /power-management@ff310000/power-controller/power-domain@9
+~ /pwm@ff420000
+    + clock-names = ['pwm']
+    ~ clocks: &/clock-controller@ff750000 &/opp-table-3  ->  &/pmu-clock-controller@ff750000 &/sram@ff8d0000
+~ /pwm@ff420010
+    + clock-names = ['pwm']
+    ~ clocks: &/clock-controller@ff750000 &/opp-table-3  ->  &/pmu-clock-controller@ff750000 &/sram@ff8d0000
+~ /pwm@ff420020
+    + clock-names = ['pwm']
+    ~ clocks: &/clock-controller@ff750000 &/opp-table-3  ->  &/pmu-clock-controller@ff750000 &/sram@ff8d0000
+~ /pwm@ff420030
+    + clock-names = ['pwm']
+    ~ clocks: &/clock-controller@ff750000 &/opp-table-3  ->  &/pmu-clock-controller@ff750000 &/sram@ff8d0000
+    ~ status: ['okay']  ->  ['disabled']
+~ /qos@ffa58000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffa5c000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffa60080
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffa60100
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffa60180
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffa70000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffa70080
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffa74000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffa76000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffa90000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffa98000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffaa0000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffaa0080
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffaa8000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffaa8080
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffab0000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffab0080
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffab8000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffac0000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffac0080
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffac8000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffac8080
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffad0000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffad8080
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+~ /qos@ffae0000
+    ~ compatible: ['rockchip,rk3399-qos', 'syscon']  ->  ['syscon']
+- /reserved-memory/drm-logo@0
++ /reserved-memory/drm-logo@00000000
+    + compatible = ['rockchip,drm-logo']
+    + reg = 0x0 0xf5f00000 0x0 0xbddc00
+- /reserved-memory/vendor-storage-rm@00000000
+~ /rga@ff680000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/pcfg-output-low &/clock-controller@ff760000 0x1e5 &/clock-controller@ff760000 &/pinctrl/tsadc/otp-pin  ->  &/clock-controller@ff760000 &/i2s@ff880000 &/clock-controller@ff760000 0x1e5 &/clock-controller@ff760000 &/qos@ffab0000
+    ~ power-domains: &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-1  ->  &/power-management@ff310000/power-controller &/syscon@ff770000/pcie-phy
+    ~ resets: &/clock-controller@ff760000 &/tsadc@ff260000 &/clock-controller@ff760000 &/pinctrl/spi5/spi5-tx &/clock-controller@ff760000 &/pinctrl/spi5/spi5-cs0  ->  &/clock-controller@ff760000 &/pinctrl/tsadc/otp-gpio &/clock-controller@ff760000 &/tsadc@ff260000 &/clock-controller@ff760000 &/gpu@ff9a0000
+~ /rk-headset
+    ~ headset_gpio: &/pinctrl/gpio@ff720000 &/opp-table-0 0x0  ->  &/pinctrl/gpio4@ff790000 &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-1 &/interrupt-controller@fee00000
+    - status = ['disabled']
+~ /rk-modem
+    ~ 4G,power-gpio: &/pinctrl/gpio@ff790000 &/reserved-memory/secure-memory@20000000 &/interrupt-controller@fee00000  ->  &/pinctrl/gpio1@ff730000 &/energy-costs/rk3399-cluster-cost0 &/interrupt-controller@fee00000
+    ~ 4G,reset-gpio: &/pinctrl/gpio@ff790000 &/dfi@ff630000 &/interrupt-controller@fee00000  ->  &/pinctrl/gpio1@ff730000 &/vop@ff8f0000/port &/interrupt-controller@fee00000
+    ~ 4G,vbat-gpio: &/pinctrl/gpio@ff790000 &/vop@ff900000/port/endpoint@1 0x0  ->  &/pinctrl/gpio1@ff730000 &/reserved-memory/secure-memory@20000000 0x0
+- /rk809-sound
+- /rk809-sound/play-pause-key
+~ /rkisp1@ff910000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/tsadc/otp-out &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/codec &/clock-controller@ff760000 0x1df &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20 &/clock-controller@ff760000 0x1e3  ->  &/clock-controller@ff760000 &/qos@ffab0080 &/clock-controller@ff760000 &/pinctrl/uart0/uart0-rts &/clock-controller@ff760000 0x1df &/clock-controller@ff760000 &/pinctrl/wireless-bluetooth/uart0-gpios &/clock-controller@ff760000 0x1e3
+    ~ devfreq: 0xc5  ->  0x15
+    ~ status: ['disabled']  ->  ['okay']
++ /rkisp1@ff910000/port
+    + #address-cells = 0x1
+    + #size-cells = 0x0
++ /rkisp1@ff910000/port/endpoint@0
+    + reg = 0x0
+    + remote-endpoint = &/syscon@ff770000/mipi-dphy-rx0/ports/port@1/endpoint@0
+~ /rkisp1@ff920000
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffa98000 &/clock-controller@ff760000 &/pinctrl/headphone/hp-det &/clock-controller@ff760000 0x1e0 &/clock-controller@ff760000 &/pinctrl/sdio-pwrseq/wifi-enable-h &/clock-controller@ff760000 0x1e4 &/clock-controller@ff760000 &/pinctrl/pcfg-pull-up-20ma  ->  &/clock-controller@ff760000 &/qos@ffab8000 &/clock-controller@ff760000 &/pinctrl/wireless-bluetooth/bt-reset-gpio &/clock-controller@ff760000 0x1e0 &/clock-controller@ff760000 &/pinctrl/rk-modem/lte-vbat &/clock-controller@ff760000 0x1e4 &/clock-controller@ff760000 &/pinctrl/i2s0/i2s0-2ch-bus
+    ~ devfreq: 0xc5  ->  0x15
+~ /rktimer@ff850000
+    ~ clocks: &/clock-controller@ff760000 &/nocp-video-msch0@ffa87000 &/clock-controller@ff760000 &/pinctrl/spi1/spi1-tx  ->  &/clock-controller@ff760000 &/pinctrl &/clock-controller@ff760000 &/pinctrl/spi1/spi1-cs0
+~ /rkvdec@ff660000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/wireless-bluetooth/bt-wake-gpio &/clock-controller@ff760000 0x1ec &/clock-controller@ff760000 &/phy@ff7c0000/port/endpoint@1 &/clock-controller@ff760000 &/phy@ff7c0000/port/endpoint@0  ->  &/clock-controller@ff760000 &/vcc12v-dcin &/clock-controller@ff760000 0x1ec &/clock-controller@ff760000 &/iommu@ff660480 &/clock-controller@ff760000 &/mpp-srv
+    ~ power-domains: &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-0  ->  &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/interrupt-controller@fee20000
+    ~ resets: &/clock-controller@ff760000 &/pinctrl/spi1/spi1-rx &/clock-controller@ff760000 &/pinctrl/spi1/spi1-clk &/clock-controller@ff760000 &/pinctrl/spi1/spi1-tx &/clock-controller@ff760000 &/pinctrl/spi0/spi0-cs0 &/clock-controller@ff760000 &/pinctrl/spi2/spi2-clk &/clock-controller@ff760000 &/pinctrl/spi1/spi1-cs0  ->  &/clock-controller@ff760000 &/pinctrl/spi2/spi2-clk &/clock-controller@ff760000 &/pinctrl/spi1/spi1-rx &/clock-controller@ff760000 &/pinctrl/spi1/spi1-cs0 &/clock-controller@ff760000 &/pinctrl/spi1/spi1-tx &/clock-controller@ff760000 &/pinctrl/spi2/spi2-rx &/clock-controller@ff760000 &/pinctrl/spi2/spi2-tx
+    ~ rockchip,srv: 0xa8  ->  0x9e
+~ /rng@ff8b8000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/qos@ffac8080 &/clock-controller@ff760000 0x1d3  ->  &/clock-controller@ff760000 &/pinctrl/spi3/spi3-clk &/clock-controller@ff760000 0x1d3
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffac8080 &/clock-controller@ff760000 0x1d3  ->  &/clock-controller@ff760000 &/pinctrl/spi3/spi3-clk &/clock-controller@ff760000 0x1d3
+~ /rockchip-suspend
+    ~ rockchip,power-ctrl: 0x46 0x11 0x0 0x46 0xe 0x0  ->  0x8e 0x11 0x0 0x8e 0xe 0x0
+    - rockchip,pwm-regulator-config = 0x4
+    ~ rockchip,wakeup-config: 0x804  ->  0x4
+~ /saradc@ff100000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/uart0/uart0-cts &/clock-controller@ff760000 &/nocp-gpu-msch0@ffa86400  ->  &/clock-controller@ff760000 &/pinctrl/uart1/uart1-xfer &/clock-controller@ff760000 &/nocp-vio0-msch1@ffa8f400
+    ~ resets: &/clock-controller@ff760000 &/panel/ports/endpoint  ->  &/clock-controller@ff760000 &/efuse@ff690000/gpu-leakage@18
+    ~ vref-supply: &/i2c@ff3c0000/pmic@20/regulators/LDO_REG2  ->  &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG4
++ /sdhci@fe330000
+    + compatible = ['rockchip,rk3399-sdhci-5.1', 'arasan,sdhci-5.1']
+    + reg = 0x0 0xfe330000 0x0 0x10000
+    + interrupts = 0x0 0xb 0x4 0x0
+    + arasan,soc-ctl-syscon = 0x25
+    + assigned-clocks = &/clock-controller@ff760000 &/pinctrl/uart0/uart0-xfer
+    + assigned-clock-rates = 0xbebc200
+    + clocks = &/clock-controller@ff760000 &/pinctrl/uart0/uart0-xfer &/clock-controller@ff760000 &/pinctrl/usb/pwr-usb-tp
+    + clock-names = ['clk_xin', 'clk_ahb']
+    + clock-output-names = ['emmc_cardclock']
+    + #clock-cells = 0x0
+    + phys = &/syscon@ff770000/phy@f780
+    + phy-names = ['phy_arasan']
+    + power-domains = &/power-management@ff310000/power-controller &/reserved-memory/secure-memory@20000000
+    + disable-cqe-dcmd = <bool>
+    + disable-cqe = <bool>
+    + status = ['okay']
+    + assigned-clock-parents = &/clock-controller@ff760000 &/cpus/cpu@3
+    + bus-width = 0x8
+    + mmc-hs400-1_8v = <bool>
+    + supports-emmc = <bool>
+    + non-removable = <bool>
+    + keep-power-in-suspend = <bool>
+    + mmc-hs400-enhanced-strobe = <bool>
+~ /sdio-pwrseq
+    ~ clocks: &/i2c@ff3c0000/pmic@20 &/interrupt-controller@fee00000  ->  &/i2c@ff3c0000/pmic@1b &/interrupt-controller@fee00000
+    ~ reset-gpios: &/pinctrl/gpio@ff720000 &/cpus/idle-states/cluster-sleep &/interrupt-controller@fee00000  ->  &/pinctrl/gpio0@ff720000 &/cpus/idle-states/cluster-sleep &/interrupt-controller@fee00000
+~ /serial@ff180000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/xin24m  ->  &/clock-controller@ff760000 &/dsi@ff960000/ports/port/endpoint@1
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/uart1/uart1-xfer &/clock-controller@ff760000 &/mipi-dphy-tx1rx1@ff968000  ->  &/clock-controller@ff760000 &/pinctrl/uart2c/uart2c-xfer &/clock-controller@ff760000 &/nocp-cci-msch1@ffa8e000
+~ /serial@ff190000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/regulators/LDO_REG7  ->  &/clock-controller@ff760000 &/edp@ff970000/ports/port@0/endpoint@1
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/uart2c/uart2c-xfer &/clock-controller@ff760000 &/edp@ff970000  ->  &/clock-controller@ff760000 &/pinctrl/uart3/uart3-xfer &/clock-controller@ff760000 &/nocp-gpu-msch1@ffa8e400
+~ /serial@ff1a0000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/regulators/LDO_REG7  ->  &/clock-controller@ff760000 &/edp@ff970000/ports/port@0/endpoint@1
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/uart3/uart3-xfer &/clock-controller@ff760000 &/edp@ff970000/ports/port@0  ->  &/clock-controller@ff760000 &/pinctrl/spi0/spi0-clk &/clock-controller@ff760000 &/nocp-hp-msch1@ffa8e800
+~ /serial@ff1b0000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/regulators/LDO_REG7  ->  &/clock-controller@ff760000 &/edp@ff970000/ports/port@0/endpoint@1
+    ~ clocks: &/clock-controller@ff760000 &/dma-controller@ff6e0000 &/clock-controller@ff760000 &/gpu@ff9a0000/power_model  ->  &/clock-controller@ff760000 &/pinctrl/spi0/spi0-tx &/clock-controller@ff760000 &/nocp-lp-msch1@ffa8ec00
+~ /serial@ff370000
+    ~ assigned-clock-parents: &/clock-controller@ff750000 &/interrupt-controller@fee00000  ->  &/pmu-clock-controller@ff750000 &/interrupt-controller@fee00000
+    ~ assigned-clocks: &/clock-controller@ff750000 &/energy-costs/rk3399-core-cost0  ->  &/pmu-clock-controller@ff750000 &/energy-costs/rk3399-core-cost0
+    ~ clocks: &/clock-controller@ff750000 &/cpus/cpu@100 &/clock-controller@ff750000 &/pcie@f8000000/interrupt-controller  ->  &/pmu-clock-controller@ff750000 &/cpus/cpu@100 &/pmu-clock-controller@ff750000 &/pinctrl/gpio2@ff780000
+    ~ status: ['disabled']  ->  ['okay']
+~ /spdif-sound
+    - simple-audio-card,mclk-fs = 0x80
+~ /spdif@ff870000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/i2c@ff3d0000/fusb302@22/connector/ports/port@0/endpoint  ->  &/clock-controller@ff760000 &/pinctrl/pwm0/vop1-pwm-pin
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/spi0/spi0-clk &/clock-controller@ff760000 0x1d7  ->  &/clock-controller@ff760000 &/pinctrl/spi0/spi0-rx &/clock-controller@ff760000 0x1d7
+    ~ dmas: 0x65 0x7  ->  0xa7 0x7
+    ~ power-domains: &/power-management@ff310000/power-controller &/dfi@ff630000  ->  &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-0
+    ~ status: ['okay']  ->  ['disabled']
+~ /spi@ff1c0000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/gpio@ff720000 &/clock-controller@ff760000 &/rkisp1@ff920000  ->  &/clock-controller@ff760000 &/rk-headset &/clock-controller@ff760000 &/nocp-hp-msch0@ffa86800
+    - dma-names = ['tx', 'rx']
+    - dmas = 0x54 0xa 0x54 0xb
+~ /spi@ff1d0000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/gpio@ff790000 &/clock-controller@ff760000 &/hdmi-sound  ->  &/clock-controller@ff760000 &/syscon@ff770000/mipi-dphy-rx0/ports/port@0/endpoint@1 &/clock-controller@ff760000 &/nocp-lp-msch0@ffa86c00
+    - dma-names = ['tx', 'rx']
+    - dmas = 0x54 0xc 0x54 0xd
+~ /spi@ff1e0000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/hdmiin/hdmiin_gpios &/clock-controller@ff760000 &/hdmi@ff940000/ports/port@0  ->  &/clock-controller@ff760000 &/pinctrl/i2c2/i2c2-xfer &/clock-controller@ff760000 &/nocp-video-msch0@ffa87000
+    - dma-names = ['tx', 'rx']
+    - dmas = 0x54 0xe 0x54 0xf
+~ /spi@ff1f0000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/i2c2/i2c2-xfer &/clock-controller@ff760000 &/hdmi@ff940000/ports/port@1  ->  &/clock-controller@ff760000 &/pinctrl/i2c3/i2c3-xfer &/clock-controller@ff760000 &/nocp-vio0-msch0@ffa87400
+    - dma-names = ['tx', 'rx']
+    - dmas = 0x54 0x12 0x54 0x13
+~ /spi@ff200000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/i2c3/i2c3-xfer &/clock-controller@ff760000 &/dsi@ff960000  ->  &/clock-controller@ff760000 &/pinctrl/i2c5/i2c5-xfer &/clock-controller@ff760000 &/nocp-vio1-msch0@ffa87800
+    - dma-names = ['tx', 'rx']
+    - dmas = 0x65 0x8 0x65 0x9
+    ~ power-domains: &/power-management@ff310000/power-controller &/dfi@ff630000  ->  &/power-management@ff310000/power-controller &/interrupt-controller@fee00000/ppi-partitions/interrupt-partition-0
+~ /spi@ff350000
+    ~ clocks: &/clock-controller@ff750000 &/cpus/cpu@1 &/clock-controller@ff750000 &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG1  ->  &/pmu-clock-controller@ff750000 &/cpus/cpu@1 &/pmu-clock-controller@ff750000 &/pcie@f8000000/interrupt-controller
+~ /syscon@ff320000
+    + #address-cells = 0x1
+    + #size-cells = 0x1
+~ /syscon@ff320000/io-domains
+    ~ pmu1830-supply: &/i2c@ff3c0000/pmic@20/regulators/LDO_REG2  ->  &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG4
+~ /syscon@ff320000/pmu-pvtm/pvtm@4
+    ~ clocks: &/clock-controller@ff750000 &/cpus/cpu@101  ->  &/pmu-clock-controller@ff750000 &/cpus/cpu@101
+    ~ resets: &/clock-controller@ff750000 &/syscon@ff320000  ->  &/pmu-clock-controller@ff750000 &/vop@ff900000/port/endpoint@0
+~ /syscon@ff320000/reboot-mode
+    + mode-bootloader = 0x5242c309
+    ~ mode-fastboot: 0x5242c309  ->  0x5242c303
+~ /syscon@ff770000/io-domains
+    ~ audio-supply: &/i2c@ff3c0000/pmic@20/regulators/LDO_REG4  ->  &/i2c@ff3c0000/pmic@1b/regulators/LDO_REG8
+    ~ bt656-supply: &/i2c@ff3c0000/pmic@20/regulators/LDO_REG7  ->  &/i2c@ff3c0000/pmic@1b/regulators/LDO_REG1
+    ~ gpio1830-supply: &/i2c@ff3c0000/pmic@20/regulators/LDO_REG7  ->  &/i2c@ff3c0000/pmic@1b/regulators/LDO_REG8
+    ~ sdmmc-supply: &/i2c@ff3c0000/pmic@20/regulators/LDO_REG8  ->  &/i2c@ff3c0000/pmic@1b/regulators/LDO_REG4
+~ /syscon@ff770000/mipi-dphy-rx0
+    - #phy-cells = 0x0
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffa5c000 &/clock-controller@ff760000 &/pinctrl/pwm2/pwm2-pin-pull-down &/clock-controller@ff760000 &/nocp-video-msch1@ffa8f000  ->  &/clock-controller@ff760000 &/qos@ffa60100 &/clock-controller@ff760000 &/i2c@ff110000/rk628_csi_v4l2@50/port/endpoint &/clock-controller@ff760000 &/pinctrl/pcfg-pull-up-18ma
+    ~ power-domains: &/power-management@ff310000/power-controller &/opp-table-1  ->  &/power-management@ff310000/power-controller &/opp-table1
+    ~ status: ['disabled']  ->  ['okay']
++ /syscon@ff770000/mipi-dphy-rx0/ports
+    + #address-cells = 0x1
+    + #size-cells = 0x0
++ /syscon@ff770000/mipi-dphy-rx0/ports/port@0
+    + reg = 0x0
+    + #address-cells = 0x1
+    + #size-cells = 0x0
++ /syscon@ff770000/mipi-dphy-rx0/ports/port@0/endpoint@1
+    + reg = 0x1
+    + remote-endpoint = &/i2c@ff110000/rk628_csi_v4l2@50/port/endpoint
+    + data-lanes = 0x1 0x2 0x3 0x4
++ /syscon@ff770000/mipi-dphy-rx0/ports/port@1
+    + reg = 0x1
+    + #address-cells = 0x1
+    + #size-cells = 0x0
++ /syscon@ff770000/mipi-dphy-rx0/ports/port@1/endpoint@0
+    + reg = 0x0
+    + remote-endpoint = &/rkisp1@ff910000/port/endpoint@0
+~ /syscon@ff770000/pcie-phy
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/spi3/spi3-tx  ->  &/clock-controller@ff760000 &/pinctrl/uart4/uart4-xfer
+    ~ resets: &/clock-controller@ff760000 &/qos@ffad0000  ->  &/clock-controller@ff760000 &/pinctrl/spi3/spi3-tx
+~ /syscon@ff770000/phy@f780
+    ~ clocks: &/mmc@fe330000  ->  &/sdhci@fe330000
+    - drive-impedance-ohm = 0x32
+    - rockchip,enable-strobe-pulldown = <bool>
+~ /syscon@ff770000/pvtm/pvtm@0
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffac0000  ->  &/clock-controller@ff760000 &/qos@ffa58000
+    ~ resets: &/clock-controller@ff760000 &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG1  ->  &/clock-controller@ff760000 &/pcie@f8000000/interrupt-controller
+~ /syscon@ff770000/pvtm/pvtm@1
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffac0080  ->  &/clock-controller@ff760000 &/qos@ffa5c000
+    ~ resets: &/clock-controller@ff760000 &/pinctrl/sdio0/sdio0-cmd  ->  &/clock-controller@ff760000 &/pinctrl/sdmmc/sdmmc-cmd
+~ /syscon@ff770000/pvtm/pvtm@2
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffa58000  ->  &/clock-controller@ff760000 &/qos@ffa60080
+    ~ resets: &/clock-controller@ff760000 &/pinctrl/uart0/uart0-xfer  ->  &/clock-controller@ff760000 &/pinctrl/uart0/uart0-cts
+~ /syscon@ff770000/pvtm/pvtm@3
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffae0000  ->  &/clock-controller@ff760000 &/qos@ffad8080
+    ~ resets: &/clock-controller@ff760000 &/spi@ff1f0000  ->  &/clock-controller@ff760000 &/thermal-zones/gpu-thermal
++ /syscon@ff770000/usb2-phy@e450
+    + compatible = ['rockchip,rk3399-usb2phy']
+    + reg = 0xe450 0x10
+    + clocks = &/clock-controller@ff760000 &/qos@ffa70000
+    + clock-names = ['phyclk']
+    + #clock-cells = 0x0
+    + clock-output-names = ['clk_usbphy0_480m']
+    + power-domains = &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+    + status = ['okay']
+    + extcon = &/i2c@ff110000/fusb30x@22
++ /syscon@ff770000/usb2-phy@e450/host-port
+    + #phy-cells = 0x0
+    + interrupts = 0x0 0x1b 0x4 0x0
+    + interrupt-names = ['linestate']
+    + status = ['okay']
++ /syscon@ff770000/usb2-phy@e450/otg-port
+    + #phy-cells = 0x0
+    + interrupts = 0x0 0x67 0x4 0x0 0x0 0x68 0x4 0x0 0x0 0x6a 0x4 0x0
+    + interrupt-names = ['otg-bvalid', 'otg-id', 'linestate']
+    + status = ['okay']
++ /syscon@ff770000/usb2-phy@e460
+    + compatible = ['rockchip,rk3399-usb2phy']
+    + reg = 0xe460 0x10
+    + clocks = &/clock-controller@ff760000 &/qos@ffa70080
+    + clock-names = ['phyclk']
+    + #clock-cells = 0x0
+    + clock-output-names = ['clk_usbphy1_480m']
+    + power-domains = &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+    + status = ['okay']
++ /syscon@ff770000/usb2-phy@e460/host-port
+    + #phy-cells = 0x0
+    + interrupts = 0x0 0x1f 0x4 0x0
+    + interrupt-names = ['linestate']
+    + status = ['okay']
++ /syscon@ff770000/usb2-phy@e460/otg-port
+    + #phy-cells = 0x0
+    + interrupts = 0x0 0x6c 0x4 0x0 0x0 0x6d 0x4 0x0 0x0 0x6f 0x4 0x0
+    + interrupt-names = ['otg-bvalid', 'otg-id', 'linestate']
+    + status = ['okay']
+- /syscon@ff770000/usb2phy@e450
+- /syscon@ff770000/usb2phy@e450/host-port
+- /syscon@ff770000/usb2phy@e450/otg-port
+- /syscon@ff770000/usb2phy@e460
+- /syscon@ff770000/usb2phy@e460/host-port
+- /syscon@ff770000/usb2phy@e460/otg-port
+- /tc358749x-sound
+- /tc358749x-sound/simple-audio-card,codec
+- /tc358749x-sound/simple-audio-card,cpu
+- /thermal-zones/cpu-thermal
+- /thermal-zones/cpu-thermal/cooling-maps
+- /thermal-zones/cpu-thermal/cooling-maps/map0
+- /thermal-zones/cpu-thermal/cooling-maps/map1
+- /thermal-zones/cpu-thermal/cooling-maps/map2
+- /thermal-zones/cpu-thermal/trips
+- /thermal-zones/cpu-thermal/trips/cpu_alert0
+- /thermal-zones/cpu-thermal/trips/cpu_alert1
+- /thermal-zones/cpu-thermal/trips/cpu_crit
+~ /thermal-zones/gpu-thermal
+    ~ thermal-sensors: 0x6a 0x1  ->  0x67 0x1
+- /thermal-zones/gpu-thermal/trips
+- /thermal-zones/gpu-thermal/trips/gpu_crit
++ /thermal-zones/soc-thermal
+    + polling-delay-passive = 0x14
+    + polling-delay = 0x3e8
+    + sustainable-power = 0x3e8
+    + thermal-sensors = 0x67 0x0
++ /thermal-zones/soc-thermal/cooling-maps
++ /thermal-zones/soc-thermal/cooling-maps/map0
+    + trip = 0x68
+    + cooling-device = 0x2 0xffffffff 0xffffffff
+    + contribution = 0x1000
++ /thermal-zones/soc-thermal/cooling-maps/map1
+    + trip = 0x68
+    + cooling-device = 0x6 0xffffffff 0xffffffff
+    + contribution = 0x400
++ /thermal-zones/soc-thermal/cooling-maps/map2
+    + trip = 0x68
+    + cooling-device = 0x69 0xffffffff 0xffffffff
+    + contribution = 0x1000
++ /thermal-zones/soc-thermal/trips
++ /thermal-zones/soc-thermal/trips/soc-crit
+    + temperature = 0x1c138
+    + hysteresis = 0x7d0
+    + type = ['critical']
++ /thermal-zones/soc-thermal/trips/trip-point-0
+    + temperature = 0x11170
+    + hysteresis = 0x7d0
+    + type = ['passive']
++ /thermal-zones/soc-thermal/trips/trip-point-1
+    + temperature = 0x14c08
+    + hysteresis = 0x7d0
+    + type = ['passive']
+~ /tsadc@ff260000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/pinctrl/uart0/uart0-xfer  ->  &/clock-controller@ff760000 &/pinctrl/uart0/uart0-cts
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/uart0/uart0-xfer &/clock-controller@ff760000 &/nocp-cci-msch0@ffa86000  ->  &/clock-controller@ff760000 &/pinctrl/uart0/uart0-cts &/clock-controller@ff760000 &/nocp-video-msch1@ffa8f000
+    ~ pinctrl-0: &/pinctrl/tsadc/otp-pin  ->  &/pinctrl/tsadc/otp-gpio
+    ~ resets: &/clock-controller@ff760000 &/spdif-out  ->  &/clock-controller@ff760000 &/pinctrl/wireless-bluetooth/bt-irq-gpio
+    ~ rockchip,hw-tshut-temp: 0x17318  ->  0x1d4c0
++ /usb-tp-regulator
+    + compatible = ['regulator-fixed']
+    + gpio = &/pinctrl/gpio0@ff720000 &/clock-controller@ff760000 0x0
+    + pinctrl-names = ['default']
+    + pinctrl-0 = &/pinctrl/usb/pwr-usb-tp
+    + vin-supply = &/vcc5v0-sys
+    + regulator-name = ['usb_tp_en']
+    + enable-active-high = <bool>
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
++ /usb-tp-regulator/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
++ /usb@fe340000
+    + compatible = ['generic-ehci']
+    + reg = 0x0 0xfe340000 0x0 0x30000
+    + interrupts = 0x0 0x21 0x4 0x0
+    + clocks = &/clock-controller@ff760000 0x1cc &/clock-controller@ff760000 &/qos@ffa74000 &/clock-controller@ff760000 &/dsi@ff968000
+    + clock-names = ['hclk_hsic', 'clk_hsicphy', 'pclk_hsicphy']
+    + rockchip-has-usic = <bool>
+    + status = ['disabled']
+~ /usb@fe380000
+    + clock-names = ['usbhost', 'arbiter', 'utmi']
+    ~ clocks: &/clock-controller@ff760000 0x1c8 &/clock-controller@ff760000 0x1c9 &/syscon@ff770000/usb2phy@e450  ->  &/clock-controller@ff760000 0x1c8 &/clock-controller@ff760000 0x1c9 &/syscon@ff770000/usb2-phy@e450
+    ~ phys: &/syscon@ff770000/usb2phy@e450/host-port  ->  &/syscon@ff770000/usb2-phy@e450/host-port
+    ~ power-domains: &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG2  ->  &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+~ /usb@fe3a0000
+    + clock-names = ['usbhost', 'arbiter', 'utmi']
+    ~ clocks: &/clock-controller@ff760000 0x1c8 &/clock-controller@ff760000 0x1c9 &/syscon@ff770000/usb2phy@e450  ->  &/clock-controller@ff760000 0x1c8 &/clock-controller@ff760000 0x1c9 &/syscon@ff770000/usb2-phy@e450
+    ~ phys: &/syscon@ff770000/usb2phy@e450/host-port  ->  &/syscon@ff770000/usb2-phy@e450/host-port
+    ~ power-domains: &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG2  ->  &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+~ /usb@fe3c0000
+    + clock-names = ['usbhost', 'arbiter', 'utmi']
+    ~ clocks: &/clock-controller@ff760000 0x1ca &/clock-controller@ff760000 0x1cb &/syscon@ff770000/usb2phy@e460  ->  &/clock-controller@ff760000 0x1ca &/clock-controller@ff760000 0x1cb &/syscon@ff770000/usb2-phy@e460
+    ~ phys: &/syscon@ff770000/usb2phy@e460/host-port  ->  &/syscon@ff770000/usb2-phy@e460/host-port
+    ~ power-domains: &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG2  ->  &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+~ /usb@fe3e0000
+    + clock-names = ['usbhost', 'arbiter', 'utmi']
+    ~ clocks: &/clock-controller@ff760000 0x1ca &/clock-controller@ff760000 0x1cb &/syscon@ff770000/usb2phy@e460  ->  &/clock-controller@ff760000 0x1ca &/clock-controller@ff760000 0x1cb &/syscon@ff770000/usb2-phy@e460
+    ~ phys: &/syscon@ff770000/usb2phy@e460/host-port  ->  &/syscon@ff770000/usb2-phy@e460/host-port
+    ~ power-domains: &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG2  ->  &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@1b/regulators/DCDC_REG2
+~ /usb@fe800000
+    ~ clock-names: ['ref_clk', 'suspend_clk', 'bus_clk', 'aclk_usb3_rksoc_axi_perf', 'aclk_usb3', 'grf_clk']  ->  ['ref_clk', 'suspend_clk', 'bus_clk', 'grf_clk']
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffaa0000 &/clock-controller@ff760000 &/qos@ffaa8000 &/clock-controller@ff760000 &/pinctrl/usb2/host-vbus-drv &/clock-controller@ff760000 &/pinctrl/usb-typec/vcc5v0-typec0-en &/clock-controller@ff760000 &/i2s@ff880000 &/clock-controller@ff760000 &/efuse@ff690000/cpu-id@7  ->  &/clock-controller@ff760000 &/qos@ffaa8080 &/clock-controller@ff760000 &/qos@ffac8080 &/clock-controller@ff760000 &/display-subsystem &/clock-controller@ff760000 &/display-subsystem/route/route-dsi1
++ /usb@fe800000/dwc3@fe800000
+    + compatible = ['snps,dwc3']
+    + reg = 0x0 0xfe800000 0x0 0x100000
+    + interrupts = 0x0 0x69 0x4 0x0
+    + dr_mode = ['otg']
+    + phys = &/syscon@ff770000/usb2-phy@e450/otg-port &/phy@ff7c0000/usb3-port
+    + phy-names = ['usb2-phy', 'usb3-phy']
+    + phy_type = ['utmi_wide']
+    + power-domains = &/power-management@ff310000/power-controller &/vop@ff8f0000/port/endpoint@2
+    + resets = &/clock-controller@ff760000 &/syscon@ff320000/io-domains
+    + reset-names = ['usb3-otg']
+    + snps,dis_enblslpm_quirk = <bool>
+    + snps,dis-u1u2-quirk = <bool>
+    + snps,dis-u2-freeclk-exists-quirk = <bool>
+    + snps,dis_u2_susphy_quirk = <bool>
+    + snps,dis-del-phy-power-chg-quirk = <bool>
+    + snps,dis-tx-ipgap-linecheck-quirk = <bool>
+    + snps,xhci-slow-suspend-quirk = <bool>
+    + snps,xhci-trb-ent-quirk = <bool>
+    + snps,xhci-warm-reset-on-suspend-quirk = <bool>
+    + status = ['okay']
+    + extcon = &/i2c@ff110000/fusb30x@22
+- /usb@fe800000/usb@fe800000
+- /usb@fe800000/usb@fe800000/port
+- /usb@fe800000/usb@fe800000/port/endpoint@0
+~ /usb@fe900000
+    ~ clock-names: ['ref_clk', 'suspend_clk', 'bus_clk', 'aclk_usb3_rksoc_axi_perf', 'aclk_usb3', 'grf_clk']  ->  ['ref_clk', 'suspend_clk', 'bus_clk', 'grf_clk']
+    ~ clocks: &/clock-controller@ff760000 &/qos@ffaa0080 &/clock-controller@ff760000 &/qos@ffaa8080 &/clock-controller@ff760000 &/pinctrl/usbnet/usbnet-pwr-drv &/clock-controller@ff760000 &/pinctrl/usb-typec/vcc5v0-typec0-en &/clock-controller@ff760000 &/i2s@ff880000 &/clock-controller@ff760000 &/efuse@ff690000/cpu-id@7  ->  &/clock-controller@ff760000 &/qos@ffac8000 &/clock-controller@ff760000 &/qos@ffad0000 &/clock-controller@ff760000 &/display-subsystem/route/route-hdmi &/clock-controller@ff760000 &/display-subsystem/route/route-dsi1
++ /usb@fe900000/dwc3@fe900000
+    + compatible = ['snps,dwc3']
+    + reg = 0x0 0xfe900000 0x0 0x100000
+    + interrupts = 0x0 0x6e 0x4 0x0
+    + dr_mode = ['host']
+    + phys = &/syscon@ff770000/usb2-phy@e460/otg-port &/phy@ff800000/usb3-port
+    + phy-names = ['usb2-phy', 'usb3-phy']
+    + phy_type = ['utmi_wide']
+    + power-domains = &/power-management@ff310000/power-controller &/vop@ff8f0000/port/endpoint@2
+    + resets = &/clock-controller@ff760000 &/syscon@ff320000/reboot-mode
+    + reset-names = ['usb3-otg']
+    + snps,dis_enblslpm_quirk = <bool>
+    + snps,dis-u2-freeclk-exists-quirk = <bool>
+    + snps,dis_u2_susphy_quirk = <bool>
+    + snps,dis-del-phy-power-chg-quirk = <bool>
+    + snps,dis-tx-ipgap-linecheck-quirk = <bool>
+    + snps,xhci-slow-suspend-quirk = <bool>
+    + snps,xhci-trb-ent-quirk = <bool>
+    + snps,xhci-warm-reset-on-suspend-quirk = <bool>
+    + status = ['okay']
+- /usb@fe900000/usb@fe900000
+- /vbus-typec-regulator
++ /vcc-12v-lcd
+    + compatible = ['regulator-fixed']
+    + regulator-name = ['vcc_12v_lcd']
+    + regulator-boot-on = <bool>
+    + enable-active-high = <bool>
+    + regulator-always-on = <bool>
+    + gpio = &/pinctrl/gpio1@ff730000 &/interrupt-controller@fee00000 0x0
+    + pinctrl-names = ['default']
+    + pinctrl-0 = &/pinctrl/lcd/lcd-12V-gpio
+    + vin-supply = &/vcc12v-dcin
++ /vcc-12v-lcd/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
++ /vcc-en-lcd
+    + compatible = ['regulator-fixed']
+    + regulator-name = ['vcc_en_lcd']
+    + regulator-boot-on = <bool>
+    + enable-active-high = <bool>
+    + regulator-always-on = <bool>
+    + gpio = &/pinctrl/gpio1@ff730000 &/cpus/cpu@1 0x0
+    + pinctrl-names = ['default']
+    + pinctrl-0 = &/pinctrl/lcd/lcd-en-gpio
+    + vin-supply = &/vcc12v-dcin
++ /vcc-en-lcd/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
+- /vcc-lcd
+~ /vcc-phy-regulator
+    - regulator-always-on = <bool>
++ /vcc-phy-regulator/regulator-state-mem
+    + regulator-on-in-suspend = <bool>
++ /vcc-sys
+    + compatible = ['regulator-fixed']
+    + enable-active-high = <bool>
+    + regulator-name = ['vcc_sys']
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0x4c4b40
+    + regulator-max-microvolt = 0x4c4b40
++ /vcc-wl-regulator
+    + compatible = ['regulator-fixed']
+    + gpio = &/pinctrl/gpio3@ff788000 &/energy-costs/rk3399-core-cost1 &/interrupt-controller@fee00000
+    + pinctrl-names = ['default']
+    + pinctrl-0 = &/pinctrl/vcc-wl/pwr-wl
+    + regulator-name = ['vcc_wl']
+    + enable-active-low = <bool>
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
++ /vcc-wl-regulator/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
++ /vcc12v-dcin
+    + compatible = ['regulator-fixed']
+    + regulator-name = ['vcc12v_dcin']
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0xb71b00
+    + regulator-max-microvolt = 0xb71b00
++ /vcc12v-dcin/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
++ /vcc3v3-sys
+    + compatible = ['regulator-fixed']
+    + regulator-name = ['vcc3v3_sys']
+    + regulator-always-on = <bool>
+    + regulator-boot-on = <bool>
+    + regulator-min-microvolt = 0x325aa0
+    + regulator-max-microvolt = 0x325aa0
++ /vcc3v3-sys/regulator-state-mem
+    + regulator-off-in-suspend = <bool>
+- /vcc5v0-host-regulator
+~ /vcc5v0-sys
+    - enable-active-high = <bool>
+    - gpio = &/pinctrl/gpio@ff790000 &/vop@ff900000/port/endpoint@0 0x0
+    + vin-supply = &/vcc12v-dcin
+~ /vcc5v0-usbnet
+    ~ gpio: &/pinctrl/gpio@ff790000 &/i2c@ff3c0000/tcs4525@1c 0x0  ->  &/pinctrl/gpio4@ff790000 &/i2c@ff3c0000/syr837@40 0x0
+    ~ status: ['okay']  ->  ['disabled']
+~ /vdpu@ff650400
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/uart0/uart0-rts &/clock-controller@ff760000 0x1ea  ->  &/clock-controller@ff760000 &/pinctrl/rk-modem/lte-power-en &/clock-controller@ff760000 0x1ea
+    ~ power-domains: &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG1  ->  &/power-management@ff310000/power-controller &/pcie@f8000000/interrupt-controller
+    ~ resets: &/clock-controller@ff760000 &/pinctrl/uart3/uart3-xfer &/clock-controller@ff760000 &/pinctrl/uart1/uart1-xfer  ->  &/clock-controller@ff760000 &/pinctrl/spi0/spi0-clk &/clock-controller@ff760000 &/pinctrl/uart2c/uart2c-xfer
+    ~ rockchip,srv: 0xa8  ->  0x9e
+- /vendor-storage
+~ /vepu@ff650000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/uart0/uart0-rts &/clock-controller@ff760000 0x1ea  ->  &/clock-controller@ff760000 &/pinctrl/rk-modem/lte-power-en &/clock-controller@ff760000 0x1ea
+    ~ power-domains: &/power-management@ff310000/power-controller &/i2c@ff3c0000/pmic@20/regulators/DCDC_REG1  ->  &/power-management@ff310000/power-controller &/pcie@f8000000/interrupt-controller
+    ~ resets: &/clock-controller@ff760000 &/pinctrl/uart3/uart3-xfer &/clock-controller@ff760000 &/pinctrl/uart1/uart1-xfer  ->  &/clock-controller@ff760000 &/pinctrl/spi0/spi0-clk &/clock-controller@ff760000 &/pinctrl/uart2c/uart2c-xfer
+    ~ rockchip,srv: 0xa8  ->  0x9e
+- /video-codec@ff650000
+- /video-codec@ff660000
+~ /vop@ff8f0000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/iommu@ff8f3f00  ->  &/clock-controller@ff760000 &/dsi@ff968000/ports/port/endpoint@0
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/pcfg-pull-down &/clock-controller@ff760000 &/pinctrl/i2s0/i2s0-8ch-bus-bclk-off &/clock-controller@ff760000 0x1db &/clock-controller@ff760000 &/iommu@ff8f3f00  ->  &/clock-controller@ff760000 &/pinctrl/headphone/hp-det &/clock-controller@ff760000 &/hdmi@ff940000/ports/port/endpoint@0 &/clock-controller@ff760000 0x1db &/clock-controller@ff760000 &/dsi@ff968000/ports/port/endpoint@0
+    ~ power-domains: &/power-management@ff310000/power-controller &/i2c@ff3c0000/tcs4525@1c  ->  &/power-management@ff310000/power-controller &/i2c@ff3c0000/syr837@40
+    ~ resets: &/clock-controller@ff760000 &/dp@fec00000/ports/port &/clock-controller@ff760000 &/i2c@ff120000 &/clock-controller@ff760000 &/i2c@ff140000  ->  &/clock-controller@ff760000 &/i2c@ff140000 &/clock-controller@ff760000 &/serial@ff190000 &/clock-controller@ff760000 &/serial@ff1b0000
+~ /vop@ff8f0000/port/endpoint@0
+    ~ remote-endpoint: &/dsi@ff960000/ports/port@0/endpoint@1  ->  &/dsi@ff960000/ports/port/endpoint@1
+~ /vop@ff8f0000/port/endpoint@2
+    ~ remote-endpoint: &/hdmi@ff940000/ports/port@0/endpoint@1  ->  &/hdmi@ff940000/ports/port/endpoint@1
+~ /vop@ff8f0000/port/endpoint@3
+    ~ remote-endpoint: &/dsi@ff968000/ports/port@0/endpoint@1  ->  &/dp@fec00000/ports/port/endpoint@1
+~ /vop@ff8f0000/port/endpoint@4
+    ~ remote-endpoint: &/dp@fec00000/ports/port/endpoint@1  ->  &/dsi@ff968000/ports/port/endpoint@1
+~ /vop@ff900000
+    ~ assigned-clocks: &/clock-controller@ff760000 &/pinctrl/i2s1/i2s1-2ch-bus  ->  &/clock-controller@ff760000 &/dp@fec00000/ports/port/endpoint@0
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/pcfg-pull-none-12ma &/clock-controller@ff760000 &/pinctrl/i2s0/i2s0-8ch-bus &/clock-controller@ff760000 0x1d9 &/clock-controller@ff760000 &/pinctrl/i2s1/i2s1-2ch-bus  ->  &/clock-controller@ff760000 &/spdif@ff870000 &/clock-controller@ff760000 &/dsi@ff960000/ports/port/endpoint@0 &/clock-controller@ff760000 0x1d9 &/clock-controller@ff760000 &/dp@fec00000/ports/port/endpoint@0
+    ~ resets: &/clock-controller@ff760000 &/usb@fe900000/usb@fe900000 &/clock-controller@ff760000 &/i2c@ff110000/tc358749x@f &/clock-controller@ff760000 &/i2c@ff130000  ->  &/clock-controller@ff760000 &/i2c@ff130000 &/clock-controller@ff760000 &/serial@ff180000 &/clock-controller@ff760000 &/serial@ff1a0000
+~ /vop@ff900000/port/endpoint@1
+    ~ remote-endpoint: &/dsi@ff960000/ports/port@0/endpoint@0  ->  &/dsi@ff960000/ports/port/endpoint@0
+~ /vop@ff900000/port/endpoint@2
+    ~ remote-endpoint: &/hdmi@ff940000/ports/port@0/endpoint@0  ->  &/hdmi@ff940000/ports/port/endpoint@0
+~ /vop@ff900000/port/endpoint@3
+    ~ remote-endpoint: &/dsi@ff968000/ports/port@0/endpoint@0  ->  &/dp@fec00000/ports/port/endpoint@0
+~ /vop@ff900000/port/endpoint@4
+    ~ remote-endpoint: &/dp@fec00000/ports/port/endpoint@0  ->  &/dsi@ff968000/ports/port/endpoint@0
+~ /voppwm@ff8f01a0
+    ~ clocks: &/clock-controller@ff760000 &/gpu@ff9a0000  ->  &/clock-controller@ff760000 &/qos@ffa98000
+~ /voppwm@ff9001a0
+    ~ clocks: &/clock-controller@ff760000 &/thermal-zones/cpu-thermal/trips/cpu_alert1  ->  &/clock-controller@ff760000 &/pinctrl/tsadc/otp-out
+~ /watchdog@ff848000
+    ~ clocks: &/clock-controller@ff760000 &/pinctrl/pcfg-pull-down-4ma  ->  &/clock-controller@ff760000 &/pinctrl/sdio0/sdio0-bus1
+    ~ compatible: ['rockchip,rk3399-wdt', 'snps,dw-wdt']  ->  ['snps,dw-wdt']
+~ /wireless-bluetooth
+    ~ BT,reset_gpio: &/pinctrl/gpio@ff720000 &/cpus/idle-states/cpu-sleep 0x0  ->  &/pinctrl/gpio0@ff720000 &/cpus/idle-states/cpu-sleep 0x0
+    ~ BT,wake_gpio: &/pinctrl/gpio@ff720000 &/cpus/cpu@2 0x0  ->  &/pinctrl/gpio2@ff780000 &/vop@ff8f0000/port/endpoint@4 0x0
+    ~ BT,wake_host_irq: &/pinctrl/gpio@ff780000 &/syscon@ff320000 0x0  ->  &/pinctrl/gpio0@ff720000 &/cpus/cpu@2 0x0
+    ~ clocks: &/i2c@ff3c0000/pmic@20 &/interrupt-controller@fee00000  ->  &/i2c@ff3c0000/pmic@1b &/interrupt-controller@fee00000
+    ~ uart_rts_gpios: &/pinctrl/gpio@ff780000 &/vop@ff900000/port &/interrupt-controller@fee00000  ->  &/pinctrl/gpio2@ff780000 &/vop@ff900000/port &/interrupt-controller@fee00000
+~ /wireless-wlan
+    ~ WIFI,host_wake_irq: &/pinctrl/gpio@ff720000 &/cpus/cpu@1 0x0  ->  &/pinctrl/gpio0@ff720000 &/cpus/cpu@1 0x0
+    - WIFI,poweren_gpio = &/pinctrl/gpio@ff720000 &/cpus/idle-states/cluster-sleep 0x0
+    ~ wifi_chip_type: ['ap6354']  ->  ['ap6335']
