@@ -53,6 +53,8 @@ def save_settings():
 
 
 SETTINGS = load_settings()
+for _k in ('brightness', 'color_temp', 'volume'):  # older versions persisted these; RAM only now
+    SETTINGS.pop(_k, None)
 NAME = CONF.get('DEVICE_NAME', 'Wallpanel')
 NODE = re.sub(r'[^a-z0-9_]', '_', CONF.get('DEVICE_ID', socket.gethostname()).lower())
 BASE = f'wallpanel/{NODE}'
@@ -100,8 +102,8 @@ class Display:
 
     def __init__(self):
         self.max = int(read(f'{BACKLIGHT}/max_brightness', '255') or 255)
-        self.brightness = int(SETTINGS.get('brightness', 200))  # last brightness set from HA
-        self.kelvin = int(SETTINGS.get('color_temp', self.KELVIN[1]))
+        self.brightness = 200  # brightness, colour temperature and volume live in RAM only:
+        self.kelvin = self.KELVIN[1]  # they change often (Adaptive Lighting, AirPlay) and would wear the eMMC
         self.backlight_on = True
         self.locked = bool(SETTINGS.get('display_lock', False))
         # stay dark after an api restart or reboot at night (kiosk_loop pauses the page once it is up)
@@ -139,9 +141,7 @@ class Display:
         value = max(0, min(self.max, int(value)))
         with self.lock:
             if value:
-                self.brightness = value
-                SETTINGS['brightness'] = value
-                save_settings()
+                self.brightness = value  # RAM only: Adaptive Lighting sets it again after a restart
             self.backlight_on = value > 0
             self._apply()
 
@@ -217,9 +217,7 @@ class Display:
         with self.lock:
             if value == self.kelvin:
                 return
-            self.kelvin = value
-            SETTINGS['color_temp'] = value
-            save_settings()
+            self.kelvin = value  # RAM only (no eMMC writes every 90 s from Adaptive Lighting)
         self.ensure_gamma()
 
     CT_SCALE = (50, 150, 83)  # %, min/max/default of the colour calibration
@@ -310,21 +308,18 @@ class Volume:
             return 0
         return max(1, min(100, round(100 * (1 + float(db.group(1)) / self.RANGE_DB))))
 
-    def set(self, pct, save=True):
+    def set(self, pct):
         pct = max(0, min(100, int(round(pct))))
         db = -self.RANGE_DB * (1 - pct / 100)
         # 0 % -> minimum ("0" = raw 0); else the dB value, amixer clamps it to the control's range
         if sh('amixer', '-q', '-c', self.card, 'sset', self.control, '--',
               f'{db:.2f}dB' if pct else '0').returncode:
             sh('amixer', '-q', '-c', self.card, 'sset', self.control, f'{pct}%')  # control without dB
-        if save:
-            SETTINGS['volume'] = pct
-            save_settings()
         return self.get()
 
     def restore(self):
-        """Last volume on api start (fresh install: 30 %)."""
-        self.set(SETTINGS.get('volume', 30), save=False)
+        """Volume on api start: 30 % (RAM only, never saved)."""
+        self.set(30)
 
 
 # --- browser (Chrome DevTools Protocol, local only) ----------------------
@@ -1162,6 +1157,18 @@ def auto_off_loop():
                 MQ.publish_state()
 
 
+def volume_watch():
+    """AirPlay (shairport-sync) sets the same DAC control: report outside changes to HA within ~2 s."""
+    last = volume.get()
+    while True:
+        time.sleep(2)
+        v = volume.get()
+        if v != last:
+            last = v
+            if MQ:
+                MQ.publish_state()
+
+
 def gamma_loop():
     """Keep the night shift applied across kiosk/compositor restarts."""
     while True:
@@ -1883,6 +1890,7 @@ def main():
     threading.Thread(target=update_checker, daemon=True).start()
     threading.Thread(target=kiosk_loop, daemon=True).start()
     threading.Thread(target=auto_off_loop, daemon=True).start()
+    threading.Thread(target=volume_watch, daemon=True).start()
     update_page.start()
     if MQ:
         def periodic():

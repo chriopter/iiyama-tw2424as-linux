@@ -60,4 +60,4 @@ buffer in RAM (~0.3 MB, lost on restart, nothing written to the eMMC); the page 
 | `rootfs/etc/init.d/wallpanel-api` | OpenRC service |
 | `wallpanel.conf.example` | template for `/etc/wallpanel/wallpanel.conf` (shared with the kiosk) |
 
-State (brightness, colour temperature, volume, reboot time) persists across reboots in `/var/lib/wallpanel/api-state.json`.
+Settings (lock, standby, maintenance time, fade/auto-off times, start page, …) persist in `/var/lib/wallpanel/api-state.json`. Brightness, colour temperature and volume live in RAM only (they change every few minutes via Adaptive Lighting/AirPlay and would wear the eMMC); after a restart: volume 30 %, brightness 200, neutral colour – Adaptive Lighting sets its values again. AirPlay volume changes reach HA within ~2 s.
