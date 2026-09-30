@@ -49,7 +49,7 @@ done
 # Extension with the configured home URL (navigation lock + paint containment)
 cp /usr/lib/wallpanel/extension/* "$EXT/"
 printf 'const WALLPANEL_HOME = %s;\n' "\"$URL\"" > "$EXT/config.js"
-# tweaks for the content scripts (update page / MQTT "Kopfleiste ausblenden")
+# tweaks for the content scripts (update page / MQTT "HA-Kopfleiste ausblenden")
 [ "$(st hide_header)" = True ] && HIDE_HEADER=true || HIDE_HEADER=false
 printf 'const WALLPANEL_TWEAKS = { hideHeader: %s };\n' "$HIDE_HEADER" > "$EXT/settings.js"
 # Chromium caches the extension service worker's importScripts (config.js) in the profile and keeps

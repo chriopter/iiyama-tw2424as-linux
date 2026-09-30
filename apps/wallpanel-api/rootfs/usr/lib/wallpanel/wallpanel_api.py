@@ -607,7 +607,7 @@ def set_scale(payload):
 
 
 def hide_header():
-    """Tweak "Kopfleiste ausblenden": the kiosk extension hides Home Assistant's top bar and keeps only its
+    """Tweak "HA-Kopfleiste ausblenden": the kiosk extension hides Home Assistant's top bar and keeps only its
     search and Assist buttons, top right next to the badges (read at kiosk start)."""
     return bool(SETTINGS.get('hide_header', False))
 
@@ -722,9 +722,18 @@ def now_iso():
     return time.strftime('%Y-%m-%dT%H:%M:%S%z')
 
 
+def apk_update():
+    """Fresh package indexes (to /var/cache/apk, RAM). apk locks its database even for that, so / is made
+    writable for a moment (read-only root)."""
+    try:
+        return subprocess.run(rw_cmd('apk', 'update', '-q'), capture_output=True, timeout=180).returncode
+    except subprocess.TimeoutExpired:
+        return 1
+
+
 def check_updates():
     """Number of upgradable packages (apk update + simulated upgrade); the list goes to the update page."""
-    if sh('apk', 'update', '-q').returncode != 0:
+    if apk_update() != 0:
         return None
     out = subprocess.run(['apk', 'upgrade', '--simulate', '--no-interactive'], capture_output=True, text=True,
                          timeout=300).stdout
@@ -754,7 +763,7 @@ def install_updates(then_reboot=False, full=False):
         cmd = rw_cmd(*(['apk', 'upgrade', '--no-interactive'] if full else ['apk', 'add', '-u', '--no-interactive', *pkgs]))
         if not full and not pkgs:
             cmd = ['true']
-        if sh('apk', 'update', '-q').returncode != 0:
+        if apk_update() != 0:
             UPDATE['log'].append('apk update fehlgeschlagen (Netzwerk?)')
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         deadline = time.time() + 1800
@@ -1061,7 +1070,7 @@ class Mqtt:
                                         'json_attributes_topic': f'{BASE}/state',
                                         'json_attributes_template': '{{ {"result": value_json.last_update_result} | tojson }}',
                                         'icon': 'mdi:package-variant-closed-check', 'entity_category': 'diagnostic'},
-            ('switch', 'hide_header'): {'name': 'Kopfleiste ausblenden', 'icon': 'mdi:page-layout-header',
+            ('switch', 'hide_header'): {'name': 'HA-Kopfleiste ausblenden', 'icon': 'mdi:page-layout-header',
                                         'command_topic': f'{BASE}/hide_header/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.hide_header else 'OFF' }}",
                                         'entity_category': 'config'},
@@ -1615,7 +1624,9 @@ button:disabled, button.kernel:disabled { background:#333; color:#777; }
 #tab-svc { display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; }
 #tab-svc[hidden] { display:none; }
 #tab-svc .col { display:flex; flex-direction:column; gap:24px; min-height:0; }
-#tab-svc section { gap:10px; overflow:hidden; flex:1; }
+#tab-svc section { gap:4px; overflow:hidden; flex:1; }
+#tab-svc .ctl { padding:3px 0; }
+#tab-svc input[type=range] { height:40px; }
 #tab-svc section.local { flex:none; background:transparent; border:2px dashed var(--line); box-shadow:none; }
 #tab-svc h2 .tag { margin-left:auto; font-size:15px; font-weight:400; color:var(--dim); background:#2a2a2a;
   padding:3px 12px; border-radius:10px; }
@@ -1860,9 +1871,9 @@ const ms = (v) => `${num(v)} ms`, min = (v) => v ? `${num(v)} min` : 'nie';
 const scaleFmt = (v) => `${v} % · ${Math.round(V.panel_res[0] * 100 / v)}×${Math.round(V.panel_res[1] * 100 / v)}`;
 const TIMES = Array.from({length: 48}, (_, i) => `${String(i >> 1).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 // Sections marked HA mirror the Home Assistant entities (same names, same command() as MQTT); "Nur am Gerät"
-// exists only here. Columns: [Bildschirm] [Seite & Ton] [Wartung + Nur am Gerät].
+// exists only here. Columns by topic: [Bildschirm & Ton] [Browser] [System + Nur am Gerät].
 const SVC = [
-  {h: 'Bildschirm', ha: true, col: 0, xs: [
+  {h: 'Bildschirm & Ton', ha: true, col: 0, xs: [
     {t: 'range', k: 'brightness', label: 'Helligkeit', sub: 'Bildschirm-Beleuchtung', min: 1, max: () => V.max_brightness,
       fmt: (v) => `${Math.round(100 * v / V.max_brightness)} %`, send: (v) => cmd('display', {brightness: v})},
     {t: 'range', k: 'color_temp', label: 'Farbtemperatur', sub: 'Bildschirm-Beleuchtung', min: 1000, max: () => 6500, step: 50,
@@ -1872,17 +1883,17 @@ const SVC = [
     {t: 'range', k: 'touch_fade_ms', label: 'Bildschirm-Überblendung bei Berührung', min: 0, max: () => 3000, step: 10, fmt: ms},
     {t: 'step', k: 'auto_off', label: 'Bildschirm aus nach', list: [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240], fmt: min},
     {t: 'switch', k: 'locked', c: 'display_lock', label: 'Bildschirm gesperrt', sub: 'aus, nur die Ein/Aus-Taste weckt'},
-  ]},
-  {h: 'Seite & Ton', ha: true, col: 1, xs: [
     {t: 'range', k: 'volume', label: 'Lautstärke', min: 0, max: () => 100, fmt: (v) => `${v} %`},
+  ]},
+  {h: 'Browser', ha: true, col: 1, xs: [
     {t: 'scale', k: 'scale', label: 'Skalierung', sub: 'Home Assistant größer oder kleiner', fmt: scaleFmt},
-    {t: 'switch', k: 'hide_header', label: 'Kopfleiste ausblenden', sub: 'Suche & Assist neben die Status-Pillen'},
+    {t: 'switch', k: 'hide_header', label: 'HA-Kopfleiste ausblenden', sub: 'Suche & Assist neben die Status-Pillen'},
     {t: 'step', k: 'home_after', label: 'Startseite laden nach', sub: 'wenn der Bildschirm so lange aus ist',
       list: [0, 5, 10, 15, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1440], fmt: min},
     {t: 'act', c: 'reload', label: 'Seite neu laden', sub: 'schließt diese Seite'},
     {t: 'act', c: 'restart_kiosk', label: 'Browser neu starten'},
   ]},
-  {h: 'Wartung', ha: true, col: 2, xs: [
+  {h: 'System', ha: true, col: 2, xs: [
     {t: 'switch', k: 'reboot_enabled', label: 'Neustart täglich'},
     {t: 'step', k: 'reboot_time', label: 'Wartungszeit', list: TIMES, fmt: (v) => `${v} Uhr`},
     {t: 'switch', k: 'auto_update', label: 'Auto-Update Apps', sub: 'Chrome & AirPlay, täglich zur Wartungszeit'},

@@ -3,7 +3,7 @@
 // themselves instead of large parts of the dashboard (measured: ~18 -> ~38 fps).
 // Also hide scrollbars (touch scrolling keeps working): HA scrolls inside shadow
 // roots, which a page-level stylesheet does not reach, so each root gets its own.
-// Tweak "Kopfleiste ausblenden" (settings.js, WALLPANEL_TWEAKS.hideHeader): Home Assistant's top bar goes, only
+// Tweak "HA-Kopfleiste ausblenden" (settings.js, WALLPANEL_TWEAKS.hideHeader): Home Assistant's top bar goes, only
 // its search and Assist buttons stay - top right, next to the badges; saves ~56 px. Not in edit mode and not on
 // dashboards with view tabs (the tabs are the navigation).
 (() => {

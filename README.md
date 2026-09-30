@@ -128,8 +128,16 @@ Only three partitions change; bootloader, `misc` and Android `super` stay untouc
 | App | What it does | Network |
 |---|---|---|
 | [`wallpanel-kiosk`](apps/wallpanel-kiosk/) | Chromium fullscreen (cage/Wayland) with the Home Assistant dashboard: GPU raster, locked to the HA URL, per-card isolation for smooth animations, restarts on crash, runs unprivileged | outbound to HA; DevTools 9222/tcp localhost only |
-| [`wallpanel-api`](apps/wallpanel-api/) | Home Assistant integration via MQTT discovery – display on/off (instant standby) + lock, brightness, night shift, volume, home page, return to home page after N min dark, auto reboot with time, reload/restart/reboot buttons, CPU/memory/disk/temperature/WiFi sensors; keeps the kiosk fullscreen and logged in, reloads it when memory runs full while dark; Vol± with on-screen overlay, power key toggles standby | outbound MQTT, no open port |
+| [`wallpanel-api`](apps/wallpanel-api/) | Home Assistant integration via MQTT discovery – display on/off (instant standby) + lock, brightness, night shift, volume, home page, return to home page after N min dark, browser scaling, HA top bar tweak, auto reboot with time, reload/restart/reboot buttons, CPU/memory/disk/temperature/WiFi sensors; keeps the kiosk fullscreen and logged in, reloads it when memory runs full while dark; Vol± with on-screen overlay, power key toggles standby | outbound MQTT, no open port |
 | [`wallpanel-airplay`](apps/wallpanel-airplay/) | AirPlay 1 speaker (shairport-sync + avahi) for iPhone/Mac and Home Assistant via Music Assistant; plays through the shared dmix next to Chromium, AirPlay volume = panel volume (same DAC control and scale), optional password | mDNS 5353/udp, 5000/tcp, 6001–6010/udp |
+
+**On-screen update page** (tap the screen 10× within 4 s, or the HA switch *Update-Seite anzeigen*): updates of
+apps, system and kernel with live graphs, and all settings – grouped by topic, marked whether they also exist in
+Home Assistant ([`wallpanel-api`](apps/wallpanel-api/)).
+
+| Updates | Einstellungen & Service |
+|---|---|
+| ![Update page, tab Updates](docs/images/update-page-updates.png) | ![Update page, tab Einstellungen & Service](docs/images/update-page-settings.png) |
 
 ## Services and ports
 
@@ -291,7 +299,7 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 | `ct_scale` | Farbton-Abgleich | 50–150 (%) |
 | `display_lock`, `standby` | Bildschirm gesperrt, Bildschirm an/aus | true/false |
 | `fade_ms`, `touch_fade_ms` | Bildschirm-Überblendung (bei Berührung) | 0–3000 ms |
-| `hide_header` | Kopfleiste ausblenden | true/false |
+| `hide_header` | HA-Kopfleiste ausblenden | true/false |
 | `home_after`, `home_url` | Startseite laden nach, Startseite | minutes (0 = never); URL, missing = `KIOSK_URL` |
 | `reboot_enabled`, `reboot_time` | Neustart täglich, Wartungszeit | true/false; `HH:MM` in 30-min steps |
 | `scale` | Skalierung | 75, 80, 90, 100, 110, 125, 150, 175, 200 |
