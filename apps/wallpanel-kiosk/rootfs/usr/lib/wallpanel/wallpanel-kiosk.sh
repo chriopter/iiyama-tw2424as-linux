@@ -3,23 +3,31 @@
 # Runs as the unprivileged user "wallpanel"; started and respawned by OpenRC.
 set -eu
 . /etc/wallpanel/wallpanel.conf
-# Start page set from Home Assistant (MQTT text "Home page", saved by wallpanel-api) wins over the config
-H=$(python3 -c "import json; print(json.load(open('/var/lib/wallpanel/api-state.json')).get('home_url', ''))" 2>/dev/null) || H=
+# Start page (MQTT text "Home page") and scaling (update page "Skalierung", percent) saved by wallpanel-api:
+# the start page wins over the config; the scaling is the page zoom of Home Assistant (extension)
+st() { python3 -c "import json, sys; print(json.load(open('/var/lib/wallpanel/api-state.json')).get(sys.argv[1], ''))" "$1" 2>/dev/null || true; }
+H=$(st home_url)
 [ -n "$H" ] && URL=$H
+S=$(st scale)
+SCALE=$(awk -v s="${S:-100}" 'BEGIN { if (s < 50 || s > 300) s = 100; printf "%g", s / 100 }')
 : "${URL:?URL not set in /etc/wallpanel/wallpanel.conf}"
 ROTATION=${ROTATION:-180}
 OUTPUT=${OUTPUT:-DSI-1}
-DATA=/var/lib/wallpanel
-EXT=$DATA/extension
+# Everything Chromium writes lives in RAM (/run/wallpanel, own tmpfs): the root file system is read-only.
+# The profile comes from the last save on the eMMC (kiosk-profile.sh: HA login, permissions, preferences).
+RUN=/run/wallpanel
+PROFILE=$RUN/chromium
+EXT=$RUN/extension
 
-export XDG_RUNTIME_DIR=/run/wallpanel LIBSEAT_BACKEND=seatd HOME=$DATA
-mkdir -p "$XDG_RUNTIME_DIR" "$DATA/chromium" "$EXT"
+export XDG_RUNTIME_DIR=$RUN LIBSEAT_BACKEND=seatd HOME=$RUN/home
+mkdir -p "$HOME" "$EXT"
+/usr/lib/wallpanel/kiosk-profile.sh restore
 
 # Trusted server certificates (e.g. a self-signed Home Assistant certificate): every
 # /etc/wallpanel/trust/*.crt goes into Chromium's NSS database, CA:FALSE certificates as trusted peer.
-NSS=sql:$DATA/.pki/nssdb
-mkdir -p "$DATA/.pki/nssdb"
-[ -f "$DATA/.pki/nssdb/cert9.db" ] || certutil -N -d "$NSS" --empty-password
+NSS=sql:$HOME/.pki/nssdb
+mkdir -p "$HOME/.pki/nssdb"
+[ -f "$HOME/.pki/nssdb/cert9.db" ] || certutil -N -d "$NSS" --empty-password
 for c in /etc/wallpanel/trust/*.crt; do
 	[ -f "$c" ] || continue
 	t=$(python3 - "$c" <<'PY'
@@ -41,26 +49,15 @@ done
 
 # Extension with the configured home URL (navigation lock + paint containment)
 cp /usr/lib/wallpanel/extension/* "$EXT/"
-printf 'const WALLPANEL_HOME = %s;\n' "\"$URL\"" > "$EXT/config.js"
+printf 'const WALLPANEL_HOME = %s;\nconst WALLPANEL_ZOOM = %s;\n' "\"$URL\"" "$SCALE" > "$EXT/config.js"
 # Chromium caches the extension service worker's importScripts (config.js) in the profile and keeps
-# using it across restarts and version changes. When the extension or home URL changed, drop the
-# service worker storage (Home Assistant registers its own worker again on the next load).
+# using it across restarts. When the extension or home URL changed (kiosk restart after an update),
+# drop the service worker storage (Home Assistant registers its own worker again on the next load).
 v=$(cat "$EXT"/* | cksum | cut -d' ' -f1)
-if [ "$(cat "$DATA/.extension-id" 2>/dev/null)" != "$v" ]; then
-	rm -rf "$DATA/chromium/Default/Service Worker"
-	echo "$v" > "$DATA/.extension-id"
+if [ "$(cat "$RUN/.extension-id" 2>/dev/null)" != "$v" ]; then
+	rm -rf "$PROFILE/Default/Service Worker"
+	echo "$v" > "$RUN/.extension-id"
 fi
-
-# eMMC wear: the HTTP and code cache go to RAM (/run is a tmpfs; lost on reboot = one slower first
-# load), and so do the memory-mapped histogram files (BrowserMetrics/*.pma, 4 MiB, written back every
-# 30 s = ~1.3 GB/day; --disable-features=PersistentHistograms does not stop them), via symlinks.
-# The profile itself (HA login token, local storage, permissions) stays on the eMMC.
-CACHE=$XDG_RUNTIME_DIR/chromium-cache
-mkdir -p "$CACHE" "$XDG_RUNTIME_DIR/BrowserMetrics"
-rm -rf "$DATA/chromium/Default/Cache" "$DATA/chromium/Default/Code Cache" "$DATA/chromium/BrowserMetrics" \
-	"$DATA/chromium/BrowserMetrics-spare.pma"
-ln -s "$XDG_RUNTIME_DIR/BrowserMetrics" "$DATA/chromium/BrowserMetrics"
-ln -s "$XDG_RUNTIME_DIR/BrowserMetrics-spare.pma" "$DATA/chromium/BrowserMetrics-spare.pma"
 
 # Apply output rotation once the compositor is up
 (
@@ -81,6 +78,5 @@ exec cage -d -s -- chromium \
 	--check-for-update-interval=31536000 --disable-component-update \
 	--password-store=basic --autoplay-policy=no-user-gesture-required \
 	--remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 \
-	--user-data-dir="$DATA/chromium" --load-extension="$EXT" \
-	--disk-cache-dir="$CACHE" --disk-cache-size=67108864 \
+	--user-data-dir="$PROFILE" --load-extension="$EXT" --disk-cache-size=67108864 \
 	${CHROMIUM_FLAGS:-} "$URL"

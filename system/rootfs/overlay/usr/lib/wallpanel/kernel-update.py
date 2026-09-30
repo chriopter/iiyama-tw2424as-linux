@@ -530,7 +530,7 @@ def boot_start():
         return 0
     if running_slot() == "B":
         with open(LOG, "a") as out:
-            subprocess.Popen([sys.executable, os.path.abspath(__file__), "boot-check"], stdout=out, stderr=out,
+            subprocess.Popen([UPDATE, "boot-check"], stdout=out, stderr=out,
                              stdin=subprocess.DEVNULL, start_new_session=True, close_fds=True)
         print(f"kernel test of {p.get('to')}: health check started ({LOG})")
         return 0

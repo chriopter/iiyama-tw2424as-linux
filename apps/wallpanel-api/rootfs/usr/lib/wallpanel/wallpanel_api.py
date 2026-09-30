@@ -13,6 +13,7 @@ import glob
 import json
 import os
 import re
+import shutil
 import socket
 import subprocess
 import threading
@@ -45,11 +46,24 @@ def load_settings():
         return {}
 
 
+def rw_cmd(*cmd):
+    """cmd with the read-only root file system writable while it runs (wallpanel-rw; missing on a
+    development machine)."""
+    return ['wallpanel-rw', 'run', *cmd] if shutil.which('wallpanel-rw') else list(cmd)
+
+
 def save_settings():
-    tmp = STATE_FILE + '.tmp'
-    with open(tmp, 'w') as f:
-        json.dump(SETTINGS, f)
-    os.replace(tmp, STATE_FILE)
+    """Only when the content changed: every write makes / writable for a moment."""
+    data = json.dumps(SETTINGS, sort_keys=True)
+    try:
+        if json.dumps(json.load(open(STATE_FILE)), sort_keys=True) == data:
+            return
+    except (OSError, ValueError):
+        pass
+    r = subprocess.run(rw_cmd('sh', '-c', 'cat > "$1.tmp" && mv -f "$1.tmp" "$1"', '-', STATE_FILE),
+                       input=data, text=True, capture_output=True, timeout=30)
+    if r.returncode != 0:
+        print('settings not saved:', r.stderr.strip(), flush=True)
 
 
 SETTINGS = load_settings()
@@ -561,6 +575,36 @@ def restart_kiosk():
     sh('rc-service', 'wallpanel-kiosk', 'restart')
 
 
+# Browser scaling (page zoom of the HA origin, set by the kiosk extension; read at kiosk start): 125 % shows
+# Home Assistant larger, as if the screen had 1536 x 864 pixels; 100 % = the panel's real resolution.
+SCALES = (75, 80, 90, 100, 110, 125, 150, 175, 200)
+
+
+def scale():
+    v = int(SETTINGS.get('scale', 100))
+    return v if v in SCALES else 100
+
+
+def set_scale(payload):
+    v = int(float(payload))
+    if v not in SCALES:
+        raise ValueError(f'scale must be one of {SCALES}')
+    if v != scale():
+        SETTINGS['scale'] = v
+        save_settings()
+        print(f'scale {v} %: restarting the kiosk', flush=True)
+        threading.Thread(target=lambda: (time.sleep(1), restart_kiosk()), daemon=True).start()
+
+
+def panel_resolution():
+    """[width, height] of the display's native mode (DRM), [1920, 1080] if unknown."""
+    for f in glob.glob('/sys/class/drm/card*-DSI-*/modes'):
+        m = re.match(r'(\d+)x(\d+)', read(f))
+        if m:
+            return [int(m.group(1)), int(m.group(2))]
+    return [1920, 1080]
+
+
 def reboot():
     sh('reboot')
 
@@ -670,7 +714,7 @@ def install_updates(then_reboot=False, full=False):
     upgraded = []
     try:
         pkgs = [] if full else auto_packages()
-        cmd = ['apk', 'upgrade', '--no-interactive'] if full else ['apk', 'add', '-u', '--no-interactive', *pkgs]
+        cmd = rw_cmd(*(['apk', 'upgrade', '--no-interactive'] if full else ['apk', 'add', '-u', '--no-interactive', *pkgs]))
         if not full and not pkgs:
             cmd = ['true']
         if sh('apk', 'update', '-q').returncode != 0:
@@ -861,6 +905,11 @@ def command(topic, payload):
     elif topic.endswith('/home_after/set'):
         SETTINGS['home_after'] = max(0, int(float(payload)))
         save_settings()
+    elif topic.endswith('/scale/set'):
+        try:
+            set_scale(payload)
+        except ValueError as e:
+            print('scale:', e, flush=True)
     elif topic.endswith('/auto_update/set'):
         SETTINGS['auto_update'] = payload.strip().upper() == 'ON'
         save_settings()
@@ -1279,7 +1328,7 @@ class UpdatePage:
     # "Einstellungen & Service": what MQTT can do, minus URLs (Seitenadresse/Startseite only shown) and
     # "Bildschirm an/aus" (the page is on screen anyway). Values go through command() like MQTT messages.
     SETTABLE = ('display', 'display_lock', 'volume', 'ct_scale', 'fade_ms', 'touch_fade_ms', 'auto_off', 'home_after',
-                'reboot_enabled', 'reboot_time', 'auto_update')
+                'reboot_enabled', 'reboot_time', 'auto_update', 'scale')
     ACTIONS = ('reload', 'restart_kiosk', 'reboot', 'shutdown', 'install_updates')  # restart/stop something: touch only
 
     def touched(self):
@@ -1295,7 +1344,8 @@ class UpdatePage:
                 'auto_off': int(SETTINGS.get('auto_off', 5)), 'home_after': home_after(),
                 'reboot_enabled': reboot_enabled(), 'reboot_time': reboot_time(), 'next_reboot': next_reboot(),
                 'auto_update': auto_update(), 'auto_packages': list(AUTO_PACKAGES), 'updating': UPDATE['running'],
-                'url': self.back or home_url(), 'home_url': home_url()}
+                'url': self.back or home_url(), 'home_url': home_url(),
+                'scale': scale(), 'scales': list(SCALES), 'panel_res': panel_resolution()}
 
     def command(self, cmd, value):
         """-> (http code, message)"""
@@ -1317,6 +1367,8 @@ class UpdatePage:
                          'install_updates': 'Apps werden aktualisiert …'}[cmd]
         if cmd not in self.SETTABLE:
             return 400, 'Unbekannte Einstellung.'
+        if cmd == 'scale' and not self.touched():  # restarts the browser
+            return 403, 'Nur per Berührung am Bildschirm möglich.'
         try:
             if cmd == 'display':  # brightness / colour temperature only, never on/off
                 value = json.dumps({k: int(v) for k, v in dict(value).items() if k in ('brightness', 'color_temp')})
@@ -1497,7 +1549,9 @@ button { font:inherit; font-size:24px; font-weight:500; border:0; border-radius:
 button:active { filter:brightness(.8); }
 button:disabled { background:#333; color:#777; }
 button.flat { background:#2a2a2a; min-height:64px; font-size:21px; }
-button#close { background:#3a3a3a; min-height:84px; min-width:240px; font-size:26px; }
+/* all header buttons (tabs, Erneut prüfen, Schließen) the same height */
+header button, header button.flat, header .tabs button { min-height:72px; font-size:23px; padding:0 30px; }
+button#close { background:#3a3a3a; min-width:240px; }
 button.kernel { background:var(--warn); color:#1a1a1a; }
 button.wide { width:100%; }
 button:disabled, button.kernel:disabled { background:#333; color:#777; }
@@ -1505,7 +1559,7 @@ button:disabled, button.kernel:disabled { background:#333; color:#777; }
 .tab { flex:1; display:flex; flex-direction:column; gap:18px; min-height:0; }
 .tab[hidden] { display:none; }
 .tabs { display:flex; gap:10px; }
-.tabs button { min-height:64px; font-size:23px; padding:0 30px; background:#2a2a2a; }
+.tabs button { background:#2a2a2a; }
 .tabs button.sel { background:var(--primary); }
 #tab-svc { display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; }
 #tab-svc[hidden] { display:none; }
@@ -1728,6 +1782,8 @@ const SVC = [
     {t: 'range', k: 'volume', label: 'Lautstärke', min: 0, max: () => 100, fmt: (v) => `${v} %`},
     {t: 'step', k: 'home_after', label: 'Startseite laden nach', sub: 'wenn der Bildschirm so lange aus ist',
       list: [0, 5, 10, 15, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1440], fmt: min},
+    {t: 'step', k: 'scale', label: 'Skalierung', sub: 'Home Assistant – Browser startet neu', list: () => V.scales,
+      fmt: (v) => `${v} % · ${Math.round(V.panel_res[0] * 100 / v)}×${Math.round(V.panel_res[1] * 100 / v)}`},
     {t: 'info', label: 'Seitenadresse', v: () => V.url, url: true},
     {t: 'info', label: 'Startseite', v: () => V.home_url, url: true},
     {t: 'act', c: 'reload', label: 'Seite neu laden', sub: 'schließt diese Seite'},
@@ -1781,7 +1837,7 @@ function build() {
       } else if (x.t === 'step') {
         const [dn, up] = x.el.querySelectorAll('.stp button');
         const go = (d) => {
-          const l = x.list, i = l.indexOf(V[x.k]);
+          const l = typeof x.list === 'function' ? x.list() : x.list, i = l.indexOf(V[x.k]);
           const n = i >= 0 ? l[Math.max(0, Math.min(l.length - 1, i + d))]
             : d > 0 ? l.find((v) => v > V[x.k]) ?? l[l.length - 1] : [...l].reverse().find((v) => v < V[x.k]) ?? l[0];
           V[x.k] = n; x.el.querySelector('.val').textContent = x.fmt(n); send(n);

@@ -1,4 +1,4 @@
 #!/bin/sh
 # Tell the eMMC which blocks are free (TRIM) once a week instead of online "discard" on every delete:
 # keeps its wear levelling and write amplification good as the file system ages.
-fstrim / 2>&1 | logger -t wallpanel-fstrim
+/usr/sbin/wallpanel-rw run /sbin/fstrim / 2>&1 | logger -t wallpanel-fstrim

@@ -14,9 +14,18 @@ depend() {
 }
 
 start_pre() {
+	# own RAM file system for everything Chromium writes (profile, caches); only used space costs RAM
 	checkpath -d -m 0700 -o wallpanel:wallpanel /run/wallpanel
-	checkpath -d -m 0755 -o wallpanel:wallpanel /var/lib/wallpanel
-	# keep the log small on the eMMC: rotate once it exceeds 1 MiB
+	mountpoint -q /run/wallpanel || mount -t tmpfs -o nosuid,nodev,size=768m,mode=0700,uid=$(id -u wallpanel),gid=$(id -g wallpanel) wallpanel-run /run/wallpanel
+	# keep the log small (RAM): rotate once it exceeds 1 MiB
 	[ "$(stat -c %s /var/log/wallpanel-kiosk.log 2>/dev/null || echo 0)" -lt 1048576 ] || mv -f /var/log/wallpanel-kiosk.log /var/log/wallpanel-kiosk.log.old
 	checkpath -f -m 0644 -o wallpanel:wallpanel /var/log/wallpanel-kiosk.log
+}
+
+stop_post() {
+	# Chromium's child processes finish writing the profile after cage exits
+	i=0
+	while pgrep -u wallpanel chromium >/dev/null && [ $i -lt 20 ]; do sleep 0.25; i=$((i + 1)); done
+	# login, permissions, preferences to the eMMC (only if changed)
+	/usr/lib/wallpanel/kiosk-profile.sh save || ewarn "kiosk profile not saved"
 }

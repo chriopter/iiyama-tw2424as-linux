@@ -168,7 +168,7 @@ bootloader are never part of it.
 <details><summary><b>Install</b> – from Android, without touching the bootloader</summary>
 
 Prerequisites: backup of all partitions except userdata in `dumps/` (`tools/backup.sh`, SHA256-checked
-against the device); `tools/local.env` from `local.env.example` (WiFi, HA URL, `ROOT_PASSWORD`, MQTT);
+against the device); `tools/local.env` (see *Configuration* below);
 udev rule `tools/70-rockchip.rules`.
 
 ```sh
@@ -185,6 +185,67 @@ from `build/out/` or builds them in the new system first.
 Apps and overlay later without reinstalling: `tools/sync-apps.sh`.
 </details>
 
+<details><summary><b>Configuration</b> – <code>tools/local.env</code> (example)</summary>
+
+All device- and user-specific settings live in one gitignored file, `tools/local.env` (copy of
+[`tools/local.env.example`](tools/local.env.example)); `install.sh` and `sync-apps.sh` write the device's
+`/etc/wallpanel/wallpanel.conf` and WiFi from it. Placeholder values:
+
+```sh
+# Copy to tools/local.env (gitignored) and fill in. Shell syntax: put values with spaces or special
+# characters in single quotes (a single quote itself is not supported); comments on their own lines.
+# install.sh / sync-apps.sh write the device's /etc/wallpanel/wallpanel.conf and WiFi from it.
+
+# --- device ---
+# name in Home Assistant (MQTT device) and for AirPlay
+DEVICE_NAME='Wallpanel'
+# local time zone of the maintenance/reboot time
+TIMEZONE='Europe/Berlin'
+# root login over SSH/serial in addition to the key (tools/ssh/); empty = key only
+ROOT_PASSWORD='change-me'
+# display rotation in degrees (default 180 for this panel)
+ROTATION=180
+# WiFi address of the installed panel, for the tools: WALLPANEL_HOST=$DEVICE_WLAN_IP tools/tssh
+DEVICE_WLAN_IP=192.168.1.50
+
+# --- WiFi (WPA-PSK) ---
+WIFI_SSID='MyWiFi'
+WIFI_PSK='wifi-passphrase'
+
+# --- Home Assistant dashboard (kiosk) ---
+HA_URL='https://192.168.1.10:8123/'
+# start page of the kiosk; empty = HA_URL
+KIOSK_URL='https://192.168.1.10:8123/lovelace/0'
+# HA user the kiosk logs in with automatically
+KIOSK_USER='wallpanel'
+KIOSK_PASSWORD='ha-password'
+# a self-signed HA certificate goes to tools/trust/<name>.crt: the kiosk trusts it
+
+# --- MQTT (Home Assistant integration via MQTT discovery) ---
+MQTT_HOST=192.168.1.10
+MQTT_PORT=1883
+MQTT_USER='wallpanel'
+MQTT_PASSWORD='mqtt-password'
+
+# --- optional ---
+# AirPlay receiver password; empty = none
+AIRPLAY_PASSWORD=
+# GitHub repository with the signed kernel releases; empty = this project
+KERNEL_REPO=
+
+# --- development only (Android backup, RAM boot, lab tools) ---
+# adb serial of the panel while it still runs Android
+ADB_SERIAL=
+# HA login for tools/debug/kiosk/cdp.py
+HA_USER=
+HA_PASS=
+# smart plug for power cycling (tools/debug/shelly.sh)
+SHELLY_IP=
+# directory of the camera snapshots (tools/debug/snap.sh)
+CAM_DIR=
+```
+</details>
+
 <details><summary><b>Kernel update (A/B)</b> – test in slot B, promote to slot A</summary>
 
 ```sh
@@ -197,7 +258,7 @@ Signed kernel releases from CI (GitHub releases `kernel-*`): `wallpanel-update c
 `wallpanel-update install-release` downloads and verifies one, assembles the boot image on the panel (with its own
 rescue keys), test-boots slot B with an automatic health check and promotes it – or falls back to slot A
 ([`system/rootfs/`](system/rootfs/) → "Kernel updates").
-Alpine itself updates with `apk upgrade`. New kernel version: see [`system/kernel/`](system/kernel/).
+Alpine itself updates from the update page or with `wallpanel-rw run apk upgrade`. New kernel version: see [`system/kernel/`](system/kernel/).
 On the panel: the **update page** (HA switch *Update-Seite anzeigen*, or tap the screen 10× within 4 s) shows
 pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Auto-Update Apps*
 covers only Chromium and the AirPlay receiver – never other packages or the kernel
@@ -216,8 +277,10 @@ covers only Chromium and the AirPlay receiver – never other packages or the ke
 
 `/var/log` is a tmpfs (32 MiB) to spare the eMMC: `/var/log/messages` (syslog), `/var/log/wallpanel-*.log`
 (services) start empty after every boot. Kernel log of the previous boot (panic, watchdog reset, last
-messages before a reboot): `cat /sys/fs/pstore/console-ramoops-0`. Only the Chromium profile (HA login),
-`/var/lib/wallpanel/api-state.json` (settings, written on changes) and `apk` write to the eMMC regularly.
+messages before a reboot): `cat /sys/fs/pstore/console-ramoops-0`.
+
+The root file system is read-only (see *24/7 operation*); changes by hand over SSH:
+`wallpanel-rw run apk add foo`, or `wallpanel-rw on` … `wallpanel-rw off`.
 </details>
 
 <details><summary><b>Update failed</b> – power-cycle → slot A</summary>

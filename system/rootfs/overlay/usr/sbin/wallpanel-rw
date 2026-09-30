@@ -1,0 +1,83 @@
+#!/bin/sh
+# The root file system runs read-only (fstab "ro"): everything written at runtime lives in RAM (logs,
+# /tmp, the kiosk's browser profile). The few writers that must reach the eMMC - settings, package and
+# kernel updates, saving the kiosk's login state, tools/sync-apps.sh - make / writable only while they run:
+#   wallpanel-rw run CMD [ARG...]   / writable while CMD runs (nested and parallel callers are fine)
+#   wallpanel-rw begin [PID]        writable until "end TOKEN" (prints TOKEN) or until PID exits
+#   wallpanel-rw end TOKEN
+#   wallpanel-rw on | off           by hand (maintenance over SSH): writable until "off" or the next boot
+#   wallpanel-rw idle               read-only again if nobody holds it (crond, every 15 min)
+#   wallpanel-rw status
+# If the remount fails (files deleted but still open, e.g. a library apk replaced under a running
+# service), / stays writable until the next "idle" retry or the next boot.
+set -u
+D=/run/wallpanel-rw
+L=/run/wallpanel-rw.lock
+
+is_rw() { awk '$2 == "/" { o = $4 } END { exit !(o ~ /^rw/) }' /proc/mounts; }
+
+# remove holders whose process is gone (killed writers must not keep / writable)
+prune() {
+	for f in "$D"/*; do
+		[ -f "$f" ] || continue
+		p=$(cat "$f" 2>/dev/null)
+		[ "$p" = manual ] || kill -0 "$p" 2>/dev/null || rm -f "$f"
+	done
+}
+
+held() { prune; [ -n "$(ls -A "$D" 2>/dev/null)" ]; }
+
+to_rw() { is_rw || mount -o remount,rw / || { echo "wallpanel-rw: cannot remount / read-write" >&2; return 1; }; }
+
+to_ro() {
+	held && return 0
+	is_rw || return 0
+	sync
+	mount -o remount,ro / 2>/dev/null && return 0
+	logger -t wallpanel-rw "/ busy, stays writable until the next retry (files deleted but still open?)"
+	return 1
+}
+
+locked() { mkdir -p "$D"; ( flock 9; "$@" ) 9>"$L"; }
+
+do_begin() {
+	t=$D/$1.$(head -c 6 /dev/urandom | od -An -tx1 | tr -d ' \n')
+	echo "$1" > "$t" && to_rw && echo "${t##*/}" && return 0
+	rm -f "$t"; return 1
+}
+
+manual() { echo manual > "$D/manual"; to_rw; }
+
+status() {
+	prune
+	if is_rw; then echo "/ writable, held by: $(cat "$D"/* 2>/dev/null | tr '\n' ' ')"; else echo "/ read-only"; fi
+}
+
+do_end() { rm -f "$D/$1"; to_ro; }
+
+case ${1:-status} in
+run)
+	shift
+	[ $# -gt 0 ] || { sed -n '2,13p' "$0"; exit 2; }
+	t=$(locked do_begin $$) || exit 1
+	WALLPANEL_RW=1 "$@"
+	rc=$?
+	locked do_end "$t"
+	exit $rc ;;
+begin)
+	locked do_begin "${2:-$PPID}" ;;
+end)
+	[ -n "${2:-}" ] || exit 2
+	case $2 in */*) exit 2 ;; esac
+	locked do_end "$2" ;;
+on)
+	locked manual && echo "/ writable until 'wallpanel-rw off' or the next boot" ;;
+off)
+	rm -f "$D/manual"; locked to_ro; locked status ;;
+idle)
+	locked to_ro ;;
+status)
+	locked status ;;
+*)
+	sed -n '2,13p' "$0"; exit 2 ;;
+esac

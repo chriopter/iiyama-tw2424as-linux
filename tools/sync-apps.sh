@@ -14,10 +14,12 @@ else
 	R=/mnt/t MODE=rescue
 fi
 echo "target: $MODE system, root at $R"
+# the running system's root is read-only: writable for this sync, read-only again at the end
+[ $MODE = rescue ] || $SSH 'if command -v wallpanel-rw >/dev/null; then wallpanel-rw on >/dev/null; else mount -o remount,rw /; fi'
 
 push_rootfs "$SSH" "$R"
 write_conf "$SSH" "$R"
-setup_storage "$SSH" "$R"  # tmpfs for /tmp and /var/log: active after the next reboot
+setup_storage "$SSH" "$R"  # read-only root + tmpfs mounts: active after the next reboot
 $SSH "cd $R && grep -qx brcmfmac etc/modules || echo brcmfmac >> etc/modules"
 # kernel update health check (wallpanel-update install-release) in the default runlevel
 $SSH "ln -sf /etc/init.d/wallpanel-kernel-health $R/etc/runlevels/default/wallpanel-kernel-health"
@@ -32,6 +34,7 @@ if [ $MODE = running ]; then
 		[ -z "$m" ] || apk add --wait 300 -q $m' || echo "warning: apk add of the AirPlay packages failed" >&2
 	$SSH "[ ! -x $R/usr/bin/shairport-sync ] || for s in dbus avahi-daemon wallpanel-airplay; do ln -sf /etc/init.d/\$s $R/etc/runlevels/default/\$s; done"
 	$SSH 'udevadm control --reload; rc-service wallpanel-airplay restart; rc-service wallpanel-api restart; rc-service wallpanel-kiosk restart; rc-service dropbear restart' || true
+	$SSH 'wallpanel-rw off' || true
 else
 	$SSH 'sync; umount /mnt/t'
 fi

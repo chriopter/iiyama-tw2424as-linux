@@ -19,22 +19,27 @@ push_rootfs() {
 	done
 	$ssh "cat > $r/usr/sbin/wallpanel-rebootmode" < "$P/build/out/rebootmode"
 	ssh_pubkeys | $ssh "mkdir -p $r/root/.ssh; cat > $r/root/.ssh/authorized_keys"
-	$ssh "cd $r && chmod 755 etc/init.d/wallpanel-* usr/lib/wallpanel/wallpanel-kiosk.sh usr/lib/wallpanel/kernel-update.py usr/lib/wallpanel/boot/*.py usr/lib/wallpanel/boot/init usr/sbin/wallpanel-update usr/sbin/wallpanel-rebootmode
+	$ssh "cd $r && chmod 755 etc/init.d/wallpanel-* usr/lib/wallpanel/wallpanel-kiosk.sh usr/lib/wallpanel/kernel-update.py usr/lib/wallpanel/boot/*.py usr/lib/wallpanel/boot/init usr/sbin/wallpanel-update usr/sbin/wallpanel-rw usr/sbin/wallpanel-rebootmode usr/lib/wallpanel/kiosk-profile.sh
 		chmod 700 root/.ssh; chmod 600 root/.ssh/authorized_keys"
 }
 
-# setup_storage SSH ROOT: ROOT/etc/fstab - the eMMC root plus RAM (tmpfs) for everything written all
-# the time (logs, /tmp), to spare the flash over years of 24/7 operation; crond for /etc/periodic; the
-# shutdown runlevel that remounts / read-only (clean file system on reboot). Idempotent (install and
-# sync-apps); other fstab lines are kept. Takes effect at the next boot.
+# setup_storage SSH ROOT: ROOT/etc/fstab - the eMMC root read-only, RAM (tmpfs) for everything written at
+# runtime (logs, /tmp, the apk index, chrony's drift file; the kiosk mounts its own for Chromium), to
+# spare the flash over years of 24/7 operation. Writers that must persist use wallpanel-rw. crond for
+# /etc/periodic; the shutdown runlevel that remounts / read-only. Idempotent (install and sync-apps);
+# other fstab lines are kept. Takes effect at the next boot.
 setup_storage() {
 	local ssh=$1 r=$2
-	$ssh "f=$r/etc/fstab; touch \$f; { grep -vE '^[^#[:space:]]+[[:space:]]+(/|/tmp|/var/log)[[:space:]]' \$f
-		echo 'LABEL=wallpanel-root / ext4 defaults,noatime,commit=60 0 1'
+	$ssh "f=$r/etc/fstab; touch \$f; c=\$(sed -n 's/^chrony:[^:]*:\([0-9]*\):\([0-9]*\):.*/uid=\1,gid=\2/p' $r/etc/passwd)
+	{ grep -vE '^[^#[:space:]]+[[:space:]]+(/|/tmp|/var/log|/var/cache/apk|/var/lib/chrony)[[:space:]]' \$f
+		echo 'LABEL=wallpanel-root / ext4 ro,noatime,commit=60 0 1'
 		echo 'tmpfs /tmp tmpfs nosuid,nodev,size=256m,mode=1777 0 0'
 		echo 'tmpfs /var/log tmpfs nosuid,nodev,noexec,size=32m,mode=0755 0 0'
+		echo 'tmpfs /var/cache/apk tmpfs nosuid,nodev,noexec,size=64m,mode=0755 0 0'
+		[ -z \"\$c\" ] || echo \"tmpfs /var/lib/chrony tmpfs nosuid,nodev,noexec,size=1m,mode=0750,\$c 0 0\"
 	} > \$f.new && mv \$f.new \$f
-	# crond runs /etc/periodic: log trimming (15min), fstrim (weekly)
+	mkdir -p $r/var/cache/apk $r/var/lib/chrony
+	# crond runs /etc/periodic: log trimming and read-only retry (15min), fstrim (weekly)
 	ln -sf /etc/init.d/crond $r/etc/runlevels/default/crond
 	for s in killprocs mount-ro savecache; do ln -sf /etc/init.d/\$s $r/etc/runlevels/shutdown/\$s; done"
 }

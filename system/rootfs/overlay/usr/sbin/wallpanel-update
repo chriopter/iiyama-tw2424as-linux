@@ -19,6 +19,11 @@
 #   wallpanel-update health [--json]      the health checks of the running system
 # Modules live in /lib/modules/<release>, so a new kernel never replaces the running one's modules.
 set -eu
+# the root file system is read-only at runtime: commands that write run with it writable (wallpanel-rw)
+case ${1:-} in
+install|promote|fetch|install-release|boot-start|boot-check)
+	[ -n "${WALLPANEL_RW:-}" ] || ! command -v wallpanel-rw >/dev/null || exec wallpanel-rw run "$0" "$@" ;;
+esac
 case ${1:-} in
 check|fetch|install-release|health|boot-start|boot-check) exec /usr/bin/python3 /usr/lib/wallpanel/kernel-update.py "$@" ;;
 esac

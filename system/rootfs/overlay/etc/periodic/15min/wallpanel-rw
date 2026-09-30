@@ -1,0 +1,3 @@
+#!/bin/sh
+# / back to read-only if a remount failed earlier (busy) and nobody holds it writable any more
+/usr/sbin/wallpanel-rw idle
