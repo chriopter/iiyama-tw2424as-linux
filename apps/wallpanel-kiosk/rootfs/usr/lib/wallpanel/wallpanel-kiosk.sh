@@ -101,7 +101,7 @@ PY
 # --force-prefers-reduced-motion: HA's energy-distribution card then draws static flow lines instead of
 # endlessly animated SMIL dots, which forced a full main-thread frame at display rate (~70 % CPU).
 exec cage -d -s -- chromium \
-	--kiosk --no-first-run --noerrdialogs --disable-infobars --log-level=3 \
+	--kiosk --start-fullscreen --no-first-run --noerrdialogs --disable-infobars --log-level=3 \
 	--ozone-platform=wayland --enable-gpu-rasterization --ignore-gpu-blocklist --enable-zero-copy \
 	--disable-pinch --overscroll-history-navigation=0 --force-prefers-reduced-motion \
 	--disable-features=ThirdPartyStoragePartitioning,Translate,TouchpadOverscrollHistoryNavigation,MediaRouter,DisableLoadExtensionCommandLineSwitch \

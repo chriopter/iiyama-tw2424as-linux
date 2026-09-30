@@ -284,6 +284,7 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
   "home_url": "https://192.168.1.10:8123/lovelace/0",
   "reboot_enabled": true,
   "reboot_time": "04:00",
+  "update_time": "03:30",
   "scale": 100,
   "standby": false,
   "touch_fade_ms": 100,
@@ -295,13 +296,13 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 | Key | Setting (HA name) | Values |
 |---|---|---|
 | `auto_off` | Bildschirm aus nach | minutes, 0 = never |
-| `auto_update` | Auto-Update Apps | true/false |
+| `auto_update`, `update_time` | Update täglich, Update-Zeit | true/false; `HH:MM` in 30-min steps (03:30) |
 | `ct_scale` | Farbton-Kalibrierung | 50–150 (%) |
 | `display_lock`, `standby` | Bildschirm gesperrt, Bildschirm an/aus | true/false |
 | `fade_ms`, `touch_fade_ms` | Bildschirm-Überblendung (bei Berührung) | 0–3000 ms |
 | `hide_header` | HA-Kopfleiste ausblenden | true/false |
 | `home_after`, `home_url` | Startseite laden nach, Startseite | minutes (0 = never); URL, missing = `KIOSK_URL` |
-| `reboot_enabled`, `reboot_time` | Neustart täglich, Wartungszeit | true/false; `HH:MM` in 30-min steps |
+| `reboot_enabled`, `reboot_time` | Neustart täglich, Neustart-Zeit | true/false; `HH:MM` in 30-min steps (04:00) |
 | `scale` | Skalierung | 75, 80, 90, 100, 110, 125, 150, 175, 200 |
 | `last_update`, `last_update_result` | – (shown on the update page) | written by the api |
 
@@ -322,7 +323,7 @@ rescue keys), test-boots slot B with an automatic health check and promotes it �
 ([`system/rootfs/`](system/rootfs/) → "Kernel updates").
 Alpine itself updates from the update page or with `wallpanel-rw run apk upgrade`. New kernel version: see [`system/kernel/`](system/kernel/).
 On the panel: the **update page** (HA switch *Update-Seite anzeigen*, or tap the screen 10× within 4 s) shows
-pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Auto-Update Apps*
+pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Update täglich*
 covers only Chromium and the AirPlay receiver – never other packages or the kernel
 ([`apps/wallpanel-api/`](apps/wallpanel-api/)).
 </details>

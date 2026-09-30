@@ -28,8 +28,9 @@ names (*config*/*diagnostic* = HA's entity category); English meaning and values
 | **Update-Seite anzeigen** | show the on-screen update page | `switch` | on/off |
 | **System** | | | |
 | *config* **Neustart täglich** | reboot daily | `switch` | on/off (off) |
-| *config* **Wartungszeit** | maintenance time (daily reboot, auto-update) | `select` | 00:00–23:30 in 30-min steps (04:00) |
-| *config* **Auto-Update Apps** | update Chrome & AirPlay daily at the maintenance time | `switch` | on/off (off) |
+| *config* **Neustart-Zeit** | time of the daily reboot | `select` | 00:00–23:30 in 30-min steps (04:00) |
+| *config* **Update täglich** | update Chrome & AirPlay once a day | `switch` | on/off (off) |
+| *config* **Update-Zeit** | time of the daily update – keep it apart from the reboot time (a reboot due during an update waits for it) | `select` | 00:00–23:30 in 30-min steps (03:30) |
 | *config* **Apps aktualisieren** | update apps now (Chrome & AirPlay only) | `button` | – |
 | *config* **Neu starten** | reboot | `button` | – |
 | **Diagnose (diagnostic)** | | | |
@@ -52,14 +53,14 @@ advertises the protocol and drops the ramps.
 Opens no network port (MQTT client only); the update page listens on **127.0.0.1:8099** only. Diagnostics on the device: `python3 /usr/lib/wallpanel/wallpanel_api.py --state`.
 
 **Updates.** "Apps" means the browser (`chromium`) and the AirPlay receiver (`shairport-sync`, if installed):
-**Auto-Update Apps** and the **Apps aktualisieren** button only run `apk add -u` for these two (plus the
+**Update täglich** and the **Apps aktualisieren** button only run `apk add -u` for these two (plus the
 dependencies apk needs), then restart the kiosk/AirPlay service. All other Alpine packages and the **kernel are
 never updated automatically** – only by hand on the on-screen update page. *Updates verfügbar* counts all
 pending packages.
 
 **On-screen update page** – opened by the switch *Update-Seite anzeigen* or by **tapping the lit screen 10 times
 within 4 s** (hidden gesture; the taps also reach the dashboard below). Two columns: *Apps & System* (pending
-packages old → new from `apk upgrade --simulate`, Auto-Update Apps status and maintenance time, last result,
+packages old → new from `apk upgrade --simulate`, Update täglich status and time, last result,
 **Jetzt aktualisieren** = full `apk upgrade` with live output) and *Kernel* (running kernel + slot, available
 release with changelog, last result from `wallpanel-update check --json`, **Kernel installieren** with an on-screen
 confirmation, then `wallpanel-update install-release` detached, output in `/var/log/wallpanel-kernel-update.log`).
@@ -73,7 +74,7 @@ Second tab **Einstellungen & Service**, grouped by topic; the three sections mar
 mirror the HA entities with the same names – **Bildschirm & Ton** (Helligkeit, Farbtemperatur, Farbton-Kalibrierung,
 Überblendung (+ bei Berührung), Bildschirm aus nach, Bildschirm gesperrt, Lautstärke), **Browser** (Skalierung,
 HA-Kopfleiste ausblenden, Startseite laden nach; Seite neu laden, Browser neu starten) and **System** (Neustart
-täglich, Wartungszeit, Auto-Update Apps; Apps aktualisieren, Neu starten) – and a dashed box **Nur am Gerät**
+täglich, Neustart-Zeit, Update täglich, Update-Zeit; Apps aktualisieren, Neu starten) – and a dashed box **Nur am Gerät**
 (Herunterfahren). URLs are set from HA only. **Skalierung** shows the resulting resolution
 (e.g. 125 % = 1536×864); *Anpassen* opens a live preview of the dashboard in a frame – *Übernehmen* restarts the
 browser, the update page itself stays at 100 %.
@@ -89,4 +90,4 @@ buffer in RAM (~0.3 MB, lost on restart, nothing written to the eMMC); the page 
 | `rootfs/etc/init.d/wallpanel-api` | OpenRC service |
 | `wallpanel.conf.example` | template for `/etc/wallpanel/wallpanel.conf` (shared with the kiosk) |
 
-Settings (lock, standby, maintenance time, fade/auto-off times, start page, …) persist in `/var/lib/wallpanel/api-state.json`. Brightness, colour temperature and volume live in RAM only (they change every few minutes via Adaptive Lighting/AirPlay and would wear the eMMC); after a restart: volume 30 %, brightness 200, neutral colour – Adaptive Lighting sets its values again. AirPlay volume changes reach HA within ~2 s.
+Settings (lock, standby, reboot and update times, fade/auto-off times, start page, …) persist in `/var/lib/wallpanel/api-state.json`. Brightness, colour temperature and volume live in RAM only (they change every few minutes via Adaptive Lighting/AirPlay and would wear the eMMC); after a restart: volume 30 %, brightness 200, neutral colour – Adaptive Lighting sets its values again. AirPlay volume changes reach HA within ~2 s.

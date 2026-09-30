@@ -672,6 +672,20 @@ def set_reboot_enabled(on):
     save_settings()
 
 
+def update_time():
+    """Daily time 'HH:MM' of "Update täglich" (Chrome & AirPlay)."""
+    v = SETTINGS.get('update_time')
+    return v if v in REBOOT_TIMES else '03:30'
+
+
+def set_update_time(value):
+    value = (value or '').strip()
+    if value not in REBOOT_TIMES:
+        raise ValueError('expected one of 00:00, 00:30, ... 23:30')
+    SETTINGS['update_time'] = value
+    save_settings()
+
+
 def next_reboot():
     if not reboot_enabled():
         return None
@@ -685,22 +699,25 @@ def next_reboot():
 
 
 def reboot_scheduler():
-    """Reboot once a day at the configured time (needs a synced clock)."""
+    """Once a day: "Update täglich" at update_time(), "Neustart täglich" at reboot_time() - two separate times
+    (needs a synced clock). A reboot due while an update runs waits for it (at most 30 min)."""
     while True:
         time.sleep(20)
-        t = reboot_time()
-        if time.time() < 1.7e9 or uptime() < 600 or time.strftime('%H:%M') != t:  # no clock / just booted
+        now = time.strftime('%H:%M')
+        if time.time() < 1.7e9 or uptime() < 600 or now not in (update_time(), reboot_time()):  # no clock / just booted
             continue
         if kernel_installing():  # it reboots by itself
             print('maintenance skipped: kernel update running', flush=True)
             time.sleep(60)
             continue
-        # maintenance time: updates first (if enabled), then the reboot (if enabled)
-        if auto_update():
-            print('scheduled update (' + ', '.join(AUTO_PACKAGES) + ') at', t, flush=True)
-            install_updates(then_reboot=reboot_enabled())
-        elif reboot_enabled():
-            print('scheduled reboot at', t, flush=True)
+        if now == update_time() and auto_update():
+            print('scheduled update (' + ', '.join(AUTO_PACKAGES) + ') at', now, flush=True)
+            install_updates()
+        if now == reboot_time() and reboot_enabled():
+            deadline = time.time() + 1800
+            while UPDATE['running'] and time.time() < deadline:
+                time.sleep(10)
+            print('scheduled reboot at', now, flush=True)
             reboot()
         time.sleep(60)  # never twice in the same minute
 
@@ -894,6 +911,7 @@ def state():
             'updates_pending': UPDATE['pending'], 'last_update': UPDATE['last'],
             'last_update_result': UPDATE['result'], 'update_page': update_page.on,
             'reboot_time': reboot_time(), 'reboot_enabled': reboot_enabled(), 'next_reboot': next_reboot(),
+            'update_time': update_time(),
             **sensors()}
 
 
@@ -977,6 +995,11 @@ def command(topic, payload):
             browser.navigate(payload.strip())
         else:
             print('url: only http(s) URLs are allowed', flush=True)
+    elif topic.endswith('/update_time/set'):
+        try:
+            set_update_time(payload)
+        except ValueError as e:
+            print('update_time:', e, flush=True)
     elif topic.endswith('/reboot_time/set'):
         try:
             set_reboot_time(payload)
@@ -1056,7 +1079,7 @@ class Mqtt:
             ('switch', 'update_page'): {'name': 'Update-Seite anzeigen', 'icon': 'mdi:update',
                                         'command_topic': f'{BASE}/update_page/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.update_page else 'OFF' }}"},
-            ('switch', 'auto_update'): {'name': 'Auto-Update Apps', 'icon': 'mdi:update',
+            ('switch', 'auto_update'): {'name': 'Update täglich', 'icon': 'mdi:update',
                                         'command_topic': f'{BASE}/auto_update/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.auto_update else 'OFF' }}",
                                         'entity_category': 'config'},
@@ -1078,7 +1101,11 @@ class Mqtt:
                                   'command_topic': f'{BASE}/scale/set', 'state_topic': f'{BASE}/state',
                                   'value_template': '{{ value_json.scale }} %',
                                   'icon': 'mdi:magnify-plus-outline', 'entity_category': 'config'},
-            ('select', 'reboot_time'): {'name': 'Wartungszeit', 'options': REBOOT_TIMES,
+            ('select', 'update_time'): {'name': 'Update-Zeit', 'options': REBOOT_TIMES,
+                                        'command_topic': f'{BASE}/update_time/set', 'state_topic': f'{BASE}/state',
+                                        'value_template': '{{ value_json.update_time }}',
+                                        'icon': 'mdi:update', 'entity_category': 'config'},
+            ('select', 'reboot_time'): {'name': 'Neustart-Zeit', 'options': REBOOT_TIMES,
                                         'command_topic': f'{BASE}/reboot_time/set', 'state_topic': f'{BASE}/state',
                                         'value_template': '{{ value_json.reboot_time }}',
                                         'icon': 'mdi:wrench-clock', 'entity_category': 'config'},
@@ -1232,6 +1259,25 @@ def dark_reload():
         browser.navigate(home_url())
 
 
+def fullscreen_watch():
+    """A (re)started browser comes up "maximized" with its tab strip and address bar visible: notice a new
+    DevTools browser id within a second and switch it to fullscreen right away (kiosk_loop only checks every
+    15 s). Cheap: one local HTTP request per second."""
+    import urllib.request
+    last = None
+    while True:
+        time.sleep(1)
+        try:
+            cur = json.load(urllib.request.urlopen(f'{CDP}/json/version', timeout=2)).get('webSocketDebuggerUrl')
+        except Exception:
+            continue
+        if cur and cur != last:
+            last = cur
+            for _ in range(10):  # the window may appear a moment after DevTools
+                browser.ensure_fullscreen()
+                time.sleep(0.5)
+
+
 def kiosk_loop():
     """Keep the kiosk fullscreen and log it in to Home Assistant whenever it shows the login page
     (KIOSK_USER/KIOSK_PASSWORD). Backs off after failed logins so a wrong password never triggers
@@ -1378,14 +1424,14 @@ class UpdatePage:
         return {'apps': {'pending': UPDATE['pending'], 'packages': UPDATE['packages'], 'checked': UPDATE['checked'],
                          'running': UPDATE['running'], 'mode': UPDATE['mode'], 'log': UPDATE['log'],
                          'last': UPDATE['last'], 'result': UPDATE['result'], 'auto_update': auto_update(),
-                         'auto_packages': list(AUTO_PACKAGES), 'maintenance_time': reboot_time()},
+                         'auto_packages': list(AUTO_PACKAGES), 'update_time': update_time()},
                 'kernel': kernel_status(), 'checking': self.checking, 'name': NAME,
                 'closes_in': max(0, int(self.IDLE - (time.time() - max(self.since, display.last_touch)))) if self.on else 0}
 
     # "Einstellungen & Service": what MQTT can do, minus URLs (Seitenadresse/Startseite only shown) and
     # "Bildschirm an/aus" (the page is on screen anyway). Values go through command() like MQTT messages.
     SETTABLE = ('display', 'display_lock', 'volume', 'ct_scale', 'fade_ms', 'touch_fade_ms', 'auto_off', 'home_after',
-                'reboot_enabled', 'reboot_time', 'auto_update', 'scale', 'hide_header')
+                'reboot_enabled', 'reboot_time', 'auto_update', 'update_time', 'scale', 'hide_header')
     ACTIONS = ('reload', 'restart_kiosk', 'reboot', 'shutdown', 'install_updates')  # restart/stop something: touch only
 
     def touched(self):
@@ -1400,6 +1446,7 @@ class UpdatePage:
                 'fade_ms': int(SETTINGS.get('fade_ms', 400)), 'touch_fade_ms': int(SETTINGS.get('touch_fade_ms', 100)),
                 'auto_off': int(SETTINGS.get('auto_off', 5)), 'home_after': home_after(),
                 'reboot_enabled': reboot_enabled(), 'reboot_time': reboot_time(), 'next_reboot': next_reboot(),
+                'update_time': update_time(),
                 'auto_update': auto_update(), 'auto_packages': list(AUTO_PACKAGES), 'updating': UPDATE['running'],
                 'url': self.back or home_url(), 'home_url': home_url(),
                 'scale': scale(), 'scales': list(SCALES), 'panel_res': panel_resolution(), 'hide_header': hide_header()}
@@ -1695,7 +1742,7 @@ button.danger .dim { color:rgba(255,255,255,.8) !important; }
     <div><div class="big" id="a-count">…</div><div class="dim" id="a-checked"></div></div>
     <div class="list" id="a-list"></div>
     <div class="rows">
-      <span class="dim">Auto-Update Apps</span><span id="a-auto"></span>
+      <span class="dim">Update täglich</span><span id="a-auto"></span>
       <span class="dim">Letztes Update</span><span id="a-last"></span>
     </div>
     <div class="log" id="a-log"></div>
@@ -1771,8 +1818,8 @@ function render() {
   $('a-list').innerHTML = a.packages.map((p) => `<div><span>${esc(p.name)}${a.auto_packages.includes(p.name)
     ? '<span class="tag">Auto-Update</span>' : ''}</span><span class="v">${esc(p.old)} → ${esc(p.new)}</span></div>`).join('')
     || '<div class="dim">Keine ausstehenden Pakete</div>';
-  $('a-auto').innerHTML = a.auto_update ? `<span class="ok">an</span> – Chrome &amp; AirPlay täglich um ${esc(a.maintenance_time)}`
-    : '<span class="dim">aus</span> <span class="dim">(Chrome &amp; AirPlay, täglich zur Wartungszeit)</span>';
+  $('a-auto').innerHTML = a.auto_update ? `<span class="ok">an</span> – Chrome &amp; AirPlay täglich um ${esc(a.update_time)} Uhr`
+    : '<span class="dim">aus</span> <span class="dim">(Chrome &amp; AirPlay)</span>';
   $('a-last').innerHTML = a.last ? `${when(a.last)} – <span class="${/^ok/.test(a.result) ? 'ok' : 'err'}">${esc(a.result)}</span>` : '–';
   log($('a-log'), a.log, a.running || a.log.length);
   $('a-go').disabled = busy || a.pending === 0;
@@ -1895,8 +1942,9 @@ const SVC = [
   ]},
   {h: 'System', ha: true, col: 2, xs: [
     {t: 'switch', k: 'reboot_enabled', label: 'Neustart täglich'},
-    {t: 'step', k: 'reboot_time', label: 'Wartungszeit', list: TIMES, fmt: (v) => `${v} Uhr`},
-    {t: 'switch', k: 'auto_update', label: 'Auto-Update Apps', sub: 'Chrome & AirPlay, täglich zur Wartungszeit'},
+    {t: 'step', k: 'reboot_time', label: 'Neustart-Zeit', list: TIMES, fmt: (v) => `${v} Uhr`},
+    {t: 'switch', k: 'auto_update', label: 'Update täglich', sub: 'Chrome & AirPlay'},
+    {t: 'step', k: 'update_time', label: 'Update-Zeit', sub: 'nicht auf die Neustart-Zeit legen', list: TIMES, fmt: (v) => `${v} Uhr`},
     {t: 'act', c: 'install_updates', label: 'Apps aktualisieren', sub: 'Chrome & AirPlay'},
     {t: 'act', c: 'reboot', label: 'Neu starten', cls: 'danger',
      confirm: ['Panel neu starten?', 'Das Panel startet neu und ist etwa eine Minute nicht bedienbar.', 'Neu starten']},
@@ -2080,6 +2128,7 @@ def main():
     threading.Thread(target=reboot_scheduler, daemon=True).start()
     threading.Thread(target=update_checker, daemon=True).start()
     threading.Thread(target=kiosk_loop, daemon=True).start()
+    threading.Thread(target=fullscreen_watch, daemon=True).start()
     threading.Thread(target=auto_off_loop, daemon=True).start()
     threading.Thread(target=volume_watch, daemon=True).start()
     update_page.start()
