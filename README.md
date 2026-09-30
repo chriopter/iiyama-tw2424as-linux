@@ -73,7 +73,10 @@ root file system is **read-only** and everything written at runtime lives in RAM
 | Chromium HTTP/code cache in RAM | 1.4 GB | 35–50 % |
 | **Read-only root, Chromium profile + logs in RAM** (1 h, dashboard in normal use) | **0.06 GB** (2.6 MB/h) | **~2 %** |
 
-\* ~1000 P/E cycles, write amplification 2–3. Measured on the whole block device (`/proc/diskstats`).
+\* ~1000 P/E cycles, write amplification 2–3; measured on the whole block device (`/proc/diskstats`).
+
+<details><summary><b>How</b> – read-only root, RAM file systems, watchdog, health</summary>
+
 What is left: the journal of the short writable windows for settings (screen on/off state) – package and
 kernel updates come on top when they run.
 
@@ -93,6 +96,7 @@ kernel updates come on top when they run.
   daily reboot (HA switch).
 - **Health**: `cat /sys/class/mmc_host/mmc0/mmc0:0001/life_time` shows the eMMC wear estimate
   (`0x01` = 0–10 % used); temperature 45–51 °C with no throttling (trip points 70/75/95 °C).
+</details>
 
 ## Partitions
 
