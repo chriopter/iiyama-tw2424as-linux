@@ -112,6 +112,33 @@ Only three partitions change; bootloader, `misc` and Android `super` stay untouc
 - AirPlay (`wallpanel-airplay`): anyone who reaches ports 5000/tcp + 6001–6010/udp can play audio unless
   `AIRPLAY_PASSWORD` is set; AirPlay 1 is unencrypted. Restrict the ports to the HA host and your clients.
 
+## How the panel boots
+
+```mermaid
+flowchart TD
+    ROM["BootROM in the SoC<br/>(read-only, cannot be erased)"] --> IDB["idbloader · eMMC sector 64<br/>DDR init + miniloader"]
+    IDB --> TRUST["trust · ATF BL31 + OP-TEE"]
+    TRUST --> UB["vendor U-Boot 2017.09 · partition uboot<br/>(never modified)"]
+    UB -->|"normal boot"| A["partition boot = slot A"]
+    UB -->|"one-shot flag (kernel test)"| B["partition recovery = slot B"]
+    UB -->|"Vol+ held at power-on"| RU["Rockusb: write images over USB-C"]
+    A --> IMG
+    B --> IMG
+    subgraph IMG["boot image (Android v2)"]
+        K["Linux 7.2 Image + board DTB"]
+        IRD["initramfs ~2 MB<br/>BusyBox · dropbear · display modules<br/>/init · /root/.ssh/authorized_keys"]
+    end
+    KEYS["SSH keys are injected HERE, when the image is assembled:<br/>on the PC by tools/build-bootimg.sh from tools/ssh/*.pub,<br/>on the panel (kernel update) from /root/.ssh/authorized_keys.<br/>GitHub releases contain no keys and no boot image."] -.-> IRD
+    IRD --> INIT{"/init: root fs<br/>LABEL=wallpanel-root ok,<br/>no wallpanel.rescue?"}
+    INIT -->|yes| ALP["switch_root → Alpine Linux (OpenRC)<br/>on partition userdata"]
+    INIT -->|no| RES["rescue mode: USB-C network 10.42.0.1<br/>+ dropbear with the embedded keys"]
+    ALP --> SVC["watchdog · USB maintenance + serial root shell · WiFi · SSH<br/>kiosk (cage + Chromium) · wallpanel-api (MQTT) · AirPlay"]
+```
+
+The bootloader chain is Rockchip's and stays untouched; everything from the boot image on is ours. A kernel
+update only ever rewrites slot B (and, after a passed self-test, slot A); the root file system and the
+bootloader are never part of it.
+
 ## Install and update
 
 <details><summary><b>Install</b> – from Android, without touching the bootloader</summary>
@@ -159,6 +186,14 @@ covers only Chromium and the AirPlay receiver – never other packages or the ke
 
 `tools/tssh` (USB-C, `10.42.0.1`) or `WALLPANEL_HOST=<ip> tools/tssh`; password: `ROOT_PASSWORD` in
 `tools/local.env`. Serial root shell on `/dev/ttyACM0`, independent of network and SSH.
+</details>
+
+<details><summary><b>Logs</b> – in RAM, previous boot in pstore</summary>
+
+`/var/log` is a tmpfs (32 MiB) to spare the eMMC: `/var/log/messages` (syslog), `/var/log/wallpanel-*.log`
+(services) start empty after every boot. Kernel log of the previous boot (panic, watchdog reset, last
+messages before a reboot): `cat /sys/fs/pstore/console-ramoops-0`. Only the Chromium profile (HA login),
+`/var/lib/wallpanel/api-state.json` (settings, written on changes) and `apk` write to the eMMC regularly.
 </details>
 
 <details><summary><b>Update failed</b> – power-cycle → slot A</summary>
