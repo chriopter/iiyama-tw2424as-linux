@@ -6,7 +6,7 @@ no XWayland) with the Home Assistant page (`URL` in `wallpanel.conf`).
 | File (target path) | Purpose |
 |---|---|
 | `usr/lib/wallpanel/wallpanel-kiosk.sh` | starts cage + Chromium (GPU raster, 180° rotation, DevTools on 127.0.0.1:9222 only) |
-| `usr/lib/wallpanel/extension/` | navigation locked to the HA address; `contain` per `ha-card` (≈2× fps) |
+| `usr/lib/wallpanel/extension/` | navigation locked to the HA address (plus the api's update page on 127.0.0.1:8099); `contain` per `ha-card` (≈2× fps) |
 | `etc/init.d/wallpanel-kiosk` | OpenRC service as user `wallpanel`, restart on crash |
 | `etc/udev/rules.d/90-wallpanel-touch.rules` | touch calibration for the 180° mounting |
 

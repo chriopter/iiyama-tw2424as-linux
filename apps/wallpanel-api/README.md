@@ -9,8 +9,9 @@ Connects the panel to Home Assistant – via **MQTT discovery**, without a custo
 | **Bildschirm gesperrt**: switches the display off; while on, on commands from HA and touch wake are ignored (power key still works) | `switch` |
 | **Lautstärke**; config: **Bildschirm aus nach** (min without input, 0 = never), **Bildschirm-Überblendung** (ms) | `number` |
 | **Seitenadresse** (current page), config: **Startseite** | `text` |
-| **Seite neu laden**; config: **Browser neu starten**, **Neu starten** (reboot), **Updates installieren** | `button` |
-| Config: **Startseite laden nach** (min dark, 0 = never), **Neustart täglich**, **Updates automatisch** (before the reboot), **Wartungszeit** (30-min steps) | `number`, `switch`, `select` |
+| **Update-Seite anzeigen**: shows the on-screen update page (see below) and wakes the display; off = back to the page shown before | `switch` |
+| **Seite neu laden**; config: **Browser neu starten**, **Neu starten** (reboot), **Apps aktualisieren** (Chrome & AirPlay only) | `button` |
+| Config: **Startseite laden nach** (min dark, 0 = never), **Neustart täglich**, **Auto-Update Apps** (Chrome & AirPlay, before the reboot), **Wartungszeit** (30-min steps) | `number`, `switch`, `select` |
 | Diagnostic: Prozessortemperatur/-auslastung, WLAN-Signal, Betriebszeit (h), Arbeitsspeicher/Speicherplatz belegt/frei, Systemlast, Nächster Neustart, Letztes Update, Updates verfügbar – *Systemlast, Arbeitsspeicher frei, Speicherplatz belegt* are disabled by default | `sensor` |
 
 Volume: ALSA control `MIXER_CONTROL` (default `DAC` of the ES8316), 100 % = 0 dB, 0.5 dB per % (1 % = -49.5 dB),
@@ -22,7 +23,24 @@ Colour temperature ("night shift"): the compositor's gamma ramp via `wlsunset` (
 restarted when it or the compositor exits), applied by the VOP's hardware LUT – no rendering cost; 6500 K
 = neutral (no gamma client). Needs our cage build ([`system/cage/`](../../system/cage/)): Alpine's cage 0.3.0 only
 advertises the protocol and drops the ramps.
-Opens **no port** (MQTT client only). Diagnostics on the device: `python3 /usr/lib/wallpanel/wallpanel_api.py --state`.
+Opens no network port (MQTT client only); the update page listens on **127.0.0.1:8099** only. Diagnostics on the device: `python3 /usr/lib/wallpanel/wallpanel_api.py --state`.
+
+**Updates.** "Apps" means the browser (`chromium`) and the AirPlay receiver (`shairport-sync`, if installed):
+**Auto-Update Apps** and the **Apps aktualisieren** button only run `apk add -u` for these two (plus the
+dependencies apk needs), then restart the kiosk/AirPlay service. All other Alpine packages and the **kernel are
+never updated automatically** – only by hand on the on-screen update page. *Updates verfügbar* counts all
+pending packages.
+
+**On-screen update page** – opened by the switch *Update-Seite anzeigen* or by **tapping the lit screen 10 times
+within 4 s** (hidden gesture; the taps also reach the dashboard below). Two columns: *Apps & System* (pending
+packages old → new from `apk upgrade --simulate`, Auto-Update Apps status and maintenance time, last result,
+**Jetzt aktualisieren** = full `apk upgrade` with live output) and *Kernel* (running kernel + slot, available
+release with changelog, last result from `wallpanel-update check --json`, **Kernel installieren** with an on-screen
+confirmation, then `wallpanel-update install-release` detached, output in `/var/log/wallpanel-kernel-update.log`).
+**Schließen** (top right) or 10 min without touch returns to the previous page and turns the switch off.
+A kernel install can only be started by touch on this page: no MQTT topic or HA entity triggers it, the POST
+needs a per-start random token that only the served page contains (and our `Host` header), and the api
+additionally requires a real finger-down from the touchscreen within the last 20 s.
 
 | File | Purpose |
 |---|---|

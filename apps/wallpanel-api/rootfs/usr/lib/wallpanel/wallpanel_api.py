@@ -4,9 +4,10 @@
 - MQTT Discovery: entities appear automatically in Home Assistant
   (display standby + lock, brightness, night shift, volume, buttons, URL, auto reboot, sensors)
 - Hardware keys: volume up/down with an on-screen overlay, power key toggles the display
+- On-screen update page (HA switch): Alpine packages and kernel (A/B); a kernel install needs a touch
 
 Configuration: /etc/wallpanel/wallpanel.conf (KEY=value, see wallpanel.conf.example)
-No listening ports. Diagnosis on the device: wallpanel_api.py --state
+Listens only on 127.0.0.1:8099 (on-screen update page, UpdatePage). Diagnosis on the device: wallpanel_api.py --state
 """
 import glob
 import json
@@ -107,6 +108,7 @@ class Display:
         self.standby = bool(SETTINGS.get('standby', False)) or self.locked
         self.dark_since = None  # time the screen went dark (for the periodic reload)
         self.last_activity = time.time()  # touch, keys, "Display on" from HA (auto-off timer)
+        self.last_touch = 0.0  # last touch on the lit screen (only the touchscreen, never HA)
         self.touch = None  # evdev device, set by keys_loop
         self.gamma = None  # wallpanel-gamma process holding the gamma ramp
         self.gamma_k = None  # temperature last sent to it
@@ -527,9 +529,13 @@ def reboot_scheduler():
         t = reboot_time()
         if time.time() < 1.7e9 or uptime() < 600 or time.strftime('%H:%M') != t:  # no clock / just booted
             continue
+        if kernel_installing():  # it reboots by itself
+            print('maintenance skipped: kernel update running', flush=True)
+            time.sleep(60)
+            continue
         # maintenance time: updates first (if enabled), then the reboot (if enabled)
         if auto_update():
-            print('scheduled update at', t, flush=True)
+            print('scheduled update (' + ', '.join(AUTO_PACKAGES) + ') at', t, flush=True)
             install_updates(then_reboot=reboot_enabled())
         elif reboot_enabled():
             print('scheduled reboot at', t, flush=True)
@@ -539,44 +545,149 @@ def reboot_scheduler():
 
 # --- system updates (Alpine packages: Chromium, Mesa, ...) ------------------------
 
-UPDATE = {'pending': None, 'last': SETTINGS.get('last_update'), 'result': SETTINGS.get('last_update_result'),
-          'running': False}
+# Automatic updates (HA switch, at the maintenance time) and the HA button only touch these packages (plus
+# the dependencies apk needs for them); everything else is upgraded by hand from the on-screen update page.
+AUTO_PACKAGES = ('chromium', 'shairport-sync')
+UPDATE = {'pending': None, 'packages': [], 'checked': None, 'last': SETTINGS.get('last_update'),
+          'result': SETTINGS.get('last_update_result'), 'running': False, 'mode': None, 'log': []}
 
 
 def auto_update():
     return bool(SETTINGS.get('auto_update', False))
 
 
+def now_iso():
+    return time.strftime('%Y-%m-%dT%H:%M:%S%z')
+
+
 def check_updates():
-    """Number of upgradable packages (apk update + simulated upgrade)."""
+    """Number of upgradable packages (apk update + simulated upgrade); the list goes to the update page."""
     if sh('apk', 'update', '-q').returncode != 0:
         return None
     out = subprocess.run(['apk', 'upgrade', '--simulate', '--no-interactive'], capture_output=True, text=True,
                          timeout=300).stdout
+    # "(1/3) Upgrading chromium (140.0-r0 -> 141.0-r0)"
+    UPDATE['packages'] = [{'name': m.group(1), 'old': m.group(2), 'new': m.group(3)}
+                          for m in re.finditer(r'Upgrading (\S+) \((\S+) -> (\S+)\)', out)]
     UPDATE['pending'] = sum(1 for line in out.splitlines() if 'Upgrading ' in line)
+    UPDATE['checked'] = now_iso()
     return UPDATE['pending']
 
 
-def install_updates(then_reboot=False):
-    """apk upgrade (pinned packages such as our cage stay as they are), then restart the kiosk or reboot."""
-    if UPDATE['running']:
+def auto_packages():
+    """AUTO_PACKAGES that are installed (shairport-sync is optional)."""
+    return sh('apk', 'info', '-e', *AUTO_PACKAGES).stdout.split()
+
+
+def install_updates(then_reboot=False, full=False):
+    """full: apk upgrade of everything (update page); otherwise only AUTO_PACKAGES (apk add -u). Pinned
+    packages such as our cage stay as they are. Then restart the kiosk or reboot."""
+    if UPDATE['running'] or kernel_installing():
+        print('update: already running', flush=True)
         return
-    UPDATE['running'] = True
+    UPDATE.update(running=True, mode='full' if full else 'auto', log=[])
+    upgraded = []
     try:
-        before = check_updates()
-        r = subprocess.run(['apk', 'upgrade', '--no-interactive'], capture_output=True, text=True, timeout=1800)
-        UPDATE['last'] = time.strftime('%Y-%m-%dT%H:%M:%S%z')
-        UPDATE['result'] = f'ok, {before or 0} packages' if r.returncode == 0 else f'failed ({r.returncode})'
-        print('update:', UPDATE['result'], (r.stderr or '')[-300:], flush=True)
+        pkgs = [] if full else auto_packages()
+        cmd = ['apk', 'upgrade', '--no-interactive'] if full else ['apk', 'add', '-u', '--no-interactive', *pkgs]
+        if not full and not pkgs:
+            cmd = ['true']
+        if sh('apk', 'update', '-q').returncode != 0:
+            UPDATE['log'].append('apk update fehlgeschlagen (Netzwerk?)')
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        deadline = time.time() + 1800
+        for line in p.stdout:  # progress for the update page
+            line = line.rstrip()
+            m = re.search(r'Upgrading (\S+) ', line)
+            if m:
+                upgraded.append(m.group(1))
+            UPDATE['log'] = (UPDATE['log'] + [line])[-12:]
+            if time.time() > deadline:
+                p.kill()
+        rc = p.wait()
+        UPDATE['last'] = now_iso()
+        what = '' if full else f" ({', '.join(pkgs)})"
+        UPDATE['result'] = f'ok, {len(upgraded)} packages{what}' if rc == 0 else f'failed ({rc})'
+        print('update:', UPDATE['result'], '' if rc == 0 else '\n'.join(UPDATE['log'])[-300:], flush=True)
         SETTINGS['last_update'], SETTINGS['last_update_result'] = UPDATE['last'], UPDATE['result']
         save_settings()
         check_updates()
+    except Exception as e:
+        UPDATE['result'] = f'failed ({e})'
+        print('update:', e, flush=True)
     finally:
         UPDATE['running'] = False
+    if MQ:
+        MQ.publish_state()
     if then_reboot:
         reboot()
-    elif before:
+    elif upgraded:
+        if 'shairport-sync' in upgraded and sh('rc-service', '--exists', 'wallpanel-airplay').returncode == 0:
+            sh('rc-service', 'wallpanel-airplay', 'restart')
         restart_kiosk()  # new Chromium/Mesa take effect
+
+
+# --- kernel updates (wallpanel-update, A/B slots) ------------------------------
+# Only ever started by a touch on the on-screen update page (UpdatePage), never from MQTT/Home Assistant.
+
+WALLPANEL_UPDATE = os.environ.get('WALLPANEL_UPDATE', '/usr/sbin/wallpanel-update')
+KERNEL_LOG = '/var/log/wallpanel-kernel-update.log'
+KERNEL = {'info': None, 'checked': None, 'checking': False, 'error': None}
+
+
+def running_slot():
+    m = re.search(r'wallpanel\.slot=([AB])', read('/proc/cmdline'))
+    return m.group(1) if m else None
+
+
+def check_kernel():
+    """wallpanel-update check --json: running slot/kernel, available release, last result."""
+    KERNEL['checking'] = True
+    try:
+        r = subprocess.run([WALLPANEL_UPDATE, 'check', '--json'], capture_output=True, text=True, timeout=120)
+        KERNEL['info'] = json.loads(r.stdout)
+        KERNEL['error'] = None
+    except (OSError, ValueError, subprocess.TimeoutExpired) as e:
+        KERNEL['info'] = None
+        KERNEL['error'] = 'Kernel-Updates werden von diesem System noch nicht unterstützt' \
+            if isinstance(e, ValueError) else f'Prüfung fehlgeschlagen ({e.__class__.__name__})'
+        print('kernel check:', e, flush=True)
+    finally:
+        KERNEL['checked'] = now_iso()
+        KERNEL['checking'] = False
+
+
+def kernel_installing():
+    return sh('pgrep', '-f', f'{os.path.basename(WALLPANEL_UPDATE)} install-release').returncode == 0
+
+
+def install_kernel():
+    """Start wallpanel-update install-release detached (own session, output to KERNEL_LOG): it downloads,
+    verifies, writes slot B, reboots once into it and promotes or falls back to A - it must survive an api
+    restart, so it does not hang on our pipes."""
+    if kernel_installing() or UPDATE['running']:
+        return False
+    log = open(KERNEL_LOG, 'w')
+    log.write(f'{now_iso()} Kernel-Update gestartet\n')
+    log.flush()
+    subprocess.Popen([WALLPANEL_UPDATE, 'install-release'], stdin=subprocess.DEVNULL, stdout=log,
+                     stderr=subprocess.STDOUT, start_new_session=True)
+    log.close()
+    print('kernel update started from the update page', flush=True)
+    return True
+
+
+def kernel_status():
+    info = KERNEL['info'] or {}
+    try:
+        log = open(KERNEL_LOG).read().splitlines()[-12:]
+    except OSError:
+        log = []
+    return {'running_slot': info.get('running_slot') or running_slot(),
+            'running_kernel': info.get('running_kernel') or os.uname().release,
+            'available': info.get('available'), 'update_available': bool(info.get('update_available')),
+            'last_result': info.get('last_result'), 'checked': KERNEL['checked'], 'checking': KERNEL['checking'],
+            'error': KERNEL['error'], 'running': kernel_installing(), 'log': log}
 
 
 def update_checker():
@@ -600,7 +711,7 @@ def state():
             'auto_off': int(SETTINGS.get('auto_off', 5)), 'fade_ms': int(SETTINGS.get('fade_ms', 400)),
             'touch_fade_ms': int(SETTINGS.get('touch_fade_ms', 100)),
             'updates_pending': UPDATE['pending'], 'last_update': UPDATE['last'],
-            'last_update_result': UPDATE['result'],
+            'last_update_result': UPDATE['result'], 'update_page': update_page.on,
             'reboot_time': reboot_time(), 'reboot_enabled': reboot_enabled(), 'next_reboot': next_reboot(),
             **sensors()}
 
@@ -670,11 +781,14 @@ class Mqtt:
                                            'command_topic': f'{BASE}/reboot_enabled/set', 'state_topic': f'{BASE}/state',
                                            'value_template': "{{ 'ON' if value_json.reboot_enabled else 'OFF' }}",
                                            'entity_category': 'config'},
-            ('switch', 'auto_update'): {'name': 'Updates automatisch', 'icon': 'mdi:update',
+            ('switch', 'update_page'): {'name': 'Update-Seite anzeigen', 'icon': 'mdi:update',
+                                        'command_topic': f'{BASE}/update_page/set', 'state_topic': f'{BASE}/state',
+                                        'value_template': "{{ 'ON' if value_json.update_page else 'OFF' }}"},
+            ('switch', 'auto_update'): {'name': 'Auto-Update Apps', 'icon': 'mdi:update',
                                         'command_topic': f'{BASE}/auto_update/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.auto_update else 'OFF' }}",
                                         'entity_category': 'config'},
-            ('button', 'install_updates'): {'name': 'Updates installieren', 'command_topic': f'{BASE}/install_updates',
+            ('button', 'install_updates'): {'name': 'Apps aktualisieren', 'command_topic': f'{BASE}/install_updates',
                                             'icon': 'mdi:download', 'entity_category': 'config'},
             ('sensor', 'updates_pending'): {'name': 'Updates verfügbar', 'state_topic': f'{BASE}/state',
                                             'value_template': '{{ value_json.updates_pending }}',
@@ -796,14 +910,18 @@ class Mqtt:
         elif topic.endswith('/auto_update/set'):
             SETTINGS['auto_update'] = payload.strip().upper() == 'ON'
             save_settings()
-        elif topic.endswith('/install_updates'):
+        elif topic.endswith('/install_updates'):  # AUTO_PACKAGES only; the full upgrade is on the update page
             threading.Thread(target=install_updates, daemon=True).start()
+        elif topic.endswith('/update_page/set'):  # shows the page only; kernel installs need a touch there
+            update_page.show() if payload.strip().upper() == 'ON' else update_page.close()
         elif topic.endswith('/reboot_enabled/set'):
             set_reboot_enabled(payload.strip().upper() == 'ON')
         elif topic.endswith('/volume/set'):
             volume.set(float(payload))
         elif topic.endswith('/url/set'):
-            if re.match(r'https?://', payload.strip()):  # never file:, chrome:, javascript: (config holds secrets)
+            if UpdatePage.is_local(payload.strip()):  # only via the switch
+                print('url: the update page is only shown via its switch', flush=True)
+            elif re.match(r'https?://', payload.strip()):  # never file:, chrome:, javascript: (config holds secrets)
                 browser.navigate(payload.strip())
             else:
                 print('url: only http(s) URLs are allowed', flush=True)
@@ -877,8 +995,8 @@ def home_url():
 
 def set_home_url(value):
     value = (value or '').strip()
-    if not re.match(r'https?://', value):
-        raise ValueError('expected an http(s) URL')
+    if not re.match(r'https?://', value) or UpdatePage.is_local(value):
+        raise ValueError('expected an http(s) URL (not the update page)')
     if value != home_url():
         SETTINGS['home_url'] = value
         save_settings()
@@ -894,6 +1012,8 @@ def dark_reload():
     """Once the screen has been dark for home_after() minutes, load the start page in the background:
     back on the main page with a fresh JS heap when it is switched on again, nobody sees the reload."""
     since, after = display.dark_since, home_after() * 60
+    if update_page.on:  # it closes itself after UpdatePage.IDLE
+        return
     if after and since and time.time() - since > after and _last_reload[0] < since + after:
         print('dark for', home_after(), 'min -> start page', flush=True)
         _last_reload[0] = time.time()
@@ -950,7 +1070,377 @@ def gamma_loop():
         time.sleep(5)
 
 
+# --- on-screen update page (127.0.0.1 only) -------------------------------------
+
+class UpdatePage:
+    """HA switch "Update-Seite anzeigen": the kiosk shows a local page with the pending Alpine updates and
+    the kernel (A/B) release; off (or IDLE without touch) returns to the page shown before.
+    Served on 127.0.0.1 only (not reachable from the network). POSTs need the random token that is only
+    embedded in the page the kiosk loads (other local processes cannot start anything), and the Host header
+    must be ours (no DNS rebinding). A kernel install additionally needs a real touch on the lit screen in
+    the last seconds (display.last_touch comes from the touchscreen only), so neither MQTT/HA nor anything
+    remote can start one."""
+    PORT = 8099
+    URL = f'http://127.0.0.1:{PORT}/'
+    IDLE = 600  # s without touch -> close
+    TOUCH_WINDOW = 20  # s between the touch and the kernel install request
+
+    def __init__(self):
+        import secrets
+        self.on = False
+        self.since = 0.0
+        self.back = None  # page shown before
+        self.token = secrets.token_urlsafe(24)
+        self.checking = False
+
+    @classmethod
+    def is_local(cls, url):
+        from urllib.parse import urlsplit
+        try:
+            return urlsplit(url).port == cls.PORT
+        except ValueError:
+            return False
+
+    def show(self):
+        if not self.on:
+            url = browser.url()
+            self.back = url if re.match(r'https?://', url or '') and not self.is_local(url) else None
+            self.on, self.since = True, time.time()
+            print('update page: shown', flush=True)
+        if not display.locked:
+            display.set_standby(False)
+        browser.navigate(self.URL)
+        self.check()
+
+    def open_by_touch(self):
+        """TapGesture: same state as the HA switch (HA shows it on)."""
+        self.show()
+        if MQ:
+            MQ.publish_state()
+
+    def close(self):
+        if not self.on:
+            return
+        self.on = False
+        print('update page: closed', flush=True)
+        browser.navigate(self.back or home_url())
+        self.back = None
+
+    def check(self):
+        """Refresh both columns in the background (apk update needs the network, the kernel check too)."""
+        if self.checking:
+            return
+
+        def run():
+            self.checking = True
+            try:
+                if not UPDATE['running']:
+                    check_updates()
+            except Exception as e:
+                print('update check:', e, flush=True)
+            finally:
+                check_kernel()
+                self.checking = False
+        threading.Thread(target=run, daemon=True).start()
+
+    def status(self):
+        return {'apps': {'pending': UPDATE['pending'], 'packages': UPDATE['packages'], 'checked': UPDATE['checked'],
+                         'running': UPDATE['running'], 'mode': UPDATE['mode'], 'log': UPDATE['log'],
+                         'last': UPDATE['last'], 'result': UPDATE['result'], 'auto_update': auto_update(),
+                         'auto_packages': list(AUTO_PACKAGES), 'maintenance_time': reboot_time()},
+                'kernel': kernel_status(), 'checking': self.checking, 'name': NAME,
+                'closes_in': max(0, int(self.IDLE - (time.time() - max(self.since, display.last_touch)))) if self.on else 0}
+
+    def post(self, path):
+        """-> (http code, message)"""
+        if not self.on:
+            return 409, 'Die Update-Seite ist nicht aktiv.'
+        if path == '/api/close':
+            threading.Thread(target=self._close_and_publish, daemon=True).start()
+            return 200, 'ok'
+        if path == '/api/check':
+            self.check()
+            return 202, 'Wird geprüft …'
+        if path == '/api/apps/update':
+            if UPDATE['running'] or kernel_installing():
+                return 409, 'Es läuft bereits ein Update.'
+            threading.Thread(target=install_updates, kwargs={'full': True}, daemon=True).start()
+            return 202, 'Update gestartet.'
+        if path == '/api/kernel/install':
+            if not display.lit or time.time() - display.last_touch > self.TOUCH_WINDOW:
+                print('update page: kernel install refused (no touch on the screen)', flush=True)
+                return 403, 'Nur per Berührung am Bildschirm möglich.'
+            if not (KERNEL['info'] or {}).get('update_available'):
+                return 409, 'Kein neuer Kernel verfügbar.'
+            if not install_kernel():
+                return 409, 'Es läuft bereits ein Update.'
+            return 202, 'Kernel-Update gestartet.'
+        return 404, 'not found'
+
+    def _close_and_publish(self):
+        self.close()
+        if MQ:
+            MQ.publish_state()
+
+    def loop(self):
+        """Close after IDLE without touch; keep the kiosk on the page while the switch is on (e.g. after the
+        browser restart that follows an update) and off it while the switch is off (e.g. after an api restart)."""
+        n = 0
+        while True:
+            time.sleep(5)
+            n += 1
+            if self.on and time.time() - max(self.since, display.last_touch) > self.IDLE:
+                print(f'update page: no touch for {self.IDLE // 60} min', flush=True)
+                self._close_and_publish()
+            elif self.on or n % 3 == 0:
+                url = browser.url()
+                if url and self.on and not self.is_local(url):
+                    browser.navigate(self.URL)
+                elif url and not self.on and self.is_local(url):
+                    browser.navigate(home_url())
+
+    def start(self):
+        import http.server
+        import hmac
+        page = self
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def send(self, code, body, ctype='application/json'):
+                body = body.encode() if isinstance(body, str) else body
+                self.send_response(code)
+                self.send_header('Content-Type', ctype + '; charset=utf-8')
+                self.send_header('Content-Length', str(len(body)))
+                self.send_header('Cache-Control', 'no-store')
+                self.send_header('X-Frame-Options', 'DENY')
+                self.send_header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; "
+                                 "style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'")
+                self.end_headers()
+                self.wfile.write(body)
+
+            def host_ok(self):
+                return self.headers.get('Host') == f'127.0.0.1:{page.PORT}'
+
+            def do_GET(self):
+                path = self.path.split('?')[0]
+                if not self.host_ok():
+                    self.send(403, '{}')
+                elif path == '/':
+                    self.send(200, PAGE_HTML.replace('__TOKEN__', page.token), 'text/html')
+                elif path == '/api/status':
+                    self.send(200, json.dumps(page.status()))
+                else:
+                    self.send(404, '{}')
+
+            def do_POST(self):
+                self.rfile.read(min(4096, int(self.headers.get('Content-Length') or 0)))
+                origin = self.headers.get('Origin')
+                if not (self.host_ok() and hmac.compare_digest(self.headers.get('X-Wallpanel-Token', ''), page.token)
+                        and origin in (None, page.URL.rstrip('/'))):
+                    self.send(403, json.dumps({'message': 'forbidden'}))
+                    return
+                code, msg = page.post(self.path.split('?')[0])
+                self.send(code, json.dumps({'message': msg}))
+
+        server = http.server.ThreadingHTTPServer(('127.0.0.1', self.PORT), Handler)
+        server.daemon_threads = True
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        threading.Thread(target=self.loop, daemon=True).start()
+
+
+update_page = UpdatePage()
+
+PAGE_HTML = """<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Updates</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root { --bg:#111; --card:#1c1c1c; --line:#2e2e2e; --text:#e1e1e1; --dim:#9b9b9b; --primary:#03a9f4;
+  --ok:#4caf50; --warn:#ff9800; --err:#ef5350; }
+* { box-sizing:border-box; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--text);
+  font:20px/1.4 Roboto, "Noto Sans", system-ui, sans-serif; -webkit-user-select:none; user-select:none; }
+body { display:flex; flex-direction:column; padding:28px 36px; gap:24px; overflow:hidden; }
+header { display:flex; align-items:center; gap:20px; }
+header h1 { margin:0; font-size:34px; font-weight:500; flex:1; }
+header h1 small { color:var(--dim); font-size:20px; font-weight:400; margin-left:14px; }
+main { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:24px; min-height:0; }
+section { background:var(--card); border-radius:16px; padding:26px 30px; display:flex; flex-direction:column;
+  gap:18px; min-height:0; box-shadow:0 2px 6px rgba(0,0,0,.35); }
+h2 { margin:0; font-size:26px; font-weight:500; display:flex; align-items:center; gap:12px; }
+h2 svg { width:32px; height:32px; fill:var(--primary); }
+.big { font-size:30px; font-weight:500; }
+.dim { color:var(--dim); }
+.rows { display:grid; grid-template-columns:max-content 1fr; gap:8px 24px; }
+.rows .dim { white-space:nowrap; }
+.list { flex:1; min-height:80px; overflow:auto; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  padding:6px 0; }
+.list div { display:flex; justify-content:space-between; gap:16px; padding:7px 4px; border-bottom:1px solid #242424; }
+.list div:last-child { border-bottom:0; }
+.list .v { color:var(--dim); font-size:17px; font-family:"Roboto Mono", monospace; text-align:right; }
+.list ul { margin:4px 0; padding-left:26px; } .list li { padding:4px 0; }
+.tag { display:inline-block; font-size:14px; padding:2px 10px; border-radius:10px; background:#0b3a52; color:#8fd6fa;
+  margin-left:10px; vertical-align:2px; }
+.log { background:#0d0d0d; border-radius:10px; padding:12px 16px; font:15px/1.45 "Roboto Mono", monospace;
+  color:#bdbdbd; white-space:pre-wrap; max-height:190px; overflow:hidden; display:none; }
+.ok { color:var(--ok); } .err { color:var(--err); } .warn { color:var(--warn); }
+button { font:inherit; font-size:24px; font-weight:500; border:0; border-radius:14px; min-height:76px; padding:0 34px;
+  color:#fff; background:var(--primary); touch-action:manipulation; }
+button:active { filter:brightness(.8); }
+button:disabled { background:#333; color:#777; }
+button.flat { background:#2a2a2a; min-height:64px; font-size:21px; }
+button#close { background:#3a3a3a; min-height:84px; min-width:240px; font-size:26px; }
+button.kernel { background:var(--warn); color:#1a1a1a; }
+button.wide { width:100%; }
+#closes { color:var(--dim); font-size:17px; }
+#modal { position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; }
+#modal .box { background:#232323; border-radius:20px; padding:40px 44px; width:880px; display:flex; flex-direction:column;
+  gap:22px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+#modal h3 { margin:0; font-size:30px; font-weight:500; }
+#modal .btns { display:flex; gap:20px; justify-content:flex-end; margin-top:10px; }
+#toast { position:fixed; left:50%; bottom:40px; transform:translateX(-50%); background:#323232; padding:18px 30px;
+  border-radius:12px; font-size:21px; display:none; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+</style></head><body>
+<header>
+  <h1>Updates <small id="name"></small></h1>
+  <span id="closes"></span>
+  <button class="flat" id="check">Erneut prüfen</button>
+  <button id="close">✕&nbsp; Schließen</button>
+</header>
+<main>
+  <section>
+    <h2><svg viewBox="0 0 24 24"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A1 1 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9z"/></svg>Apps &amp; System</h2>
+    <div><div class="big" id="a-count">…</div><div class="dim" id="a-checked"></div></div>
+    <div class="list" id="a-list"></div>
+    <div class="rows">
+      <span class="dim">Auto-Update Apps</span><span id="a-auto"></span>
+      <span class="dim">Letztes Update</span><span id="a-last"></span>
+    </div>
+    <div class="log" id="a-log"></div>
+    <button class="wide" id="a-go">Jetzt aktualisieren</button>
+  </section>
+  <section>
+    <h2><svg viewBox="0 0 24 24"><path d="M17 17H7V7h10m4 4V9h-2V7a2 2 0 0 0-2-2h-2V3h-2v2h-2V3H9v2H7a2 2 0 0 0-2 2v2H3v2h2v2H3v2h2v2a2 2 0 0 0 2 2h2v2h2v-2h2v2h2v-2h2a2 2 0 0 0 2-2v-2h2v-2h-2v-2m-6 2h-2v-2h2m2-2H9v6h6V9z"/></svg>Kernel</h2>
+    <div class="rows">
+      <span class="dim">Läuft</span><span id="k-run"></span>
+      <span class="dim">Letztes Kernel-Update</span><span id="k-last"></span>
+    </div>
+    <div><div class="big" id="k-avail">…</div><div class="dim" id="k-checked"></div></div>
+    <div class="list" id="k-list"></div>
+    <div class="log" id="k-log"></div>
+    <button class="wide kernel" id="k-go" disabled>Kernel installieren</button>
+  </section>
+</main>
+<div id="modal"><div class="box">
+  <h3 id="m-title">Kernel installieren?</h3>
+  <div>Das Panel startet zum Test neu und ist dabei einige Minuten nicht bedienbar. Läuft der neue Kernel
+    einwandfrei, wird er übernommen – sonst startet das Panel automatisch wieder mit dem bisherigen Kernel.</div>
+  <div class="dim">Während des Updates bitte nicht vom Strom trennen.</div>
+  <div class="btns"><button class="flat" id="m-no">Abbrechen</button>
+    <button class="kernel" id="m-yes">Installieren und neu starten</button></div>
+</div></div>
+<div id="toast"></div>
+<script>
+const TOKEN = '__TOKEN__';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const when = (s) => {
+  if (!s) return '–';
+  const d = new Date(String(s).replace(/([+-]\\d\\d)(\\d\\d)$/, '$1:$2'));
+  return isNaN(d) ? esc(s) : d.toLocaleString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'});
+};
+let S = null;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', 4000);
+}
+async function post(path) {
+  try {
+    const r = await fetch(path, {method: 'POST', headers: {'X-Wallpanel-Token': TOKEN}});
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 403 && j.message === 'forbidden') { location.reload(); return; }  // api restarted: new token
+    toast(j.message || r.status);
+  } catch (e) { toast('Keine Verbindung'); }
+  refresh();
+}
+function log(el, lines, show) {
+  el.style.display = show && lines.length ? 'block' : 'none';
+  el.textContent = lines.join('\\n');
+}
+function render() {
+  const a = S.apps, k = S.kernel, busy = a.running || k.running;
+  $('name').textContent = S.name;
+  $('closes').textContent = S.closes_in ? `schließt in ${Math.ceil(S.closes_in / 60)} min` : '';
+  $('check').disabled = S.checking;
+  $('check').textContent = S.checking ? 'Prüfe …' : 'Erneut prüfen';
+  // apps & system
+  $('a-count').innerHTML = a.running ? '<span class="warn">Wird aktualisiert …</span>'
+    : a.pending == null ? (S.checking ? 'Wird geprüft …' : 'Unbekannt')
+    : a.pending ? `${a.pending} Update${a.pending == 1 ? '' : 's'} verfügbar` : '<span class="ok">Alles aktuell</span>';
+  $('a-checked').textContent = a.checked ? `geprüft ${when(a.checked)}` : '';
+  $('a-list').innerHTML = a.packages.map((p) => `<div><span>${esc(p.name)}${a.auto_packages.includes(p.name)
+    ? '<span class="tag">Auto-Update</span>' : ''}</span><span class="v">${esc(p.old)} → ${esc(p.new)}</span></div>`).join('')
+    || '<div class="dim">Keine ausstehenden Pakete</div>';
+  $('a-auto').innerHTML = a.auto_update ? `<span class="ok">an</span> – Chrome &amp; AirPlay täglich um ${esc(a.maintenance_time)}`
+    : '<span class="dim">aus</span> <span class="dim">(Chrome &amp; AirPlay, täglich zur Wartungszeit)</span>';
+  $('a-last').innerHTML = a.last ? `${when(a.last)} – <span class="${/^ok/.test(a.result) ? 'ok' : 'err'}">${esc(a.result)}</span>` : '–';
+  log($('a-log'), a.log, a.running || a.log.length);
+  $('a-go').disabled = busy || a.pending === 0;
+  $('a-go').textContent = a.running ? 'Wird aktualisiert …' : 'Jetzt aktualisieren';
+  // kernel
+  $('k-run').textContent = `${k.running_kernel} (Slot ${k.running_slot || '?'})`;
+  const lr = k.last_result;
+  $('k-last').innerHTML = lr ? `${when(lr.time)} – ${esc(lr.from)} → ${esc(lr.to)}: ${lr.ok ? '<span class="ok">erfolgreich</span>'
+    : `<span class="err">zurück auf den bisherigen Kernel${lr.reason ? ' (' + esc(lr.reason) + ')' : ''}</span>`}` : '–';
+  const av = k.available;
+  $('k-avail').innerHTML = k.running ? '<span class="warn">Wird installiert …</span>'
+    : k.error ? `<span class="dim">${esc(k.error)}</span>`
+    : k.checking && !k.checked ? 'Wird geprüft …'
+    : k.update_available && av ? `Neuer Kernel ${esc(av.kernel)}` : '<span class="ok">Kernel ist aktuell</span>';
+  $('k-checked').textContent = av ? `Release ${av.tag}${av.published ? ', veröffentlicht ' + when(av.published) : ''}`
+    : k.checked ? `geprüft ${when(k.checked)}` : '';
+  $('k-list').innerHTML = av && (av.changelog || []).length
+    ? '<ul>' + av.changelog.map((c) => `<li>${esc(c)}</li>`).join('') + '</ul>' : '<div class="dim">Keine Änderungen</div>';
+  log($('k-log'), k.log, k.running || k.log.length);
+  $('k-go').disabled = busy || !k.update_available;
+  $('k-go').textContent = k.running ? 'Wird installiert …' : 'Kernel installieren';
+}
+async function refresh() {
+  try { S = await (await fetch('/api/status')).json(); render(); } catch (e) {}
+}
+$('close').onclick = () => post('/api/close');
+$('check').onclick = () => post('/api/check');
+$('a-go').onclick = () => post('/api/apps/update');
+$('k-go').onclick = () => {
+  $('m-title').textContent = `Kernel ${S.kernel.available.kernel} installieren?`;
+  $('modal').style.display = 'flex';
+};
+$('m-no').onclick = () => $('modal').style.display = 'none';
+$('m-yes').onclick = () => { $('modal').style.display = 'none'; post('/api/kernel/install'); };
+refresh(); setInterval(refresh, 2000);
+</script></body></html>
+"""
+
+
 # --- hardware keys ---------------------------------------------------------
+
+class TapGesture:
+    """Hidden gesture: TAPS touches within WINDOW seconds on the lit screen open the update page (no HA
+    needed). Only finger-down events count; the taps also reach the page below, like any tap would."""
+    TAPS, WINDOW = 10, 4.0
+
+    def __init__(self):
+        self.times = []
+
+    def tap(self, t):
+        """Register a touch at time t; True once TAPS touches fall within WINDOW (then starts over)."""
+        self.times = [x for x in self.times if t - x < self.WINDOW] + [t]
+        if len(self.times) >= self.TAPS:
+            self.times = []
+            return True
+        return False
+
 
 def keys_loop():
     import evdev
@@ -962,6 +1452,7 @@ def keys_loop():
         display.touch = touch
         devs.append(touch)
     step = int(CONF.get('VOLUME_STEP', '5'))
+    taps = TapGesture()
     import selectors
     sel = selectors.DefaultSelector()
     for d in devs:
@@ -972,6 +1463,11 @@ def keys_loop():
             for ev in key.fileobj.read():
                 if key.fileobj is touch:
                     display.activity()
+                    if ev.type == e.EV_KEY and ev.code == e.BTN_TOUCH and ev.value == 1 and display.lit:
+                        display.last_touch = time.time()  # a real finger on the visible screen (update page)
+                        if taps.tap(display.last_touch) and not update_page.on:
+                            print(f'{taps.TAPS} taps -> update page', flush=True)
+                            threading.Thread(target=update_page.open_by_touch, daemon=True).start()
                     # grabbed while off: the first touch only wakes the display
                     if ev.type == e.EV_KEY and ev.code == e.BTN_TOUCH and ev.value == 1 and not display.lit:
                         print(f'touch on dark screen (locked={display.locked})', flush=True)
@@ -1017,6 +1513,7 @@ def main():
     threading.Thread(target=update_checker, daemon=True).start()
     threading.Thread(target=kiosk_loop, daemon=True).start()
     threading.Thread(target=auto_off_loop, daemon=True).start()
+    update_page.start()
     if MQ:
         def periodic():
             while True:

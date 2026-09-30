@@ -15,4 +15,15 @@
       if (c.lastRobotState === 'docked' && c.pollInterval !== 120000) c.pollInterval = 120000;
     }
   }, 5000);
+
+  // Assist: tapping the Assist button starts listening right away (no second tap on the mic) –
+  // the frontend's own start_listening parameter of the voice command dialog.
+  customElements.whenDefined('ha-voice-command-dialog').then((c) => {
+    const show = c.prototype.showDialog;
+    if (show.__wallpanel) return;
+    c.prototype.showDialog = function (params) {
+      return show.call(this, { ...(params || {}), start_listening: true });
+    };
+    c.prototype.showDialog.__wallpanel = true;
+  });
 })();

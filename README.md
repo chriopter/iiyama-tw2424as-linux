@@ -137,6 +137,10 @@ wallpanel-update promote   # slot B works: copy to slot A
 ```
 The test boot is a one-shot register flag (never `misc`), so a power cycle always returns to slot A.
 Alpine itself updates with `apk upgrade`. New kernel version: see [`system/kernel/`](system/kernel/).
+On the panel: the **update page** (HA switch *Update-Seite anzeigen*, or tap the screen 10× within 4 s) shows
+pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Auto-Update Apps*
+covers only Chromium and the AirPlay receiver – never other packages or the kernel
+([`apps/wallpanel-api/`](apps/wallpanel-api/)).
 </details>
 
 ## Rollback and rescue
