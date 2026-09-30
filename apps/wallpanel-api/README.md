@@ -18,6 +18,7 @@ All entities of the device "Wallpanel" – HA shows the German names; English me
 | *config* **Bildschirm-Überblendung** | screen fade | `number` | 0–3000 ms (400) |
 | *config* **Bildschirm-Überblendung bei Berührung** | screen fade when woken by touch | `number` | 0–3000 ms (100) |
 | *config* **Farbton-Abgleich** | tint calibration against real bulbs | `number` | 50–150 % (83) |
+| *config* **Kopfleiste ausblenden** | hide HA's top bar; search and Assist move next to the badges (restarts the browser) | `switch` | on/off (off) |
 | *config* **Skalierung** | scaling: page zoom of Home Assistant (restarts the browser) | `select` | 75, 80, 90, 100, 110, 125, 150, 175, 200 % (100) |
 | *config* **Startseite** | home page | `text` | http(s) URL (`KIOSK_URL`) |
 | *config* **Startseite laden nach** | load the home page after … dark | `number` | 0–1440 min, 0 = never (60) |
@@ -63,15 +64,16 @@ needs a per-start random token that only the served page contains (and our `Host
 additionally requires a real finger-down from the touchscreen within the last 20 s.
 The api looks for a new kernel release on GitHub once a day (and whenever the page opens or *Erneut prüfen* is
 tapped), so the page already shows it; installing still needs that touch.
-Second tab **Einstellungen & Service**: on-screen controls for everything MQTT offers except URLs
-(*Seitenadresse*/*Startseite* are shown read-only; *Bildschirm an/aus* as info), labelled like the HA entities:
-brightness + colour temperature, Farbton-Abgleich, Überblendung (+ bei Berührung), Bildschirm aus nach,
-Bildschirm gesperrt, Lautstärke, Startseite laden nach, **Skalierung** (shown with the resulting resolution,
-e.g. 125 % = 1536×864; *Anpassen* opens a live preview of the dashboard in a frame – *Übernehmen* restarts the
-browser, the update page itself stays at 100 %), Neustart täglich, Wartungszeit, Auto-Update Apps, and the
-actions Seite neu laden (closes the page), Browser neu starten, Apps aktualisieren, Neu starten and Herunterfahren (both with confirmation).
+Second tab **Einstellungen & Service**, split by where a setting exists: three sections marked *auch in Home
+Assistant* mirror the HA entities with the same names – **Bildschirm** (Helligkeit, Farbtemperatur,
+Farbton-Abgleich, Überblendung (+ bei Berührung), Bildschirm aus nach, Bildschirm gesperrt), **Seite & Ton**
+(Lautstärke, Skalierung, Kopfleiste ausblenden, Startseite laden nach; Seite neu laden, Browser neu starten) and
+**Wartung** (Neustart täglich, Wartungszeit, Auto-Update Apps; Apps aktualisieren, Neu starten) – and a dashed box
+**Nur am Gerät** (Herunterfahren). URLs are set from HA only. **Skalierung** shows the resulting resolution
+(e.g. 125 % = 1536×864); *Anpassen* opens a live preview of the dashboard in a frame – *Übernehmen* restarts the
+browser, the update page itself stays at 100 %.
 They run through the same `command()` as the MQTT messages (HA state follows at once); settings need the page
-token, anything that restarts or reboots (also *Skalierung*, and *Jetzt aktualisieren*) also the recent real touch.
+token, anything that restarts or reboots (also *Skalierung*, *Kopfleiste ausblenden* and *Jetzt aktualisieren*) also the recent real touch.
 A row above the columns shows current values with small graphs (1 h / 24 h): CPU, SoC temperature, memory,
 WiFi signal, backlight (0 = off), plus uptime and kernel. The api samples them every 10 s into a 24 h ring
 buffer in RAM (~0.3 MB, lost on restart, nothing written to the eMMC); the page polls every 5 s while open.

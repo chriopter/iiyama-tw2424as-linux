@@ -599,20 +599,38 @@ def set_scale(payload):
     v = int(float(str(payload).strip().rstrip('%').strip()))  # "125" or "125 %" (HA select)
     if v not in SCALES:
         raise ValueError(f'scale must be one of {SCALES}')
-    global _scale_timer
     if v != scale():
         SETTINGS['scale'] = v
         save_settings()
         print(f'scale {v} %: restarting the kiosk', flush=True)
-        # several changes in a row (HA slider, repeated taps): one restart 2 s after the last one
-        if _scale_timer:
-            _scale_timer.cancel()
-        _scale_timer = threading.Timer(2, restart_kiosk)
-        _scale_timer.daemon = True
-        _scale_timer.start()
+        restart_kiosk_soon()
 
 
-_scale_timer = None
+def hide_header():
+    """Tweak "Kopfleiste ausblenden": the kiosk extension hides Home Assistant's top bar and keeps only its
+    search and Assist buttons, top right next to the badges (read at kiosk start)."""
+    return bool(SETTINGS.get('hide_header', False))
+
+
+def set_hide_header(on):
+    if on != hide_header():
+        SETTINGS['hide_header'] = on
+        save_settings()
+        print(f'hide header {on}: restarting the kiosk', flush=True)
+        restart_kiosk_soon()
+
+
+_restart_timer = None
+
+
+def restart_kiosk_soon():
+    """Several changes in a row (HA slider, repeated taps): one kiosk restart 2 s after the last one."""
+    global _restart_timer
+    if _restart_timer:
+        _restart_timer.cancel()
+    _restart_timer = threading.Timer(2, restart_kiosk)
+    _restart_timer.daemon = True
+    _restart_timer.start()
 
 
 def panel_resolution():
@@ -862,6 +880,7 @@ def state():
             'playing': playing(),
             'home_url': home_url(), 'home_after': home_after(), 'auto_update': auto_update(),
             'auto_off': int(SETTINGS.get('auto_off', 5)), 'fade_ms': int(SETTINGS.get('fade_ms', 400)), 'scale': scale(),
+            'hide_header': hide_header(),
             'touch_fade_ms': int(SETTINGS.get('touch_fade_ms', 100)),
             'updates_pending': UPDATE['pending'], 'last_update': UPDATE['last'],
             'last_update_result': UPDATE['result'], 'update_page': update_page.on,
@@ -924,6 +943,8 @@ def command(topic, payload):
     elif topic.endswith('/home_after/set'):
         SETTINGS['home_after'] = max(0, int(float(payload)))
         save_settings()
+    elif topic.endswith('/hide_header/set'):
+        set_hide_header(payload.strip().upper() == 'ON')
     elif topic.endswith('/scale/set'):
         try:
             set_scale(payload)
@@ -1040,6 +1061,10 @@ class Mqtt:
                                         'json_attributes_topic': f'{BASE}/state',
                                         'json_attributes_template': '{{ {"result": value_json.last_update_result} | tojson }}',
                                         'icon': 'mdi:package-variant-closed-check', 'entity_category': 'diagnostic'},
+            ('switch', 'hide_header'): {'name': 'Kopfleiste ausblenden', 'icon': 'mdi:page-layout-header',
+                                        'command_topic': f'{BASE}/hide_header/set', 'state_topic': f'{BASE}/state',
+                                        'value_template': "{{ 'ON' if value_json.hide_header else 'OFF' }}",
+                                        'entity_category': 'config'},
             ('select', 'scale'): {'name': 'Skalierung', 'options': [f'{v} %' for v in SCALES],
                                   'command_topic': f'{BASE}/scale/set', 'state_topic': f'{BASE}/state',
                                   'value_template': '{{ value_json.scale }} %',
@@ -1351,7 +1376,7 @@ class UpdatePage:
     # "Einstellungen & Service": what MQTT can do, minus URLs (Seitenadresse/Startseite only shown) and
     # "Bildschirm an/aus" (the page is on screen anyway). Values go through command() like MQTT messages.
     SETTABLE = ('display', 'display_lock', 'volume', 'ct_scale', 'fade_ms', 'touch_fade_ms', 'auto_off', 'home_after',
-                'reboot_enabled', 'reboot_time', 'auto_update', 'scale')
+                'reboot_enabled', 'reboot_time', 'auto_update', 'scale', 'hide_header')
     ACTIONS = ('reload', 'restart_kiosk', 'reboot', 'shutdown', 'install_updates')  # restart/stop something: touch only
 
     def touched(self):
@@ -1368,7 +1393,7 @@ class UpdatePage:
                 'reboot_enabled': reboot_enabled(), 'reboot_time': reboot_time(), 'next_reboot': next_reboot(),
                 'auto_update': auto_update(), 'auto_packages': list(AUTO_PACKAGES), 'updating': UPDATE['running'],
                 'url': self.back or home_url(), 'home_url': home_url(),
-                'scale': scale(), 'scales': list(SCALES), 'panel_res': panel_resolution()}
+                'scale': scale(), 'scales': list(SCALES), 'panel_res': panel_resolution(), 'hide_header': hide_header()}
 
     def command(self, cmd, value):
         """-> (http code, message)"""
@@ -1390,7 +1415,7 @@ class UpdatePage:
                          'install_updates': 'Apps werden aktualisiert …'}[cmd]
         if cmd not in self.SETTABLE:
             return 400, 'Unbekannte Einstellung.'
-        if cmd == 'scale' and not self.touched():  # restarts the browser
+        if cmd in ('scale', 'hide_header') and not self.touched():  # restart the browser
             return 403, 'Nur per Berührung am Bildschirm möglich.'
         try:
             if cmd == 'display':  # brightness / colour temperature only, never on/off
@@ -1589,7 +1614,12 @@ button:disabled, button.kernel:disabled { background:#333; color:#777; }
 .tabs button.sel { background:var(--primary); }
 #tab-svc { display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; }
 #tab-svc[hidden] { display:none; }
-#tab-svc section { gap:10px; overflow:hidden; }
+#tab-svc .col { display:flex; flex-direction:column; gap:24px; min-height:0; }
+#tab-svc section { gap:10px; overflow:hidden; flex:1; }
+#tab-svc section.local { flex:none; background:transparent; border:2px dashed var(--line); box-shadow:none; }
+#tab-svc h2 .tag { margin-left:auto; font-size:15px; font-weight:400; color:var(--dim); background:#2a2a2a;
+  padding:3px 12px; border-radius:10px; }
+#tab-svc section.local h2 .tag { color:var(--warn); background:transparent; border:1px solid var(--warn); }
 .ctl { display:flex; flex-direction:column; gap:2px; padding:6px 0; }
 .ctl .lab { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:52px; }
 .ctl .lab small { display:block; color:var(--dim); font-size:16px; }
@@ -1611,6 +1641,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:40px; h
 .acts { margin-top:auto; display:flex; flex-direction:column; gap:14px; }
 .acts button { min-height:76px; }
 button.danger { background:var(--err); }
+button.danger .dim { color:rgba(255,255,255,.8) !important; }
 #pv { position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; }
 #pv .box { background:#232323; border-radius:20px; padding:28px 32px; display:flex; flex-direction:column; gap:18px;
   box-shadow:0 20px 60px rgba(0,0,0,.6); }
@@ -1828,39 +1859,41 @@ const hold = new Set();  // sliders under a finger: not overwritten by the poll
 const ms = (v) => `${num(v)} ms`, min = (v) => v ? `${num(v)} min` : 'nie';
 const scaleFmt = (v) => `${v} % · ${Math.round(V.panel_res[0] * 100 / v)}×${Math.round(V.panel_res[1] * 100 / v)}`;
 const TIMES = Array.from({length: 48}, (_, i) => `${String(i >> 1).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
+// Sections marked HA mirror the Home Assistant entities (same names, same command() as MQTT); "Nur am Gerät"
+// exists only here. Columns: [Bildschirm] [Seite & Ton] [Wartung + Nur am Gerät].
 const SVC = [
-  ['Bildschirm', [
-    {t: 'range', k: 'brightness', label: 'Bildschirm-Beleuchtung', sub: 'Helligkeit', min: 1, max: () => V.max_brightness,
+  {h: 'Bildschirm', ha: true, col: 0, xs: [
+    {t: 'range', k: 'brightness', label: 'Helligkeit', sub: 'Bildschirm-Beleuchtung', min: 1, max: () => V.max_brightness,
       fmt: (v) => `${Math.round(100 * v / V.max_brightness)} %`, send: (v) => cmd('display', {brightness: v})},
-    {t: 'range', k: 'color_temp', label: 'Bildschirm-Beleuchtung', sub: 'Farbtemperatur', min: 1000, max: () => 6500, step: 50,
+    {t: 'range', k: 'color_temp', label: 'Farbtemperatur', sub: 'Bildschirm-Beleuchtung', min: 1000, max: () => 6500, step: 50,
       fmt: (v) => `${v} K`, send: (v) => cmd('display', {color_temp: v})},
     {t: 'range', k: 'ct_scale', label: 'Farbton-Abgleich', min: 50, max: () => 150, fmt: (v) => `${v} %`},
     {t: 'range', k: 'fade_ms', label: 'Bildschirm-Überblendung', min: 0, max: () => 3000, step: 50, fmt: ms},
     {t: 'range', k: 'touch_fade_ms', label: 'Bildschirm-Überblendung bei Berührung', min: 0, max: () => 3000, step: 10, fmt: ms},
     {t: 'step', k: 'auto_off', label: 'Bildschirm aus nach', list: [0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240], fmt: min},
-    {t: 'switch', k: 'locked', c: 'display_lock', label: 'Bildschirm gesperrt', sub: 'schaltet den Bildschirm aus (Ein/Aus-Taste weckt)'},
-    {t: 'info', label: 'Bildschirm an/aus', v: () => V.standby ? 'aus' : 'an'},
-  ]],
-  ['Ton & Seite', [
+    {t: 'switch', k: 'locked', c: 'display_lock', label: 'Bildschirm gesperrt', sub: 'aus, nur die Ein/Aus-Taste weckt'},
+  ]},
+  {h: 'Seite & Ton', ha: true, col: 1, xs: [
     {t: 'range', k: 'volume', label: 'Lautstärke', min: 0, max: () => 100, fmt: (v) => `${v} %`},
+    {t: 'scale', k: 'scale', label: 'Skalierung', sub: 'Home Assistant größer oder kleiner', fmt: scaleFmt},
+    {t: 'switch', k: 'hide_header', label: 'Kopfleiste ausblenden', sub: 'Suche & Assist neben die Status-Pillen'},
     {t: 'step', k: 'home_after', label: 'Startseite laden nach', sub: 'wenn der Bildschirm so lange aus ist',
       list: [0, 5, 10, 15, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1440], fmt: min},
-    {t: 'scale', k: 'scale', label: 'Skalierung', sub: 'Home Assistant größer oder kleiner', fmt: scaleFmt},
-    {t: 'info', label: 'Seitenadresse', v: () => V.url, url: true},
-    {t: 'info', label: 'Startseite', v: () => V.home_url, url: true},
     {t: 'act', c: 'reload', label: 'Seite neu laden', sub: 'schließt diese Seite'},
     {t: 'act', c: 'restart_kiosk', label: 'Browser neu starten'},
-  ]],
-  ['Wartung', [
+  ]},
+  {h: 'Wartung', ha: true, col: 2, xs: [
     {t: 'switch', k: 'reboot_enabled', label: 'Neustart täglich'},
     {t: 'step', k: 'reboot_time', label: 'Wartungszeit', list: TIMES, fmt: (v) => `${v} Uhr`},
     {t: 'switch', k: 'auto_update', label: 'Auto-Update Apps', sub: 'Chrome & AirPlay, täglich zur Wartungszeit'},
     {t: 'act', c: 'install_updates', label: 'Apps aktualisieren', sub: 'Chrome & AirPlay'},
     {t: 'act', c: 'reboot', label: 'Neu starten', cls: 'danger',
      confirm: ['Panel neu starten?', 'Das Panel startet neu und ist etwa eine Minute nicht bedienbar.', 'Neu starten']},
+  ]},
+  {h: 'Nur am Gerät', ha: false, col: 2, xs: [
     {t: 'act', c: 'shutdown', label: 'Herunterfahren', sub: 'vor dem Trennen vom Strom', cls: 'danger',
      confirm: ['Panel herunterfahren?', 'Das Panel fährt sauber herunter. Einschalten danach nur durch Strom aus und wieder an.', 'Herunterfahren']},
-  ]],
+  ]},
 ];
 async function cmd(c, value) {
   try {
@@ -1879,12 +1912,13 @@ function lab(x) {
       : `<b class="val${x.url ? ' url' : ''}"></b>`) + '</div>';
 }
 function build() {
-  $('tab-svc').innerHTML = SVC.map(([h, xs]) => `<section><h2>${esc(h)}</h2>` +
-    xs.filter((x) => x.t !== 'act').map((x) => `<div class="ctl">${lab(x)}${x.t === 'range' ? '<input type="range">' : ''}</div>`).join('') +
-    `<div class="acts">${xs.filter((x) => x.t === 'act').map((x) => `<button class="wide ${x.cls || 'flat'}">${esc(x.label)}` +
-      `${x.sub ? ` <span class="dim" style="font-size:18px">(${esc(x.sub)})</span>` : ''}</button>`).join('')}</div></section>`).join('');
+  const sec = (g) => `<section class="${g.ha ? '' : 'local'}"><h2>${esc(g.h)}<span class="tag">${g.ha ? 'auch in Home Assistant' : 'nur hier'}</span></h2>` +
+    g.xs.filter((x) => x.t !== 'act').map((x) => `<div class="ctl">${lab(x)}${x.t === 'range' ? '<input type="range">' : ''}</div>`).join('') +
+    `<div class="acts">${g.xs.filter((x) => x.t === 'act').map((x) => `<button class="wide ${x.cls || 'flat'}">${esc(x.label)}` +
+      `${x.sub ? ` <span class="dim" style="font-size:18px">(${esc(x.sub)})</span>` : ''}</button>`).join('')}</div></section>`;
+  $('tab-svc').innerHTML = [0, 1, 2].map((c) => `<div class="col">${SVC.filter((g) => g.col === c).map(sec).join('')}</div>`).join('');
   const secs = $('tab-svc').querySelectorAll('section');
-  SVC.forEach(([, xs], si) => {
+  SVC.forEach(({xs}, si) => {
     const ctls = secs[si].querySelectorAll('.ctl'), acts = secs[si].querySelectorAll('.acts button');
     xs.filter((x) => x.t !== 'act').forEach((x, i) => x.el = ctls[i]);
     xs.filter((x) => x.t === 'act').forEach((x, i) => x.el = acts[i]);
@@ -1925,7 +1959,7 @@ function paint(x, v) {
 async function settings() {
   try { V = await (await fetch('/api/settings')).json(); } catch (e) { return; }
   if (!built) build();
-  for (const [, xs] of SVC) for (const x of xs) {
+  for (const {xs} of SVC) for (const x of xs) {
     if (x.t === 'range' && !hold.has(x.k)) { const r = x.el.querySelector('input'); r.max = x.max(); r.value = V[x.k]; paint(x, V[x.k]); }
     else if (x.t === 'switch') x.el.querySelector('.toggle').classList.toggle('on', !!V[x.k]);
     else if (x.t === 'step' || x.t === 'scale') x.el.querySelector('.val').textContent = x.fmt(V[x.k]);

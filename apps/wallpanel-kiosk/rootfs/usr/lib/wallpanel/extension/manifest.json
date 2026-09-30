@@ -20,6 +20,7 @@
         "<all_urls>"
       ],
       "js": [
+        "settings.js",
         "contain.js"
       ],
       "run_at": "document_idle",

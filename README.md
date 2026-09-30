@@ -258,6 +258,48 @@ CAM_DIR=
 ```
 </details>
 
+<details><summary><b>Settings</b> – <code>/var/lib/wallpanel/api-state.json</code> on the panel (example)</summary>
+
+Everything set on the panel's update page or from Home Assistant (MQTT) is saved here – despite the read-only
+root (written via `wallpanel-rw`, only when a value changed) – and survives reboots and updates. Brightness,
+colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay set them again).
+
+```json
+{
+  "auto_off": 5,
+  "auto_update": false,
+  "ct_scale": 83,
+  "display_lock": false,
+  "fade_ms": 400,
+  "hide_header": true,
+  "home_after": 60,
+  "home_url": "https://192.168.1.10:8123/lovelace/0",
+  "reboot_enabled": true,
+  "reboot_time": "04:00",
+  "scale": 100,
+  "standby": false,
+  "touch_fade_ms": 100,
+  "last_update": "2026-09-30T04:00:11+0200",
+  "last_update_result": "ok, 2 packages"
+}
+```
+
+| Key | Setting (HA name) | Values |
+|---|---|---|
+| `auto_off` | Bildschirm aus nach | minutes, 0 = never |
+| `auto_update` | Auto-Update Apps | true/false |
+| `ct_scale` | Farbton-Abgleich | 50–150 (%) |
+| `display_lock`, `standby` | Bildschirm gesperrt, Bildschirm an/aus | true/false |
+| `fade_ms`, `touch_fade_ms` | Bildschirm-Überblendung (bei Berührung) | 0–3000 ms |
+| `hide_header` | Kopfleiste ausblenden | true/false |
+| `home_after`, `home_url` | Startseite laden nach, Startseite | minutes (0 = never); URL, missing = `KIOSK_URL` |
+| `reboot_enabled`, `reboot_time` | Neustart täglich, Wartungszeit | true/false; `HH:MM` in 30-min steps |
+| `scale` | Skalierung | 75, 80, 90, 100, 110, 125, 150, 175, 200 |
+| `last_update`, `last_update_result` | – (shown on the update page) | written by the api |
+
+By hand over SSH: `wallpanel-rw run vi /var/lib/wallpanel/api-state.json`, then `rc-service wallpanel-api restart`.
+</details>
+
 <details><summary><b>Kernel update (A/B)</b> – test in slot B, promote to slot A</summary>
 
 ```sh
