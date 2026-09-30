@@ -64,20 +64,28 @@ Standby wakes instantly without a modeset (no artefacts); a touch or the power k
 
 ## 24/7 operation
 
-Built to run for years without attention. The eMMC (Samsung, 29 GiB, TLC) is the part that wears, so
-everything written constantly lives in RAM:
+Built to run for years without attention. The eMMC (Samsung, 29 GiB, TLC) is the part that wears, so the
+root file system is **read-only** and everything written at runtime lives in RAM:
 
-| Written to | eMMC writes / day | 10 years, share of eMMC endurance* |
+| Setup | eMMC writes / day | 10 years, share of eMMC endurance* |
 |---|---|---|
-| Stock setup (Chromium profile, logs on eMMC) | 2.1–3.3 GB | 50–120 % |
+| Stock (Chromium profile, caches and logs on the eMMC) | 2.1–3.3 GB | 50–120 % |
 | Chromium HTTP/code cache in RAM | 1.4 GB | 35–50 % |
-| + Chromium histogram files (`BrowserMetrics/*.pma`, 4 MiB every 30 s) in RAM, logs and `/tmp` in RAM | ~0.1–0.3 GB (estimate) | < 10 % |
+| **Read-only root, Chromium profile + logs in RAM** (1 h, dashboard in normal use) | **0.06 GB** (2.6 MB/h) | **~2 %** |
 
 \* ~1000 P/E cycles, write amplification 2–3. Measured on the whole block device (`/proc/diskstats`).
+What is left: the journal of the short writable windows for settings (screen on/off state) – package and
+kernel updates come on top when they run.
 
+- **Read-only root**: `wallpanel-rw` makes `/` writable only while something that must persist is written –
+  settings (only when changed), `apk`, kernel updates, the kiosk's login state, `tools/sync-apps.sh` – and
+  read-only again right after. By hand over SSH: `wallpanel-rw run <cmd>` or `wallpanel-rw on` / `off`. After an
+  update that replaced libraries still in use, `/` stays writable until the next reboot (retry every 15 min).
 - **RAM file systems**: `/tmp` (256 MiB), `/var/log` (32 MiB, syslog capped at 3 MiB, logs trimmed every
-  15 min), Chromium cache and histograms in `/run`. The Chromium profile (HA login, permissions) and the
-  settings stay on the eMMC.
+  15 min), `/var/cache/apk`, `/var/lib/chrony`, and the whole Chromium profile with its caches
+  (`/run/wallpanel`, 768 MiB max). When the kiosk stops, its lasting part – HA login, permissions such as the
+  microphone, preferences, cookies (~300 KB) – is saved to the eMMC if it changed; after a power cut the
+  previous save is used.
 - **File system**: `noatime,commit=60`, weekly `fstrim`, `/` remounted read-only on shutdown; `fsck -y`
   never stops the boot, so SSH and the USB maintenance port stay reachable.
 - **Stays running**: hardware watchdog (30 s), panic on soft/hard lockup (the watchdog
