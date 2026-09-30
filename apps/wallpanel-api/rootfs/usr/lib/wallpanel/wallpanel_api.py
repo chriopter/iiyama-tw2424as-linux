@@ -1272,7 +1272,7 @@ class UpdatePage:
     # "Bildschirm an/aus" (the page is on screen anyway). Values go through command() like MQTT messages.
     SETTABLE = ('display', 'display_lock', 'volume', 'ct_scale', 'fade_ms', 'touch_fade_ms', 'auto_off', 'home_after',
                 'reboot_enabled', 'reboot_time', 'auto_update')
-    ACTIONS = ('reload', 'restart_kiosk', 'reboot', 'install_updates')  # all restart something: touch only
+    ACTIONS = ('reload', 'restart_kiosk', 'reboot', 'shutdown', 'install_updates')  # restart/stop something: touch only
 
     def touched(self):
         """A real finger on the lit screen within TOUCH_WINDOW (display.last_touch comes from the touchscreen)."""
@@ -1301,6 +1301,9 @@ class UpdatePage:
             if cmd == 'install_updates' and (UPDATE['running'] or kernel_installing()):
                 return 409, 'Es läuft bereits ein Update.'
             print(f'update page: {cmd}', flush=True)
+            if cmd == 'shutdown':  # page only, never via MQTT: afterwards only unplugging brings it back
+                threading.Thread(target=lambda: (time.sleep(1), sh('poweroff')), daemon=True).start()
+                return 202, 'Panel fährt herunter – jetzt kann der Strom getrennt werden, sobald der Bildschirm dunkel ist.'
             threading.Thread(target=self._command, args=(f'{BASE}/{cmd}', ''), daemon=True).start()
             return 202, {'restart_kiosk': 'Browser wird neu gestartet …', 'reboot': 'Panel startet neu …',
                          'install_updates': 'Apps werden aktualisiert …'}[cmd]
@@ -1727,7 +1730,10 @@ const SVC = [
     {t: 'step', k: 'reboot_time', label: 'Wartungszeit', list: TIMES, fmt: (v) => `${v} Uhr`},
     {t: 'switch', k: 'auto_update', label: 'Auto-Update Apps', sub: 'Chrome & AirPlay, täglich zur Wartungszeit'},
     {t: 'act', c: 'install_updates', label: 'Apps aktualisieren', sub: 'Chrome & AirPlay'},
-    {t: 'act', c: 'reboot', label: 'Neu starten', cls: 'danger', confirm: true},
+    {t: 'act', c: 'reboot', label: 'Neu starten', cls: 'danger',
+     confirm: ['Panel neu starten?', 'Das Panel startet neu und ist etwa eine Minute nicht bedienbar.', 'Neu starten']},
+    {t: 'act', c: 'shutdown', label: 'Herunterfahren', sub: 'vor dem Trennen vom Strom', cls: 'danger',
+     confirm: ['Panel herunterfahren?', 'Das Panel fährt sauber herunter. Einschalten danach nur durch Strom aus und wieder an.', 'Herunterfahren']},
   ]],
 ];
 async function cmd(c, value) {
@@ -1775,7 +1781,7 @@ function build() {
         dn.onclick = () => go(-1); up.onclick = () => go(1);
       } else if (x.t === 'act') {
         x.el.onclick = x.confirm
-          ? () => ask('Panel neu starten?', 'Das Panel startet neu und ist etwa eine Minute nicht bedienbar.', '', 'Neu starten', () => cmd(x.c))
+          ? () => ask(x.confirm[0], x.confirm[1], '', x.confirm[2], () => cmd(x.c))
           : () => cmd(x.c);
       }
     }
