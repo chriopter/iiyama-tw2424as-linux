@@ -1,3 +1,3 @@
-VERSION=7.2.8
-URL=https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.8.tar.xz
-SHA256=12e8d5a973d1ad7c5a5c69882e4022b131ed715db7003fdcd760ddf8c3e51941
+VERSION=7.2.10
+URL=https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.2.10.tar.xz
+SHA256=2feaa70453e91f541be6a5c9078d8168e081af45a3d9718054850538cff2ebf3
