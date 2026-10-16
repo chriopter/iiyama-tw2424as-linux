@@ -1,6 +1,8 @@
 # Kernel release: cross-build with build.sh (same steps as on the PC), publish the release files with a
 # signed manifest as GitHub release "kernel-<release>". The panel installs it with
 # "wallpanel-update install-release" (checks the signature against etc/wallpanel/kernel-release.pub).
+# On a kernel-bump/<version> branch (tools/kernel-bump.sh): build only; when it passes, the pull request is
+# merged (older bump pull requests closed) and this workflow is started on main, which publishes the release.
 # Secret KERNEL_SIGNING_KEY: the OpenSSH private key (tools/kernel-key/kernel-release) - system/kernel/README.md.
 name: kernel
 
@@ -16,6 +18,8 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
+  actions: write
 
 concurrency:
   group: kernel-${{ github.ref }}
@@ -97,3 +101,27 @@ jobs:
           name: ${{ steps.rel.outputs.tag }}
           path: build/out/release/
           retention-days: 14
+
+      # Build passed on a bump branch: merge its pull request, unless a newer bump is open or already on
+      # main (then this one is superseded and closed). Older open bump pull requests are closed. The merge
+      # by the Actions token does not trigger the push workflow, so the release build on main is started here.
+      - name: Merge the kernel bump
+        if: startsWith(github.ref, 'refs/heads/kernel-bump/')
+        run: |
+          br=${GITHUB_REF#refs/heads/}
+          ver=${br#kernel-bump/}
+          pr=$(gh pr list --head "$br" --state open --json number --jq '.[0].number')
+          [ -n "$pr" ] || { echo "::notice::no open pull request for $br"; exit 0; }
+          newest=$( { echo "$ver"
+                      gh api "repos/$GITHUB_REPOSITORY/contents/system/kernel/VERSION?ref=main" -H "Accept: application/vnd.github.raw" | sed -n 's/^VERSION=//p'
+                      gh pr list --state open --json headRefName --jq '.[].headRefName' | sed -n 's|^kernel-bump/||p'; } | sort -V | tail -1)
+          if [ "$newest" != "$ver" ]; then
+            gh pr close "$pr" --delete-branch --comment "Superseded by Linux $newest."
+            echo "::notice::$ver superseded by $newest, pull request #$pr closed"; exit 0
+          fi
+          for old in $(gh pr list --state open --json number,headRefName --jq '.[] | select(.headRefName | startswith("kernel-bump/")) | select(.number != '"$pr"') | .number'); do
+            gh pr close "$old" --delete-branch --comment "Superseded by Linux $ver (#$pr)."
+          done
+          gh pr merge "$pr" --squash --delete-branch
+          gh workflow run kernel.yml --ref main
+          echo "::notice::merged #$pr (Linux $ver), release build started on main"

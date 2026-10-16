@@ -1,5 +1,5 @@
 # Daily upstream watch: a newer kernel.org stable of the pinned series becomes a pull request (VERSION +
-# SHA256, patches checked with git am) - never a release before the pull request is merged. A newer series
+# SHA256, patches checked with git am); a passed build merges it and releases (kernel.yml). A newer series
 # only opens an issue. Needs: Settings -> Actions -> General -> "Allow GitHub Actions to create and approve
 # pull requests".
 name: kernel-bump

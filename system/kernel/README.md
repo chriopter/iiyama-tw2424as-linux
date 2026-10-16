@@ -46,7 +46,8 @@ copy it to the panel and use `WALLPANEL_KERNEL_RELEASE_DIR=<dir> wallpanel-updat
 `.github/workflows/kernel-bump.yml` (daily, `tools/kernel-bump.sh`; locally `tools/kernel-bump.sh --dry-run`):
 a newer kernel.org stable of the pinned series (7.2.y) → `VERSION` + SHA256 from kernel.org's signed
 `sha256sums.asc` (autosigner key via WKD), `./build.sh fetch kernel` checks that all patches apply → branch
-`kernel-bump/<version>` + pull request + a build of the branch. Patches do not apply → issue. A newer series
-(7.3) or an end-of-life series → issue only. Nothing is released before the pull request is merged.
+`kernel-bump/<version>` + pull request + a build of the branch. Build passed → the pull request is merged (older
+bump pull requests closed) and the release is built on main; build failed → it stays open. Patches do not apply →
+issue. A newer series (7.3) or an end-of-life series → issue only.
 Needs *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests*.
 - The former Rockchip BSP kernel 6.1 remains only as a reference in `docs/analysis/bsp-6.1/`.

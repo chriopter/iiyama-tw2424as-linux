@@ -9,7 +9,7 @@ in CI the secret `KERNEL_SIGNING_KEY`).
 |---|---|
 | `build-bootimg.sh` | boot images for `boot`/`recovery` (kernel, DTB, rescue initramfs) from `./build.sh release`, assembled by `system/rootfs/overlay/usr/lib/wallpanel/boot/mkboot.py` (same code as on the device) |
 | `kernel-manifest.py` | `manifest.json` of a kernel release (`./build.sh release`) |
-| `kernel-bump.sh [--dry-run]` | upstream watch: newer kernel.org stable → pull request (`.github/workflows/kernel-bump.yml`) |
+| `kernel-bump.sh [--dry-run]` | upstream watch: newer kernel.org stable → pull request, merged + released after a passed build (`.github/workflows/kernel-bump.yml`) |
 | `build-cage.sh [--root DIR] [--install]` | our cage apk (`system/cage/`), built with abuild on the device → `build/out/`; `./build.sh cage` |
 | `build-wallpanel-gamma.sh [--root DIR] [--install]` | our gamma helper apk (`system/wallpanel-gamma/`), same flow; `./build.sh wallpanel-gamma` |
 | `build-test-image.sh` | RAM installer: kernel + Alpine initramfs with SSH/USB gadget |

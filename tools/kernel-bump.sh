@@ -3,7 +3,8 @@
 #   newer stable in the pinned series (7.2.y): update system/kernel/VERSION (SHA256 from kernel.org's
 #     signed sha256sums.asc), check that all patches apply (./build.sh fetch kernel = git am on the new
 #     tarball), then push branch kernel-bump/<version> + open a pull request and start a build of it.
-#     Patches do not apply -> issue instead. Nothing is released before the pull request is merged.
+#     A passed build merges the pull request and releases from main (.github/workflows/kernel.yml);
+#     a failed build leaves it open. Patches do not apply -> issue instead.
 #   newer series (7.3 stable) or pinned series end of life: issue only, never an automatic bump.
 #
 #   tools/kernel-bump.sh [--dry-run]     --dry-run: check + apply locally, no git push/PR/issue
@@ -100,6 +101,7 @@ gh pr create --base main --head "$BR" --title "kernel: update to Linux $NEW" --b
 - all patches in \`system/kernel/patches/\` apply (\`git am\` on the new tarball)
 - a build of this branch runs as workflow \`kernel\` (build only, no release)
 
-Merging publishes release \`kernel-$NEW-iiyama-…\` (workflow \`kernel\` on main); panels then offer it in
-\`wallpanel-update check\` and install it with the slot-B test + health check."
+A passed build merges this pull request (older bump pull requests are closed) and publishes release
+\`kernel-$NEW-iiyama-…\` (workflow \`kernel\` on main); panels then offer it in \`wallpanel-update check\` and
+install it with the slot-B test + health check. A failed build leaves it open."
 gh workflow run kernel.yml --ref "$BR" || echo "warning: could not start the build of $BR" >&2
