@@ -67,7 +67,9 @@ gpg -q --auto-key-locate clear,wkd --locate-keys autosigner@kernel.org > /dev/nu
 gpg -q --verify "$G/sha256sums.asc" 2> "$G/gpg.log" || { cat "$G/gpg.log" >&2; echo "error: sha256sums.asc signature invalid" >&2; exit 1; }
 grep -q 'Good signature from "Kernel.org checksum autosigner <autosigner@kernel.org>"' "$G/gpg.log" || { cat "$G/gpg.log" >&2; exit 1; }
 SHA=$(gpg -q --decrypt "$G/sha256sums.asc" 2> /dev/null | awk -v f="linux-$NEW.tar.xz" '$2 == f {print $1}')
-[ ${#SHA} = 64 ] || { echo "error: no sha256 for linux-$NEW.tar.xz" >&2; exit 1; }
+# releases.json lists a new release before the autosigner has added it to sha256sums.asc (can lag hours):
+# not an error, the next daily run picks it up
+[ ${#SHA} = 64 ] || { echo "::notice::linux-$NEW.tar.xz not yet in sha256sums.asc, retry next run"; exit 0; }
 
 printf 'VERSION=%s\nURL=%s/linux-%s.tar.xz\nSHA256=%s\n' "$NEW" "$BASE" "$NEW" "$SHA" > system/kernel/VERSION
 echo "system/kernel/VERSION -> $NEW ($SHA)"

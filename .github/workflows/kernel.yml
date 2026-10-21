@@ -32,7 +32,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Host packages
         run: |
@@ -40,7 +40,7 @@ jobs:
           sudo apt-get install -yq --no-install-recommends bc bison flex libssl-dev libelf-dev cpio kmod
 
       - name: Cache toolchain and kernel tarball
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             tools/gcc-15.3.0-nolibc
@@ -96,7 +96,7 @@ jobs:
 
       - name: Keep build output (branches, e.g. kernel-bump/*)
         if: github.ref != 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ steps.rel.outputs.tag }}
           path: build/out/release/
