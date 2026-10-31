@@ -116,12 +116,13 @@ jobs:
                       gh api "repos/$GITHUB_REPOSITORY/contents/system/kernel/VERSION?ref=main" -H "Accept: application/vnd.github.raw" | sed -n 's/^VERSION=//p'
                       gh pr list --state open --json headRefName --jq '.[].headRefName' | sed -n 's|^kernel-bump/||p'; } | sort -V | tail -1)
           if [ "$newest" != "$ver" ]; then
-            gh pr close "$pr" --delete-branch --comment "Superseded by Linux $newest."
+            gh pr close "$pr" --repo "$GITHUB_REPOSITORY" --delete-branch --comment "Superseded by Linux $newest."
             echo "::notice::$ver superseded by $newest, pull request #$pr closed"; exit 0
           fi
           for old in $(gh pr list --state open --json number,headRefName --jq '.[] | select(.headRefName | startswith("kernel-bump/")) | select(.number != '"$pr"') | .number'); do
-            gh pr close "$old" --delete-branch --comment "Superseded by Linux $ver (#$pr)."
+            gh pr close "$old" --repo "$GITHUB_REPOSITORY" --delete-branch --comment "Superseded by Linux $ver (#$pr)."
           done
-          gh pr merge "$pr" --squash --delete-branch
+          # Explicit --repo keeps branch deletion remote-only in this shallow checkout.
+          gh pr merge "$pr" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
           gh workflow run kernel.yml --ref main
           echo "::notice::merged #$pr (Linux $ver), release build started on main"
