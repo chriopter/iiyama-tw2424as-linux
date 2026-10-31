@@ -1,4 +1,4 @@
-From 34ac6c4cf90d5760fdd02b529333ecb8ef13f348 Mon Sep 17 00:00:00 2001
+From 6a80a8884b31171ced1fef73d7804c4b1b91e970 Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Wed, 30 Sep 2026 07:47:28 +0200
 Subject: [PATCH 12/12] arm64: dts: rockchip: Use the digital microphones of

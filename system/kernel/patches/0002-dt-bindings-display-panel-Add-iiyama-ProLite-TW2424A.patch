@@ -1,4 +1,4 @@
-From 9c56f66411b7ddafda4959f4fde613772b1b30ad Mon Sep 17 00:00:00 2001
+From 7c7793efca1396eb20e012d4755c1c12f435dc75 Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Tue, 29 Sep 2026 14:59:00 +0200
 Subject: [PATCH 02/12] dt-bindings: display: panel: Add iiyama ProLite

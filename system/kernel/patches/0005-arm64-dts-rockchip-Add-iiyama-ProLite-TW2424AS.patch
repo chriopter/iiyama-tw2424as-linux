@@ -1,4 +1,4 @@
-From 234b00bc0b62747ff6f6337811316b9713e936f7 Mon Sep 17 00:00:00 2001
+From 769228a8c4de9a071d9a5dffcf142f48b559e2d9 Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Tue, 29 Sep 2026 14:59:00 +0200
 Subject: [PATCH 05/12] arm64: dts: rockchip: Add iiyama ProLite TW2424AS
@@ -15,7 +15,7 @@ bridge (mounted upside down).
  create mode 100644 arch/arm64/boot/dts/rockchip/rk3399-iiyama-tw2424as.dts
 
 diff --git a/arch/arm64/boot/dts/rockchip/Makefile b/arch/arm64/boot/dts/rockchip/Makefile
-index 761d82b4f..5080b4eee 100644
+index e7936a21c..e7cfb51b1 100644
 --- a/arch/arm64/boot/dts/rockchip/Makefile
 +++ b/arch/arm64/boot/dts/rockchip/Makefile
 @@ -57,6 +57,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-gru-scarlet-dumo.dtb

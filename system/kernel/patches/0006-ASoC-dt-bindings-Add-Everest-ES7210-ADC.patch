@@ -1,4 +1,4 @@
-From ea49765779ae62d0f8c065d6c544751ccc56cbc4 Mon Sep 17 00:00:00 2001
+From 21f947a18c814e391af2097e73eff491563f0e87 Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Wed, 30 Sep 2026 01:39:52 +0200
 Subject: [PATCH 06/12] ASoC: dt-bindings: Add Everest ES7210 ADC
