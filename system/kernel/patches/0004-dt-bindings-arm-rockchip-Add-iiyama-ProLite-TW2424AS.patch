@@ -1,4 +1,4 @@
-From 32f2fc5862337721ea24a55d9e757ec02e02ee57 Mon Sep 17 00:00:00 2001
+From c702f169d9d23b86c4b190437904469930ac69cc Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Tue, 29 Sep 2026 14:59:00 +0200
 Subject: [PATCH 04/12] dt-bindings: arm: rockchip: Add iiyama ProLite TW2424AS
@@ -9,10 +9,10 @@ Add the iiyama ProLite TW2424AS, a 24" RK3399 touch panel PC.
  1 file changed, 5 insertions(+)
 
 diff --git a/Documentation/devicetree/bindings/arm/rockchip.yaml b/Documentation/devicetree/bindings/arm/rockchip.yaml
-index 1a9dde186..caeac2bd1 100644
+index a799bb843..16e76ba4a 100644
 --- a/Documentation/devicetree/bindings/arm/rockchip.yaml
 +++ b/Documentation/devicetree/bindings/arm/rockchip.yaml
-@@ -736,6 +736,11 @@ properties:
+@@ -772,6 +772,11 @@ properties:
            - const: hugsun,x99
            - const: rockchip,rk3399
  

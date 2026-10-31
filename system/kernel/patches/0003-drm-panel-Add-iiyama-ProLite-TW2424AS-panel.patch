@@ -1,4 +1,4 @@
-From 2b10d182b9e72f6def4f1f72d617220765ea0c7a Mon Sep 17 00:00:00 2001
+From ca651f2589e9f92898149cbaaa2e21301b2634c9 Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Tue, 29 Sep 2026 14:59:00 +0200
 Subject: [PATCH 03/12] drm/panel: Add iiyama ProLite TW2424AS panel
@@ -14,15 +14,15 @@ bridge reset once at probe time and only (re)program it in prepare.
 ---
  drivers/gpu/drm/panel/Kconfig                 |  11 +
  drivers/gpu/drm/panel/Makefile                |   1 +
- drivers/gpu/drm/panel/panel-iiyama-tw2424as.c | 259 ++++++++++++++++++
- 3 files changed, 271 insertions(+)
+ drivers/gpu/drm/panel/panel-iiyama-tw2424as.c | 260 ++++++++++++++++++
+ 3 files changed, 272 insertions(+)
  create mode 100644 drivers/gpu/drm/panel/panel-iiyama-tw2424as.c
 
 diff --git a/drivers/gpu/drm/panel/Kconfig b/drivers/gpu/drm/panel/Kconfig
-index 3eac4d0f8..6a9e9f3d2 100644
+index cbdf7b8f7..2ef16a969 100644
 --- a/drivers/gpu/drm/panel/Kconfig
 +++ b/drivers/gpu/drm/panel/Kconfig
-@@ -265,6 +265,17 @@ config DRM_PANEL_HYDIS_HV101HD1
+@@ -286,6 +286,17 @@ config DRM_PANEL_HYDIS_HV101HD1
  
  	  If M is selected the module will be called panel-hydis-hv101hd1
  
@@ -37,27 +37,27 @@ index 3eac4d0f8..6a9e9f3d2 100644
 +	  panel behind a Toshiba TC358775 bridge that is programmed over
 +	  MIPI-DSI.
 +
- config DRM_PANEL_ILITEK_IL9322
- 	tristate "Ilitek ILI9322 320x240 QVGA panels"
- 	depends on OF && SPI
+ config DRM_PANEL_ILITEK_ILI7807S
+ 	tristate "Ilitek ILI7807S-based panels"
+ 	depends on OF
 diff --git a/drivers/gpu/drm/panel/Makefile b/drivers/gpu/drm/panel/Makefile
-index c2c5cf817..374e19674 100644
+index 3b523cf37..5b999242c 100644
 --- a/drivers/gpu/drm/panel/Makefile
 +++ b/drivers/gpu/drm/panel/Makefile
-@@ -26,6 +26,7 @@ obj-$(CONFIG_DRM_PANEL_HIMAX_HX83112B) += panel-himax-hx83112b.o
+@@ -28,6 +28,7 @@ obj-$(CONFIG_DRM_PANEL_HIMAX_HX83112B) += panel-himax-hx83112b.o
  obj-$(CONFIG_DRM_PANEL_HIMAX_HX83121A) += panel-himax-hx83121a.o
  obj-$(CONFIG_DRM_PANEL_HIMAX_HX8394) += panel-himax-hx8394.o
  obj-$(CONFIG_DRM_PANEL_HYDIS_HV101HD1) += panel-hydis-hv101hd1.o
 +obj-$(CONFIG_DRM_PANEL_IIYAMA_TW2424AS) += panel-iiyama-tw2424as.o
+ obj-$(CONFIG_DRM_PANEL_ILITEK_ILI7807S) += panel-ilitek-ili7807s.o
  obj-$(CONFIG_DRM_PANEL_ILITEK_IL9322) += panel-ilitek-ili9322.o
  obj-$(CONFIG_DRM_PANEL_ILITEK_ILI9341) += panel-ilitek-ili9341.o
- obj-$(CONFIG_DRM_PANEL_ILITEK_ILI9805) += panel-ilitek-ili9805.o
 diff --git a/drivers/gpu/drm/panel/panel-iiyama-tw2424as.c b/drivers/gpu/drm/panel/panel-iiyama-tw2424as.c
 new file mode 100644
-index 000000000..60baae029
+index 000000000..7fceedc78
 --- /dev/null
 +++ b/drivers/gpu/drm/panel/panel-iiyama-tw2424as.c
-@@ -0,0 +1,259 @@
+@@ -0,0 +1,260 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * iiyama ProLite TW2424AS panel
@@ -84,6 +84,7 @@ index 000000000..60baae029
 +#include <drm/drm_connector.h>
 +#include <drm/drm_mipi_dsi.h>
 +#include <drm/drm_modes.h>
++#include <drm/drm_of.h>
 +#include <drm/drm_panel.h>
 +#include <drm/drm_probe_helper.h>
 +
@@ -249,7 +250,7 @@ index 000000000..60baae029
 +		return dev_err_probe(dev, PTR_ERR(ctx->reset),
 +				     "failed to get reset GPIO\n");
 +
-+	ret = of_drm_get_panel_orientation(dev->of_node, &ctx->orientation);
++	ret = drm_of_get_panel_orientation(dev->of_node, &ctx->orientation);
 +	if (ret)
 +		return dev_err_probe(dev, ret, "failed to get orientation\n");
 +

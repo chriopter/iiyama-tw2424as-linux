@@ -1,4 +1,4 @@
-From d7eac2af67c8711f573e9c467848f2640fd89191 Mon Sep 17 00:00:00 2001
+From 07c68f7f0fa75ecd657a902bf4f35bae5d202192 Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Wed, 30 Sep 2026 07:45:04 +0200
 Subject: [PATCH 09/12] ASoC: codecs: es7210: Only mute on capture streams
