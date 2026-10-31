@@ -48,6 +48,7 @@ the newest kernel.org stable across all series → `VERSION` + SHA256 from kerne
 `sha256sums.asc` (autosigner key via WKD), `./build.sh fetch kernel` checks that all patches apply → branch
 `kernel-bump/<version>` + pull request + a build of the branch. Build passed → the pull request is merged (older
 bump pull requests closed) and the release is built on main; build failed → it stays open. Patches do not apply →
-issue. New series follow the same automatic process; release candidates and end-of-life releases are excluded.
+issue and failed workflow. New series follow the same automatic process; release candidates and end-of-life
+releases are excluded.
 Needs *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests*.
 - The former Rockchip BSP kernel 6.1 remains only as a reference in `docs/analysis/bsp-6.1/`.

@@ -1,4 +1,4 @@
-From 1c071234f5d0a9234cfa7da53517185af6f1d6b1 Mon Sep 17 00:00:00 2001
+From 6aba0a71f5416e731157b705d2df8b8ac7ae4b66 Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Wed, 30 Sep 2026 07:46:28 +0200
 Subject: [PATCH 11/12] ASoC: codecs: es7210: Support digital microphones

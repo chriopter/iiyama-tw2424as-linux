@@ -1,4 +1,4 @@
-From cb7b0b4baa8811ad3f8f9dc78bd9b71e25742a18 Mon Sep 17 00:00:00 2001
+From 67c33e184c5d32fb7a5924f05765adc18609581d Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Wed, 30 Sep 2026 01:39:52 +0200
 Subject: [PATCH 07/12] ASoC: codecs: Add Everest ES7210 ADC driver
@@ -21,7 +21,7 @@ controls.
  create mode 100644 sound/soc/codecs/es7210.c
 
 diff --git a/sound/soc/codecs/Kconfig b/sound/soc/codecs/Kconfig
-index e4d139108..a26fc4196 100644
+index 8e251e1d8..96d73bef5 100644
 --- a/sound/soc/codecs/Kconfig
 +++ b/sound/soc/codecs/Kconfig
 @@ -125,6 +125,7 @@ config SND_SOC_ALL_CODECS
@@ -32,7 +32,7 @@ index e4d139108..a26fc4196 100644
  	imply SND_SOC_ES7241
  	imply SND_SOC_FRAMER
  	imply SND_SOC_FS210X
-@@ -1263,6 +1264,19 @@ config SND_SOC_HDMI_CODEC
+@@ -1271,6 +1272,19 @@ config SND_SOC_HDMI_CODEC
  config SND_SOC_ES7134
  	tristate "Everest Semi ES7134 CODEC"
  
@@ -53,10 +53,10 @@ index e4d139108..a26fc4196 100644
  	tristate "Everest Semi ES7241 CODEC"
  
 diff --git a/sound/soc/codecs/Makefile b/sound/soc/codecs/Makefile
-index aa0396e5b..57d1cb787 100644
+index 3d122ace7..8f54a89ab 100644
 --- a/sound/soc/codecs/Makefile
 +++ b/sound/soc/codecs/Makefile
-@@ -128,6 +128,7 @@ snd-soc-da732x-y := da732x.o
+@@ -129,6 +129,7 @@ snd-soc-da732x-y := da732x.o
  snd-soc-da9055-y := da9055.o
  snd-soc-dmic-y := dmic.o
  snd-soc-es7134-y := es7134.o
@@ -64,7 +64,7 @@ index aa0396e5b..57d1cb787 100644
  snd-soc-es7241-y := es7241.o
  snd-soc-es83xx-dsm-common-y := es83xx-dsm-common.o
  snd-soc-es8311-y := es8311.o
-@@ -569,6 +570,7 @@ obj-$(CONFIG_SND_SOC_DA732X)	+= snd-soc-da732x.o
+@@ -573,6 +574,7 @@ obj-$(CONFIG_SND_SOC_DA732X)	+= snd-soc-da732x.o
  obj-$(CONFIG_SND_SOC_DA9055)	+= snd-soc-da9055.o
  obj-$(CONFIG_SND_SOC_DMIC)	+= snd-soc-dmic.o
  obj-$(CONFIG_SND_SOC_ES7134)	+= snd-soc-es7134.o

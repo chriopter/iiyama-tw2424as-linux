@@ -4,7 +4,7 @@
 #     signed sha256sums.asc), check that all patches apply (./build.sh fetch kernel = git am on the new
 #     tarball), then push branch kernel-bump/<version> + open a pull request and start a build of it.
 #     A passed build merges the pull request and releases from main (.github/workflows/kernel.yml);
-#     a failed build leaves it open. Patches do not apply -> issue instead.
+#     a failed build leaves it open. Patches do not apply -> issue and failed check.
 #   Release candidates and end-of-life releases are excluded. Series changes use the same checks.
 #
 #   tools/kernel-bump.sh [--dry-run]     --dry-run: check + apply locally, no git push/PR/issue
@@ -72,7 +72,8 @@ if ! ./build.sh fetch kernel > "$G/fetch.log" 2>&1; then
 $(tail -40 "$G/fetch.log")
 \`\`\`
 Rebase the patches (build/src/linux, then ./build.sh export kernel) and update system/kernel/VERSION."
-	exit 0
+	echo "::error::Linux $NEW: kernel fetch or patch application failed (see issue and log above)" >&2
+	exit 1
 fi
 echo "all patches apply on $NEW"
 
@@ -95,4 +96,4 @@ gh pr create --base main --head "$BR" --title "kernel: update to Linux $NEW" --b
 A passed build merges this pull request (older bump pull requests are closed) and publishes release
 \`kernel-$NEW-iiyama-…\` (workflow \`kernel\` on main); panels then offer it in \`wallpanel-update check\` and
 install it with the slot-B test + health check. A failed build leaves it open."
-gh workflow run kernel.yml --ref "$BR" || echo "warning: could not start the build of $BR" >&2
+gh workflow run kernel.yml --ref "$BR"

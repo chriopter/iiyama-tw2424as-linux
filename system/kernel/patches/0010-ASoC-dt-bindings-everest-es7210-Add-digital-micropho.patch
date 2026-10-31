@@ -1,4 +1,4 @@
-From e174cc0fc2c2e38d592e49c6d139f5495f2df05a Mon Sep 17 00:00:00 2001
+From 55fdbedb04f155a6aa2cc9ae4af8d87f40238bc3 Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Wed, 30 Sep 2026 07:45:50 +0200
 Subject: [PATCH 10/12] ASoC: dt-bindings: everest,es7210: Add digital

@@ -1,4 +1,4 @@
-From 8b4a8163aef4a2f86cb6dca34ee2a5ad930ce68b Mon Sep 17 00:00:00 2001
+From a12fb71d60c0cffbef6f40b2c137cd20adedacc9 Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Tue, 29 Sep 2026 14:59:00 +0200
 Subject: [PATCH 01/12] dt-bindings: vendor-prefixes: Add iiyama
@@ -10,10 +10,10 @@ panel PCs.
  1 file changed, 2 insertions(+)
 
 diff --git a/Documentation/devicetree/bindings/vendor-prefixes.yaml b/Documentation/devicetree/bindings/vendor-prefixes.yaml
-index 396044f36..789a2b599 100644
+index ba2002969..2471d12df 100644
 --- a/Documentation/devicetree/bindings/vendor-prefixes.yaml
 +++ b/Documentation/devicetree/bindings/vendor-prefixes.yaml
-@@ -785,6 +785,8 @@ patternProperties:
+@@ -803,6 +803,8 @@ patternProperties:
      description: Ingenieurburo Fur Ic-Technologie (I/F/I)
    "^ifm,.*":
      description: ifm electronic gmbh

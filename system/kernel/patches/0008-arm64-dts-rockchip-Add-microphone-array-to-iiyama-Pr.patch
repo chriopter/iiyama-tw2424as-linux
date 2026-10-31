@@ -1,4 +1,4 @@
-From f590fdb8d63da9b64bfa745d54530ea1b3d4509d Mon Sep 17 00:00:00 2001
+From a22619c606851cae1dc65f5803339a0adb768ff0 Mon Sep 17 00:00:00 2001
 From: chriopter <82179548+chriopter@users.noreply.github.com>
 Date: Wed, 30 Sep 2026 01:39:53 +0200
 Subject: [PATCH 08/12] arm64: dts: rockchip: Add microphone array to iiyama
