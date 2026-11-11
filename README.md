@@ -304,7 +304,7 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 | Key | Setting (HA name) | Values |
 |---|---|---|
 | `auto_off` | Screen off after | minutes, 0 = never |
-| `auto_update`, `update_time` | Apps update daily, Apps update: time | true/false; `HH:MM` in 30-min steps (03:30) |
+| `auto_update`, `update_time` | Packages update daily, Packages update: time | true/false; `HH:MM` in 30-min steps (03:30) |
 | `ct_scale` | Screen kelvin | 50–150 (%) |
 | `ct_red`, `ct_blue` | Screen red, Screen blue | 50–100 (%) |
 | `display_lock`, `standby` | Screen lock, Screen on/off | true/false |
@@ -332,8 +332,9 @@ rescue keys), test-boots slot B with an automatic health check and promotes it �
 ([`system/rootfs/`](system/rootfs/) → "Kernel updates").
 Alpine itself updates from the update page or with `wallpanel-rw run apk upgrade`. New kernel version: see [`system/kernel/`](system/kernel/).
 On the panel: the **update page** (HA switch *Maintenance page* or button *Maintenance page toggle*, or tap the top-left 64×64 pixel corner 10× within 4 s (short taps, no swiping)) shows
-pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Apps update daily*
-covers only Chromium and the AirPlay receiver – never other packages or the kernel
+pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Packages update daily*
+and *Packages update now* upgrade all installed Alpine packages while respecting version pins;
+the Linux kernel is managed separately
 ([`apps/wallpanel-api/`](apps/wallpanel-api/)).
 </details>
 

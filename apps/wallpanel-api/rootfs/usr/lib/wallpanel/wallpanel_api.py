@@ -708,7 +708,7 @@ def set_reboot_enabled(on):
 
 
 def update_time():
-    """Daily time 'HH:MM' of "Update täglich" (Chrome & AirPlay)."""
+    """Daily time 'HH:MM' of the Alpine package update."""
     v = SETTINGS.get('update_time')
     return v if v in REBOOT_TIMES else '03:30'
 
@@ -746,7 +746,7 @@ def reboot_scheduler():
             time.sleep(60)
             continue
         if now == update_time() and auto_update():
-            print('scheduled update (' + ', '.join(AUTO_PACKAGES) + ') at', now, flush=True)
+            print('scheduled package update at', now, flush=True)
             install_updates()
         if now == reboot_time() and reboot_enabled():
             deadline = time.time() + 1800
@@ -759,9 +759,7 @@ def reboot_scheduler():
 
 # --- system updates (Alpine packages: Chromium, Mesa, ...) ------------------------
 
-# Automatic updates (HA switch, at the maintenance time) and the HA button only touch these packages (plus
-# the dependencies apk needs for them); everything else is upgraded by hand from the on-screen update page.
-AUTO_PACKAGES = ('chromium', 'shairport-sync')
+# Every package update entry point upgrades all installed Alpine packages, respecting version pins.
 UPDATE = {'pending': None, 'packages': [], 'checked': None, 'last': SETTINGS.get('last_update'),
           'result': SETTINGS.get('last_update_result'), 'running': False, 'mode': None, 'log': []}
 
@@ -797,26 +795,18 @@ def check_updates():
     return UPDATE['pending']
 
 
-def auto_packages():
-    """AUTO_PACKAGES that are installed (shairport-sync is optional)."""
-    return sh('apk', 'info', '-e', *AUTO_PACKAGES).stdout.split()
-
-
-def install_updates(then_reboot=False, full=False):
-    """full: apk upgrade of everything (update page); otherwise only AUTO_PACKAGES (apk add -u). Pinned
-    packages such as our cage stay as they are. Then restart the kiosk or reboot."""
+def install_updates(then_reboot=False):
+    """Upgrade all installed Alpine packages, respecting pins such as our cage; return success."""
     if UPDATE['running'] or kernel_installing():
         print('update: already running', flush=True)
-        return
-    UPDATE.update(running=True, mode='full' if full else 'auto', log=[])
+        return False
+    UPDATE.update(running=True, mode='full', log=[])
     upgraded = []
+    success = False
     try:
-        pkgs = [] if full else auto_packages()
-        cmd = rw_cmd(*(['apk', 'upgrade', '--no-interactive'] if full else ['apk', 'add', '-u', '--no-interactive', *pkgs]))
-        if not full and not pkgs:
-            cmd = ['true']
+        cmd = rw_cmd('apk', 'upgrade', '--no-interactive')
         if apk_update() != 0:
-            UPDATE['log'].append('apk update failed (network?)')
+            raise RuntimeError('apk update failed (network?)')
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         deadline = time.time() + 1800
         for line in p.stdout:  # progress for the update page
@@ -829,8 +819,8 @@ def install_updates(then_reboot=False, full=False):
                 p.kill()
         rc = p.wait()
         UPDATE['last'] = now_iso()
-        what = '' if full else f" ({', '.join(pkgs)})"
-        UPDATE['result'] = f'ok, {len(upgraded)} packages{what}' if rc == 0 else f'failed ({rc})'
+        success = rc == 0
+        UPDATE['result'] = f'ok, {len(upgraded)} packages' if success else f'failed ({rc})'
         print('update:', UPDATE['result'], '' if rc == 0 else '\n'.join(UPDATE['log'])[-300:], flush=True)
         SETTINGS['last_update'], SETTINGS['last_update_result'] = UPDATE['last'], UPDATE['result']
         save_settings()
@@ -842,12 +832,13 @@ def install_updates(then_reboot=False, full=False):
         UPDATE['running'] = False
     if MQ:
         MQ.publish_state()
-    if then_reboot:
+    if then_reboot and success:
         reboot()
     elif upgraded:
         if 'shairport-sync' in upgraded and sh('rc-service', '--exists', 'wallpanel-airplay').returncode == 0:
             sh('rc-service', 'wallpanel-airplay', 'restart')
         restart_kiosk()  # new Chromium/Mesa take effect
+    return success
 
 
 # --- kernel updates (wallpanel-update, A/B slots) ------------------------------
@@ -1022,7 +1013,7 @@ def command(topic, payload):
     elif topic.endswith('/auto_update/set'):
         SETTINGS['auto_update'] = payload.strip().upper() == 'ON'
         save_settings()
-    elif topic.endswith('/install_updates'):  # AUTO_PACKAGES only; the full upgrade is on the update page
+    elif topic.endswith('/install_updates'):
         threading.Thread(target=install_updates, daemon=True).start()
     elif topic.endswith('/update_page/set'):  # shows the page only; kernel installs need a touch there
         update_page.show() if payload.strip().upper() == 'ON' else update_page.close()
@@ -1133,16 +1124,16 @@ class Mqtt:
             ('switch', 'update_page'): {'name': 'Maintenance page', 'icon': 'mdi:update',
                                         'command_topic': f'{BASE}/update_page/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.update_page else 'OFF' }}"},
-            ('switch', 'auto_update'): {'name': 'Apps update daily', 'icon': 'mdi:update',
+            ('switch', 'auto_update'): {'name': 'Packages update daily', 'icon': 'mdi:update',
                                         'command_topic': f'{BASE}/auto_update/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.auto_update else 'OFF' }}",
                                         'entity_category': 'config'},
-            ('button', 'install_updates'): {'name': 'Apps update now', 'command_topic': f'{BASE}/install_updates',
+            ('button', 'install_updates'): {'name': 'Packages update now', 'command_topic': f'{BASE}/install_updates',
                                             'icon': 'mdi:download', 'entity_category': 'config'},
-            ('sensor', 'updates_pending'): {'name': 'Apps updates available', 'state_topic': f'{BASE}/state',
+            ('sensor', 'updates_pending'): {'name': 'Package updates available', 'state_topic': f'{BASE}/state',
                                             'value_template': '{{ value_json.updates_pending }}',
                                             'icon': 'mdi:package-up', 'entity_category': 'diagnostic'},
-            ('sensor', 'last_update'): {'name': 'Apps update: last', 'state_topic': f'{BASE}/state',
+            ('sensor', 'last_update'): {'name': 'Packages update: last', 'state_topic': f'{BASE}/state',
                                         'value_template': '{{ value_json.last_update }}', 'device_class': 'timestamp',
                                         'json_attributes_topic': f'{BASE}/state',
                                         'json_attributes_template': '{{ {"result": value_json.last_update_result} | tojson }}',
@@ -1159,7 +1150,7 @@ class Mqtt:
                                   'command_topic': f'{BASE}/scale/set', 'state_topic': f'{BASE}/state',
                                   'value_template': '{{ value_json.scale }} %',
                                   'icon': 'mdi:magnify-plus-outline', 'entity_category': 'config'},
-            ('select', 'update_time'): {'name': 'Apps update: time', 'options': REBOOT_TIMES,
+            ('select', 'update_time'): {'name': 'Packages update: time', 'options': REBOOT_TIMES,
                                         'command_topic': f'{BASE}/update_time/set', 'state_topic': f'{BASE}/state',
                                         'value_template': '{{ value_json.update_time }}',
                                         'icon': 'mdi:update', 'entity_category': 'config'},
@@ -1483,7 +1474,7 @@ class UpdatePage:
         return {'apps': {'pending': UPDATE['pending'], 'packages': UPDATE['packages'], 'checked': UPDATE['checked'],
                          'running': UPDATE['running'], 'mode': UPDATE['mode'], 'log': UPDATE['log'],
                          'last': UPDATE['last'], 'result': UPDATE['result'], 'auto_update': auto_update(),
-                         'auto_packages': list(AUTO_PACKAGES), 'update_time': update_time()},
+                         'update_time': update_time()},
                 'kernel': kernel_status(), 'checking': self.checking, 'name': NAME,
                 'closes_in': max(0, int(self.IDLE - (time.time() - max(self.since, display.last_touch)))) if self.on else 0}
 
@@ -1508,7 +1499,7 @@ class UpdatePage:
                 'auto_off': int(SETTINGS.get('auto_off', 5)), 'home_after': home_after(),
                 'reboot_enabled': reboot_enabled(), 'reboot_time': reboot_time(), 'next_reboot': next_reboot(),
                 'update_time': update_time(),
-                'auto_update': auto_update(), 'auto_packages': list(AUTO_PACKAGES), 'updating': UPDATE['running'],
+                'auto_update': auto_update(), 'updating': UPDATE['running'],
                 'url': self.back or home_url(), 'home_url': home_url(),
                 'scale': scale(), 'scales': list(SCALES), 'panel_res': panel_resolution(), 'hide_header': hide_header(),
                 'assist_listen': assist_listen()}
@@ -1530,7 +1521,7 @@ class UpdatePage:
                 return 202, 'Shutting down – unplug the panel once the screen is dark.'
             threading.Thread(target=self._command, args=(f'{BASE}/{cmd}', ''), daemon=True).start()
             return 202, {'restart_kiosk': 'Restarting the browser …', 'reboot': 'Restarting the panel …',
-                         'install_updates': 'Updating the apps …'}[cmd]
+                         'install_updates': 'Updating all installed packages …'}[cmd]
         if cmd not in self.SETTABLE:
             return 400, 'Unknown setting.'
         if cmd in ('scale', 'hide_header', 'assist_listen') and not self.touched():  # restart the browser
@@ -1566,7 +1557,7 @@ class UpdatePage:
                 return 403, 'Only by touching the screen.'
             if UPDATE['running'] or kernel_installing():
                 return 409, 'An update is already running.'
-            threading.Thread(target=install_updates, kwargs={'full': True}, daemon=True).start()
+            threading.Thread(target=install_updates, daemon=True).start()
             return 202, 'Update started.'
         if path == '/api/kernel/install':
             if not self.touched():
@@ -1811,8 +1802,8 @@ button.danger .dim { color:rgba(255,255,255,.8) !important; }
     <div><div class="big" id="a-count">…</div><div class="dim" id="a-checked"></div></div>
     <div class="list" id="a-list"></div>
     <div class="rows">
-      <span class="dim">Apps update daily</span><span id="a-auto"></span>
-      <span class="dim">Apps update: last</span><span id="a-last"></span>
+      <span class="dim">Packages update daily</span><span id="a-auto"></span>
+      <span class="dim">Packages update: last</span><span id="a-last"></span>
     </div>
     <div class="log" id="a-log"></div>
     <button class="wide" id="a-go">Update now</button>
@@ -1885,11 +1876,10 @@ function render() {
     : a.pending == null ? (S.checking ? 'Checking …' : 'Unknown')
     : a.pending ? `${a.pending} update${a.pending == 1 ? '' : 's'} available` : '<span class="ok">Up to date</span>';
   $('a-checked').textContent = a.checked ? `checked ${when(a.checked)}` : '';
-  $('a-list').innerHTML = a.packages.map((p) => `<div><span>${esc(p.name)}${a.auto_packages.includes(p.name)
-    ? '<span class="tag">Auto-Update</span>' : ''}</span><span class="v">${esc(p.old)} → ${esc(p.new)}</span></div>`).join('')
+  $('a-list').innerHTML = a.packages.map((p) => `<div><span>${esc(p.name)}</span><span class="v">${esc(p.old)} → ${esc(p.new)}</span></div>`).join('')
     || '<div class="dim">No pending packages</div>';
-  $('a-auto').innerHTML = a.auto_update ? `<span class="ok">on</span> – Chrome &amp; AirPlay daily at ${esc(a.update_time)}`
-    : '<span class="dim">off</span> <span class="dim">(Chrome &amp; AirPlay)</span>';
+  $('a-auto').innerHTML = a.auto_update ? `<span class="ok">on</span> – all installed packages daily at ${esc(a.update_time)}`
+    : '<span class="dim">off</span> <span class="dim">(all installed packages)</span>';
   $('a-last').innerHTML = a.last ? `${when(a.last)} – <span class="${/^ok/.test(a.result) ? 'ok' : 'err'}">${esc(a.result)}</span>` : '–';
   log($('a-log'), a.log, a.running || a.log.length);
   $('a-go').disabled = busy || a.pending === 0;
@@ -2046,9 +2036,9 @@ const SVC = [
   {h: 'System', ha: true, col: 2, xs: [
     {t: 'switch', k: 'reboot_enabled', label: 'System reboot daily'},
     {t: 'step', k: 'reboot_time', label: 'System reboot: time', list: TIMES, fmt: (v) => `${v}`},
-    {t: 'switch', k: 'auto_update', label: 'Apps update daily', sub: 'Chrome & AirPlay'},
-    {t: 'step', k: 'update_time', label: 'Apps update: time', sub: 'not at the reboot time', list: TIMES, fmt: (v) => `${v}`},
-    {t: 'act', c: 'install_updates', label: 'Apps update now', sub: 'Chrome & AirPlay'},
+    {t: 'switch', k: 'auto_update', label: 'Packages update daily', sub: 'all installed Alpine packages'},
+    {t: 'step', k: 'update_time', label: 'Packages update: time', sub: 'not at the reboot time', list: TIMES, fmt: (v) => `${v}`},
+    {t: 'act', c: 'install_updates', label: 'Packages update now', sub: 'all installed Alpine packages'},
     {t: 'act', c: 'reboot', label: 'System reboot', cls: 'danger',
      confirm: ['Restart the panel?', 'The panel restarts and cannot be used for about a minute.', 'Restart']},
   ]},

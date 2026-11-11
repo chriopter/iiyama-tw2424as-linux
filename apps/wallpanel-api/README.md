@@ -3,7 +3,7 @@
 Connects the panel to Home Assistant – via **MQTT discovery**, without a custom HA integration.
 
 All entities of the device "Wallpanel", grouped by topic as on the panel's settings page; the prefix (Screen, Audio,
-HA, System, Apps) makes HA's alphabetical list group them (*config*/*diagnostic* = HA's entity category):
+HA, System, Packages) makes HA's alphabetical list group them (*config*/*diagnostic* = HA's entity category):
 
 | Name | Meaning | Type | Values (default) |
 |---|---|---|---|
@@ -32,15 +32,15 @@ HA, System, Apps) makes HA's alphabetical list group them (*config*/*diagnostic*
 | **System** | | | |
 | *config* **System reboot daily** | reboot daily | `switch` | on/off (off) |
 | *config* **System reboot: time** | time of the daily reboot | `select` | 00:00–23:30 in 30-min steps (04:00) |
-| *config* **Apps update daily** | update Chrome & AirPlay once a day | `switch` | on/off (off) |
-| *config* **Apps update: time** | time of the daily update – keep it apart from the reboot time (a reboot due during an update waits for it) | `select` | 00:00–23:30 in 30-min steps (03:30) |
-| *config* **Apps update now** | update apps now (Chrome & AirPlay only) | `button` | – |
+| *config* **Packages update daily** | update all installed Alpine packages once a day | `switch` | on/off (off) |
+| *config* **Packages update: time** | time of the daily update – keep it apart from the reboot time (a reboot due during an update waits for it) | `select` | 00:00–23:30 in 30-min steps (03:30) |
+| *config* **Packages update now** | update all installed Alpine packages now | `button` | – |
 | *config* **System reboot** | reboot | `button` | – |
 | **Diagnose (diagnostic)** | | | |
 | *diagnostic* **CPU temperature**, **CPU usage** | CPU temperature, CPU usage | `sensor` | °C, % |
 | *diagnostic* **WiFi signal**, **System uptime** | WiFi signal, uptime | `sensor` | dBm, h |
 | *diagnostic* **Arbeitsspeicher belegt/frei**, **Speicherplatz frei/belegt**, **CPU load** | memory used/free, disk free/used, load | `sensor` | %, MiB, GiB (*frei*/*belegt* partly disabled by default) |
-| *diagnostic* **Apps updates available**, **Apps update: last**, **System reboot: next** | updates available, last update, next reboot | `sensor` | count, time |
+| *diagnostic* **Package updates available**, **Packages update: last**, **System reboot: next** | updates available, last update, next reboot | `sensor` | count, time |
 
 Volume: ALSA control `MIXER_CONTROL` (default `DAC` of the ES8316), 100 % = 0 dB, 0.5 dB per % (1 % = -49.5 dB),
 0 % = mute; the last value is re-applied on start (default 30 %).
@@ -65,16 +65,15 @@ B/G from 18 % to 12 %. Fine-tuned by eye afterwards on the white area, bulb and 
 advertises the protocol and drops the ramps.
 Opens no network port (MQTT client only); the update page listens on **127.0.0.1:8099** only. Diagnostics on the device: `python3 /usr/lib/wallpanel/wallpanel_api.py --state`.
 
-**Updates.** "Apps" means the browser (`chromium`) and the AirPlay receiver (`shairport-sync`, if installed):
-**Apps update daily** and the **Apps update now** button only run `apk add -u` for these two (plus the
-dependencies apk needs), then restart the kiosk/AirPlay service. All other Alpine packages and the **kernel are
-never updated automatically** – only by hand on the on-screen update page. *Apps updates available* counts all
-pending packages.
+**Updates.** **Packages update daily**, **Packages update now**, and the update-page button all run
+`apk upgrade` for every installed Alpine package, then restart the kiosk (and AirPlay when it changed).
+Version pins such as our cage and wallpanel-gamma remain in effect. Package updates do not replace the
+separately managed Linux kernel. *Package updates available* counts all pending package upgrades.
 
 **On-screen update page** – opened by the switch *Maintenance page*, the button *Maintenance page toggle* (page ↔ dashboard) or by **tapping the top-left 64×64 pixel corner of the lit screen 10 times
 within 4 s** (short stationary taps, maximum 16 px movement and 0.6 s per tap). Swipes, multitouch and
 touches elsewhere reset the sequence; the taps also reach the dashboard below. Two columns: *Apps & System* (pending
-packages old → new from `apk upgrade --simulate`, Apps update daily status and time, last result,
+packages old → new from `apk upgrade --simulate`, Packages update daily status and time, last result,
 **Update now** = full `apk upgrade` with live output) and *Kernel* (running kernel + slot, available
 release with changelog, last result from `wallpanel-update check --json`, **Install kernel** with an on-screen
 confirmation, then `wallpanel-update install-release` detached, output in `/var/log/wallpanel-kernel-update.log`).
@@ -87,8 +86,8 @@ tapped), so the page already shows it; installing still needs that touch.
 Second tab **Settings & service**, grouped by topic; the three sections marked *also in Home Assistant*
 mirror the HA entities with the same names – **Screen** (Brightness, Colour temperature, Screen colour, Screen fade
 (: touch), Screen off after, Screen lock), **Browser & audio** (Audio volume, HA zoom, HA hide header, HA Assist auto-listen,
-HA home page after; HA reload page, HA restart browser) and **System** (System reboot daily / : time, Apps update daily /
-: time; Apps update now, System reboot) – and a dashed box **Device only** (Shut down). URLs are set from HA only. **HA zoom** shows the resulting resolution
+HA home page after; HA reload page, HA restart browser) and **System** (System reboot daily / : time, Packages update daily /
+: time; Packages update now, System reboot) – and a dashed box **Device only** (Shut down). URLs are set from HA only. **HA zoom** shows the resulting resolution
 (e.g. 125 % = 1536×864); *Adjust* opens a live preview of the dashboard in a frame – *Apply* restarts the
 browser, the update page itself stays at 100 %.
 They run through the same `command()` as the MQTT messages (HA state follows at once); settings need the page
