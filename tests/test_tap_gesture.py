@@ -20,16 +20,29 @@ class GestureTests(unittest.TestCase):
         self.assertFalse(self.gesture.frame(True, x, y, t))
         return self.gesture.frame(False, x, y, t + .05)
 
-    def test_only_tenth_completed_tap_opens(self):
-        for i in range(9):
+    def test_only_fifth_completed_tap_opens(self):
+        for i in range(4):
             self.assertFalse(self.tap(i * .2))
-        self.assertTrue(self.tap(1.8))
+        self.assertTrue(self.tap(.8))
         self.assertFalse(self.tap(2))
 
     def test_timeout(self):
-        for i in range(9):
+        for i in range(4):
             self.tap(i * .2)
         self.assertFalse(self.tap(6))
+
+    def test_larger_top_left_eighth(self):
+        for i in range(4):
+            self.assertFalse(self.tap(i * .5, 900, 250))
+        self.assertTrue(self.tap(2, 900, 250))
+
+    def test_zone_tracks_display_size(self):
+        self.gesture = TapGesture(1280, 720)
+        for i in range(4):
+            self.tap(i * .2, 639, 179)
+        self.assertFalse(self.tap(.8, 640, 179))
+        self.assertFalse(self.tap(1, 639, 180))
+        self.assertFalse(self.tap(1.2, 639, 179))
 
     def test_scrolls_never_open(self):
         for i in range(12):
@@ -39,14 +52,14 @@ class GestureTests(unittest.TestCase):
             self.assertFalse(self.gesture.frame(False, 20, 60, t + .1))
 
     def test_outside_touch_resets_sequence(self):
-        for i in range(9):
+        for i in range(4):
             self.tap(i * .2)
-        self.tap(1.9, 100, 100)
+        self.tap(1.9, 1000, 100)
         self.assertFalse(self.tap(2))
 
     def test_swipe_back_into_corner_is_not_a_tap(self):
         self.gesture.frame(True, 20, 20, 0)
-        self.gesture.frame(True, 200, 20, .05)
+        self.gesture.frame(True, 1000, 20, .05)
         self.gesture.frame(True, 20, 20, .1)
         self.assertFalse(self.gesture.frame(False, 20, 20, .15))
         self.assertEqual(self.gesture.times, [])
@@ -57,14 +70,14 @@ class GestureTests(unittest.TestCase):
         self.assertEqual(self.gesture.times, [])
 
     def test_long_press_resets_sequence(self):
-        for i in range(9):
+        for i in range(4):
             self.tap(i * .2)
         self.gesture.frame(True, 20, 20, 2)
         self.gesture.frame(False, 20, 20, 2.8)
         self.assertFalse(self.tap(3))
 
     def test_multitouch_or_dark_screen_rejected(self):
-        for i in range(9):
+        for i in range(4):
             self.tap(i * .2)
         self.gesture.frame(True, 20, 20, 2, allowed=False)
         self.gesture.frame(False, 20, 20, 2.1)

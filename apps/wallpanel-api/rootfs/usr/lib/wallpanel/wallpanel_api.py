@@ -2221,15 +2221,16 @@ setInterval(() => tab === 'svc' && settings(), 3000);
 # --- hardware keys ---------------------------------------------------------
 
 class TapGesture:
-    """Short, stationary, single-finger taps in the top-left 64 px square only.
+    """Short, stationary, single-finger taps in the top-left eighth only.
 
     Coordinates are display pixels after rotation. A swipe, other touch or multitouch
     resets the sequence; only completed taps count, never finger-down alone.
     """
-    TAPS, WINDOW = 10, 4.0
-    ZONE, MOVE, HOLD = 64, 16, 0.6
+    TAPS, WINDOW = 5, 4.0
+    MOVE, HOLD = 32, 0.6
 
-    def __init__(self):
+    def __init__(self, width=1920, height=1080):
+        self.zone = (width / 2, height / 4)
         self.times = []
         self.start = None
         self.blocked = False
@@ -2240,7 +2241,7 @@ class TapGesture:
 
     def frame(self, down, x, y, t, allowed=True):
         """Consume one complete evdev frame. Return True only on the final release."""
-        if not allowed or not (0 <= x < self.ZONE and 0 <= y < self.ZONE):
+        if not allowed or not (0 <= x < self.zone[0] and 0 <= y < self.zone[1]):
             self.reset()
             self.blocked = down
             return False
@@ -2277,13 +2278,13 @@ def keys_loop():
         display.touch = touch
         devs.append(touch)
     step = int(CONF.get('VOLUME_STEP', '5'))
-    taps = TapGesture()
+    width, height = panel_resolution()
+    taps = TapGesture(width, height)
     down, allowed, slot = False, False, 0
     contacts = set()
     x, y = 0, 0
     if touch:
         ax, ay = touch.absinfo(e.ABS_X), touch.absinfo(e.ABS_Y)
-        width, height = panel_resolution()
         rotation = int(CONF.get('ROTATION', '180')) % 360
     import selectors
     sel = selectors.DefaultSelector()

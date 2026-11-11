@@ -80,8 +80,8 @@ update running. If package and kernel updates share a time, packages finish firs
 skips that kernel attempt. The kernel updater owns its reboot. Package and kernel auto-update switches are
 independent and both default to off. Existing MQTT topics/entity IDs remain unchanged for package settings.
 
-**On-screen update page** – opened by the switch *Maintenance page*, the button *Maintenance page toggle* (page ↔ dashboard) or by **tapping the top-left 64×64 pixel corner of the lit screen 10 times
-within 4 s** (short stationary taps, maximum 16 px movement and 0.6 s per tap). Swipes, multitouch and
+**On-screen update page** – opened by the switch *Maintenance page*, the button *Maintenance page toggle* (page ↔ dashboard) or by **tapping the top-left eighth of the lit screen (left half, top quarter) 5 times
+within 4 s** (short stationary taps, maximum 32 px movement and 0.6 s per tap). Swipes, multitouch and
 touches elsewhere reset the sequence; the taps also reach the dashboard below. Two columns: *Apps & System* (pending
 packages old → new from `apk upgrade --simulate`, Packages update daily status and time, last result,
 **Update now** = full `apk upgrade` with live output) and *Kernel* (running kernel + slot, available
