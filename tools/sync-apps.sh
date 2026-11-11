@@ -14,6 +14,23 @@ else
 	R=/mnt/t MODE=rescue
 fi
 echo "target: $MODE system, root at $R"
+cleanup() {
+	local rc=$?
+	trap - EXIT HUP INT TERM
+	if [ "$MODE" = running ]; then
+		$SSH 'if command -v wallpanel-rw >/dev/null; then wallpanel-rw off; else sync; mount -o remount,ro /; fi' || {
+			echo "warning: could not restore read-only root; check wallpanel-rw status on the panel" >&2
+			[ "$rc" -ne 0 ] || rc=1
+		}
+	else
+		$SSH 'sync; umount /mnt/t' || { [ "$rc" -ne 0 ] || rc=1; }
+	fi
+	exit "$rc"
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 # the running system's root is read-only: writable for this sync, read-only again at the end
 [ $MODE = rescue ] || $SSH 'if command -v wallpanel-rw >/dev/null; then wallpanel-rw on >/dev/null; else mount -o remount,rw /; fi'
 
@@ -34,8 +51,5 @@ if [ $MODE = running ]; then
 		[ -z "$m" ] || apk add --wait 300 -q $m' || echo "warning: apk add of the AirPlay packages failed" >&2
 	$SSH "[ ! -x $R/usr/bin/shairport-sync ] || for s in dbus avahi-daemon wallpanel-airplay; do ln -sf /etc/init.d/\$s $R/etc/runlevels/default/\$s; done"
 	$SSH 'udevadm control --reload; rc-service wallpanel-airplay restart; rc-service wallpanel-api restart; rc-service wallpanel-kiosk restart; rc-service dropbear restart' || true
-	$SSH 'wallpanel-rw off' || true
-else
-	$SSH 'sync; umount /mnt/t'
 fi
 echo "done ($MODE)"

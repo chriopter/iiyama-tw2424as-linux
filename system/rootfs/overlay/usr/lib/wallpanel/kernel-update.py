@@ -529,9 +529,13 @@ def boot_start():
     if not p:
         return 0
     if running_slot() == "B":
+        # The detached checker must acquire its own writable-root holder: the
+        # boot-start wrapper releases its holder as soon as this function exits.
+        env = os.environ.copy()
+        env.pop("WALLPANEL_RW", None)
         with open(LOG, "a") as out:
             subprocess.Popen([UPDATE, "boot-check"], stdout=out, stderr=out,
-                             stdin=subprocess.DEVNULL, start_new_session=True, close_fds=True)
+                             stdin=subprocess.DEVNULL, start_new_session=True, close_fds=True, env=env)
         print(f"kernel test of {p.get('to')}: health check started ({LOG})")
         return 0
     # pending but running slot A: the slot-B boot never finished its check

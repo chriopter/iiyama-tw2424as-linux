@@ -11,6 +11,6 @@ depend() {
 
 start() {
 	ebegin "Checking for a pending kernel update test"
-	/usr/bin/python3 /usr/lib/wallpanel/kernel-update.py boot-start
+	/usr/sbin/wallpanel-update boot-start
 	eend $?
 }
