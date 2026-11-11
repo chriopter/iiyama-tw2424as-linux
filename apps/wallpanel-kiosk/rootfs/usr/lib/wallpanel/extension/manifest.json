@@ -32,7 +32,8 @@
       ],
       "js": [
         "settings-main.js",
-        "fixes.js"
+        "fixes.js",
+        "keyboard.js"
       ],
       "run_at": "document_idle",
       "all_frames": false,

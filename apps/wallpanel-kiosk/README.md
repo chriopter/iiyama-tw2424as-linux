@@ -15,3 +15,9 @@ Settings (`/etc/wallpanel/wallpanel.conf`): `URL`, `ROTATION`, `OUTPUT`, `CHROMI
 page zoom of the HA host, written into the profile's `Preferences` before each start – `--force-device-scale-factor`
 does not change the layout under Wayland (it only renders a larger buffer and scales it down).
 Log in to HA once via touch or `tools/debug/kiosk/cdp.py login`.
+
+Text fields open the built-in German touch keyboard (`extension/keyboard.js`), including fields inside
+Home Assistant's shadow DOM. It supports shift, umlauts, symbols, a numeric layout, backspace and Enter;
+tap outside or **Schließen** to dismiss it. Passwords are edited in their existing masked field and are
+never stored by the keyboard. This works within the kiosk pages without a separate Wayland input-method
+service (cage does not implement the necessary text-input protocols).
