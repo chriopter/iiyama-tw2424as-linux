@@ -2148,16 +2148,46 @@ setInterval(() => tab === 'svc' && settings(), 3000);
 # --- hardware keys ---------------------------------------------------------
 
 class TapGesture:
-    """Hidden gesture: TAPS touches within WINDOW seconds on the lit screen open the update page (no HA
-    needed). Only finger-down events count; the taps also reach the page below, like any tap would."""
+    """Short, stationary, single-finger taps in the top-left 64 px square only.
+
+    Coordinates are display pixels after rotation. A swipe, other touch or multitouch
+    resets the sequence; only completed taps count, never finger-down alone.
+    """
     TAPS, WINDOW = 10, 4.0
+    ZONE, MOVE, HOLD = 64, 16, 0.6
 
     def __init__(self):
         self.times = []
+        self.start = None
+        self.blocked = False
 
-    def tap(self, t):
-        """Register a touch at time t; True once TAPS touches fall within WINDOW (then starts over)."""
-        self.times = [x for x in self.times if t - x < self.WINDOW] + [t]
+    def reset(self):
+        self.times = []
+        self.start = None
+
+    def frame(self, down, x, y, t, allowed=True):
+        """Consume one complete evdev frame. Return True only on the final release."""
+        if not allowed or not (0 <= x < self.ZONE and 0 <= y < self.ZONE):
+            self.reset()
+            self.blocked = down
+            return False
+        if self.blocked:
+            self.blocked = down
+            return False
+        if self.start:
+            sx, sy, since = self.start
+            if (x - sx) ** 2 + (y - sy) ** 2 > self.MOVE ** 2 or t - since > self.HOLD:
+                self.reset()
+                self.blocked = down
+                return False
+        if down:
+            if self.start is None:
+                self.start = (x, y, t)
+            return False
+        start, self.start = self.start, None
+        if start is None or t - start[2] > self.HOLD:
+            return False
+        self.times = [v for v in self.times if t - v < self.WINDOW] + [t]
         if len(self.times) >= self.TAPS:
             self.times = []
             return True
@@ -2175,6 +2205,13 @@ def keys_loop():
         devs.append(touch)
     step = int(CONF.get('VOLUME_STEP', '5'))
     taps = TapGesture()
+    down, allowed, slot = False, False, 0
+    contacts = set()
+    x, y = 0, 0
+    if touch:
+        ax, ay = touch.absinfo(e.ABS_X), touch.absinfo(e.ABS_Y)
+        width, height = panel_resolution()
+        rotation = int(CONF.get('ROTATION', '180')) % 360
     import selectors
     sel = selectors.DefaultSelector()
     for d in devs:
@@ -2185,10 +2222,38 @@ def keys_loop():
             for ev in key.fileobj.read():
                 if key.fileobj is touch:
                     display.activity()
+                    if ev.type == e.EV_ABS:
+                        if ev.code == e.ABS_X:
+                            x = (ev.value - ax.min) / max(1, ax.max - ax.min)
+                        elif ev.code == e.ABS_Y:
+                            y = (ev.value - ay.min) / max(1, ay.max - ay.min)
+                        elif ev.code == e.ABS_MT_SLOT:
+                            slot = ev.value
+                        elif ev.code == e.ABS_MT_TRACKING_ID:
+                            contacts.add(slot) if ev.value >= 0 else contacts.discard(slot)
                     if ev.type == e.EV_KEY and ev.code == e.BTN_TOUCH and ev.value == 1 and display.lit:
                         display.last_touch = time.time()  # a real finger on the visible screen (update page)
-                        if taps.tap(display.last_touch) and not update_page.on:
-                            print(f'{taps.TAPS} taps -> update page', flush=True)
+                    if ev.type == e.EV_KEY and ev.code == e.BTN_TOUCH:
+                        down = bool(ev.value)
+                        if down:
+                            allowed = display.lit and not update_page.on
+                    if ev.type == e.EV_SYN and ev.code == e.SYN_DROPPED:
+                        taps.reset()
+                        allowed = False
+                    if ev.type == e.EV_SYN and ev.code == e.SYN_REPORT:
+                        # Match the calibrated touch coordinates and cage output rotation.
+                        px, py = x, y
+                        if rotation == 180:
+                            px, py = 1 - x, 1 - y
+                        elif rotation == 90:
+                            px, py = 1 - y, x
+                        elif rotation == 270:
+                            px, py = y, 1 - x
+                        if len(contacts) > 1:
+                            allowed = False
+                        if taps.frame(down, px * width, py * height, time.monotonic(),
+                                      allowed and display.lit and not update_page.on):
+                            print(f'{taps.TAPS} stationary top-left taps -> update page', flush=True)
                             threading.Thread(target=update_page.open_by_touch, daemon=True).start()
                     # grabbed while off: the first touch only wakes the display
                     if ev.type == e.EV_KEY and ev.code == e.BTN_TOUCH and ev.value == 1 and not display.lit:

@@ -71,8 +71,9 @@ dependencies apk needs), then restart the kiosk/AirPlay service. All other Alpin
 never updated automatically** – only by hand on the on-screen update page. *Apps updates available* counts all
 pending packages.
 
-**On-screen update page** – opened by the switch *Maintenance page*, the button *Maintenance page toggle* (page ↔ dashboard) or by **tapping the lit screen 10 times
-within 4 s** (hidden gesture; the taps also reach the dashboard below). Two columns: *Apps & System* (pending
+**On-screen update page** – opened by the switch *Maintenance page*, the button *Maintenance page toggle* (page ↔ dashboard) or by **tapping the top-left 64×64 pixel corner of the lit screen 10 times
+within 4 s** (short stationary taps, maximum 16 px movement and 0.6 s per tap). Swipes, multitouch and
+touches elsewhere reset the sequence; the taps also reach the dashboard below. Two columns: *Apps & System* (pending
 packages old → new from `apk upgrade --simulate`, Apps update daily status and time, last result,
 **Update now** = full `apk upgrade` with live output) and *Kernel* (running kernel + slot, available
 release with changelog, last result from `wallpanel-update check --json`, **Install kernel** with an on-screen
