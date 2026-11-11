@@ -4,7 +4,7 @@
 - MQTT Discovery: entities appear automatically in Home Assistant
   (display standby + lock, brightness, night shift, volume, buttons, URL, auto reboot, sensors)
 - Hardware keys: volume up/down with an on-screen overlay, power key toggles the display
-- On-screen update page (HA switch): Alpine packages and kernel (A/B); a kernel install needs a touch
+- On-screen update page (HA switch): Alpine packages and kernel (A/B); optional daily kernel updates
 
 Configuration: /etc/wallpanel/wallpanel.conf (KEY=value, see wallpanel.conf.example)
 Listens only on 127.0.0.1:8099 (on-screen update page, UpdatePage). Diagnosis on the device: wallpanel_api.py --state
@@ -721,6 +721,24 @@ def set_update_time(value):
     save_settings()
 
 
+def auto_kernel_update():
+    """Kernel upgrades are opt-in, independently of Alpine package upgrades."""
+    return bool(SETTINGS.get('auto_kernel_update', False))
+
+
+def kernel_update_time():
+    v = SETTINGS.get('kernel_update_time')
+    return v if v in REBOOT_TIMES else '04:30'
+
+
+def set_kernel_update_time(value):
+    value = (value or '').strip()
+    if value not in REBOOT_TIMES:
+        raise ValueError('expected one of 00:00, 00:30, ... 23:30')
+    SETTINGS['kernel_update_time'] = value
+    save_settings()
+
+
 def next_reboot():
     if not reboot_enabled():
         return None
@@ -734,24 +752,31 @@ def next_reboot():
 
 
 def reboot_scheduler():
-    """Once a day: "Update täglich" at update_time(), "Neustart täglich" at reboot_time() - two separate times
-    (needs a synced clock). A reboot due while an update runs waits for it (at most 30 min)."""
+    """Independent daily package, kernel and reboot schedules (needs a synced clock).
+    Package upgrades finish before a kernel upgrade with the same time starts."""
     while True:
         time.sleep(20)
         now = time.strftime('%H:%M')
-        if time.time() < 1.7e9 or uptime() < 600 or now not in (update_time(), reboot_time()):  # no clock / just booted
+        if time.time() < 1.7e9 or uptime() < 600 or now not in (update_time(), kernel_update_time(), reboot_time()):
             continue
         if kernel_installing():  # it reboots by itself
             print('maintenance skipped: kernel update running', flush=True)
             time.sleep(60)
             continue
+        packages_ok = True
         if now == update_time() and auto_update():
             print('scheduled package update at', now, flush=True)
-            install_updates()
+            packages_ok = install_updates()
+        if packages_ok and now == kernel_update_time() and auto_kernel_update():
+            if install_scheduled_kernel():
+                time.sleep(60)  # the updater owns its reboot, never race a scheduled reboot
+                continue
         if now == reboot_time() and reboot_enabled():
             deadline = time.time() + 1800
             while UPDATE['running'] and time.time() < deadline:
                 time.sleep(10)
+            if UPDATE['running'] or kernel_installing():
+                continue
             print('scheduled reboot at', now, flush=True)
             reboot()
         time.sleep(60)  # never twice in the same minute
@@ -760,6 +785,7 @@ def reboot_scheduler():
 # --- system updates (Alpine packages: Chromium, Mesa, ...) ------------------------
 
 # Every package update entry point upgrades all installed Alpine packages, respecting version pins.
+UPDATE_LOCK = threading.Lock()  # serialize package/kernel starts from MQTT, HTTP and the scheduler
 UPDATE = {'pending': None, 'packages': [], 'checked': None, 'last': SETTINGS.get('last_update'),
           'result': SETTINGS.get('last_update_result'), 'running': False, 'mode': None, 'log': []}
 
@@ -797,6 +823,15 @@ def check_updates():
 
 def install_updates(then_reboot=False):
     """Upgrade all installed Alpine packages, respecting pins such as our cage; return success."""
+    if not UPDATE_LOCK.acquire(blocking=False):
+        return False
+    try:
+        return _install_updates(then_reboot)
+    finally:
+        UPDATE_LOCK.release()
+
+
+def _install_updates(then_reboot=False):
     if UPDATE['running'] or kernel_installing():
         print('update: already running', flush=True)
         return False
@@ -842,11 +877,11 @@ def install_updates(then_reboot=False):
 
 
 # --- kernel updates (wallpanel-update, A/B slots) ------------------------------
-# Only ever started by a touch on the on-screen update page (UpdatePage), never from MQTT/Home Assistant.
+# Started by touch on the update page, or by the explicitly enabled daily kernel schedule.
 
 WALLPANEL_UPDATE = os.environ.get('WALLPANEL_UPDATE', '/usr/sbin/wallpanel-update')
 KERNEL_LOG = '/var/log/wallpanel-kernel-update.log'
-KERNEL = {'info': None, 'checked': None, 'checking': False, 'error': None}
+KERNEL = {'info': None, 'checked': None, 'checking': False, 'error': None, 'process': None}
 
 
 def running_slot():
@@ -854,11 +889,12 @@ def running_slot():
     return m.group(1) if m else None
 
 
-def check_kernel():
+def check_kernel(refresh=False):
     """wallpanel-update check --json: running slot/kernel, available release, last result."""
     KERNEL['checking'] = True
     try:
-        r = subprocess.run([WALLPANEL_UPDATE, 'check', '--json'], capture_output=True, text=True, timeout=120)
+        cmd = [WALLPANEL_UPDATE, 'check', '--json'] + (['--refresh'] if refresh else [])
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         KERNEL['info'] = json.loads(r.stdout)
         KERNEL['error'] = None
     except (OSError, ValueError, subprocess.TimeoutExpired) as e:
@@ -872,23 +908,44 @@ def check_kernel():
 
 
 def kernel_installing():
+    if KERNEL['process'] is not None and KERNEL['process'].poll() is None:
+        return True
     return sh('pgrep', '-f', f'{os.path.basename(WALLPANEL_UPDATE)} install-release').returncode == 0
 
 
-def install_kernel():
+def install_kernel(source='update page'):
     """Start wallpanel-update install-release detached (own session, output to KERNEL_LOG): it downloads,
     verifies, writes slot B, reboots once into it and promotes or falls back to A - it must survive an api
     restart, so it does not hang on our pipes."""
-    if kernel_installing() or UPDATE['running']:
+    if not UPDATE_LOCK.acquire(blocking=False):
         return False
-    log = open(KERNEL_LOG, 'w')
-    log.write(f'{now_iso()} Kernel update started\n')
-    log.flush()
-    subprocess.Popen([WALLPANEL_UPDATE, 'install-release'], stdin=subprocess.DEVNULL, stdout=log,
-                     stderr=subprocess.STDOUT, start_new_session=True)
-    log.close()
-    print('kernel update started from the update page', flush=True)
-    return True
+    try:
+        if kernel_installing() or UPDATE['running']:
+            return False
+        with open(KERNEL_LOG, 'w') as log:
+            log.write(f'{now_iso()} Kernel update started from {source}\n')
+            log.flush()
+            KERNEL['process'] = subprocess.Popen([WALLPANEL_UPDATE, 'install-release'], stdin=subprocess.DEVNULL,
+                                                stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        print(f'kernel update started from {source}', flush=True)
+        return True
+    except OSError as e:
+        KERNEL['error'] = f'Could not start kernel update: {e}'
+        print(KERNEL['error'], flush=True)
+        return False
+    finally:
+        UPDATE_LOCK.release()
+
+
+def install_scheduled_kernel():
+    """Use the signed A/B updater only for an available release and a healthy slot-A state."""
+    if not auto_kernel_update() or UPDATE['running'] or kernel_installing() or running_slot() != 'A':
+        return False
+    check_kernel(refresh=True)
+    info = KERNEL['info'] or {}
+    if KERNEL['error'] or info.get('error') or info.get('pending') or not info.get('update_available'):
+        return False
+    return install_kernel(source='automatic schedule')
 
 
 def kernel_status():
@@ -901,12 +958,13 @@ def kernel_status():
             'running_kernel': info.get('running_kernel') or os.uname().release,
             'available': info.get('available'), 'update_available': bool(info.get('update_available')),
             'last_result': info.get('last_result'), 'checked': KERNEL['checked'], 'checking': KERNEL['checking'],
-            'error': KERNEL['error'], 'running': kernel_installing(), 'log': log}
+            'error': KERNEL['error'] or info.get('error'), 'running': kernel_installing(), 'log': log,
+            'auto_update': auto_kernel_update(), 'update_time': kernel_update_time()}
 
 
 def update_checker():
     """Check for pending package updates every 6 hours (sensor in HA) and for a new kernel release on
-    GitHub once a day, so the update page already knows about it (installing still needs a touch)."""
+    GitHub once a day, so the update page already knows about it."""
     time.sleep(300)
     last_kernel = 0.0
     while True:
@@ -937,7 +995,8 @@ def state():
             'updates_pending': UPDATE['pending'], 'last_update': UPDATE['last'],
             'last_update_result': UPDATE['result'], 'update_page': update_page.on,
             'reboot_time': reboot_time(), 'reboot_enabled': reboot_enabled(), 'next_reboot': next_reboot(),
-            'update_time': update_time(),
+            'update_time': update_time(), 'auto_kernel_update': auto_kernel_update(),
+            'kernel_update_time': kernel_update_time(),
             **sensors()}
 
 
@@ -1013,6 +1072,9 @@ def command(topic, payload):
     elif topic.endswith('/auto_update/set'):
         SETTINGS['auto_update'] = payload.strip().upper() == 'ON'
         save_settings()
+    elif topic.endswith('/auto_kernel_update/set'):
+        SETTINGS['auto_kernel_update'] = payload.strip().upper() == 'ON'
+        save_settings()
     elif topic.endswith('/install_updates'):
         threading.Thread(target=install_updates, daemon=True).start()
     elif topic.endswith('/update_page/set'):  # shows the page only; kernel installs need a touch there
@@ -1035,6 +1097,11 @@ def command(topic, payload):
             set_update_time(payload)
         except ValueError as e:
             print('update_time:', e, flush=True)
+    elif topic.endswith('/kernel_update_time/set'):
+        try:
+            set_kernel_update_time(payload)
+        except ValueError as e:
+            print('kernel_update_time:', e, flush=True)
     elif topic.endswith('/reboot_time/set'):
         try:
             set_reboot_time(payload)
@@ -1128,6 +1195,11 @@ class Mqtt:
                                         'command_topic': f'{BASE}/auto_update/set', 'state_topic': f'{BASE}/state',
                                         'value_template': "{{ 'ON' if value_json.auto_update else 'OFF' }}",
                                         'entity_category': 'config'},
+            ('switch', 'auto_kernel_update'): {'name': 'Kernel update daily', 'icon': 'mdi:chip',
+                                               'command_topic': f'{BASE}/auto_kernel_update/set',
+                                               'state_topic': f'{BASE}/state',
+                                               'value_template': "{{ 'ON' if value_json.auto_kernel_update else 'OFF' }}",
+                                               'entity_category': 'config'},
             ('button', 'install_updates'): {'name': 'Packages update now', 'command_topic': f'{BASE}/install_updates',
                                             'icon': 'mdi:download', 'entity_category': 'config'},
             ('sensor', 'updates_pending'): {'name': 'Package updates available', 'state_topic': f'{BASE}/state',
@@ -1154,6 +1226,11 @@ class Mqtt:
                                         'command_topic': f'{BASE}/update_time/set', 'state_topic': f'{BASE}/state',
                                         'value_template': '{{ value_json.update_time }}',
                                         'icon': 'mdi:update', 'entity_category': 'config'},
+            ('select', 'kernel_update_time'): {'name': 'Kernel update: time', 'options': REBOOT_TIMES,
+                                               'command_topic': f'{BASE}/kernel_update_time/set',
+                                               'state_topic': f'{BASE}/state',
+                                               'value_template': '{{ value_json.kernel_update_time }}',
+                                               'icon': 'mdi:chip', 'entity_category': 'config'},
             ('select', 'reboot_time'): {'name': 'System reboot: time', 'options': REBOOT_TIMES,
                                         'command_topic': f'{BASE}/reboot_time/set', 'state_topic': f'{BASE}/state',
                                         'value_template': '{{ value_json.reboot_time }}',
@@ -1404,9 +1481,8 @@ class UpdatePage:
     the kernel (A/B) release; off (or IDLE without touch) returns to the page shown before.
     Served on 127.0.0.1 only (not reachable from the network). POSTs need the random token that is only
     embedded in the page the kiosk loads (other local processes cannot start anything), and the Host header
-    must be ours (no DNS rebinding). A kernel install additionally needs a real touch on the lit screen in
-    the last seconds (display.last_touch comes from the touchscreen only), so neither MQTT/HA nor anything
-    remote can start one."""
+    must be ours (no DNS rebinding). A manual kernel install additionally needs a recent real touch on the
+    lit screen. The optional daily kernel schedule runs independently when explicitly enabled."""
     PORT = 8099
     URL = f'http://127.0.0.1:{PORT}/'
     IDLE = 600  # s without touch -> close
@@ -1481,7 +1557,8 @@ class UpdatePage:
     # "Einstellungen & Service": what MQTT can do, minus URLs (Seitenadresse/Startseite only shown) and
     # "Bildschirm an/aus" (the page is on screen anyway). Values go through command() like MQTT messages.
     SETTABLE = ('display', 'display_lock', 'volume', 'ct_scale', 'ct_red', 'ct_blue', 'fade_ms', 'touch_fade_ms', 'auto_off', 'home_after',
-                'reboot_enabled', 'reboot_time', 'auto_update', 'update_time', 'scale', 'hide_header', 'assist_listen')
+                'reboot_enabled', 'reboot_time', 'auto_update', 'update_time', 'auto_kernel_update', 'kernel_update_time',
+                'scale', 'hide_header', 'assist_listen')
     ACTIONS = ('reload', 'restart_kiosk', 'reboot', 'shutdown', 'install_updates')  # restart/stop something: touch only
 
     def touched(self):
@@ -1498,7 +1575,8 @@ class UpdatePage:
                 'fade_ms': int(SETTINGS.get('fade_ms', 400)), 'touch_fade_ms': int(SETTINGS.get('touch_fade_ms', 100)),
                 'auto_off': int(SETTINGS.get('auto_off', 5)), 'home_after': home_after(),
                 'reboot_enabled': reboot_enabled(), 'reboot_time': reboot_time(), 'next_reboot': next_reboot(),
-                'update_time': update_time(),
+                'update_time': update_time(), 'auto_kernel_update': auto_kernel_update(),
+                'kernel_update_time': kernel_update_time(),
                 'auto_update': auto_update(), 'updating': UPDATE['running'],
                 'url': self.back or home_url(), 'home_url': home_url(),
                 'scale': scale(), 'scales': list(SCALES), 'panel_res': panel_resolution(), 'hide_header': hide_header(),
@@ -1725,7 +1803,7 @@ button:disabled, button.kernel:disabled { background:#333; color:#777; }
 #tab-svc { display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; }
 #tab-svc[hidden] { display:none; }
 #tab-svc .col { display:flex; flex-direction:column; gap:24px; min-height:0; }
-#tab-svc section { gap:4px; overflow:hidden; flex:1; }
+#tab-svc section { gap:4px; overflow:auto; flex:1; }
 #tab-svc .ctl { padding:3px 0; }
 #tab-svc input[type=range] { height:40px; }
 #tab-svc section.local { flex:none; background:transparent; border:2px dashed var(--line); box-shadow:none; }
@@ -1813,6 +1891,7 @@ button.danger .dim { color:rgba(255,255,255,.8) !important; }
     <div class="rows">
       <span class="dim">Running</span><span id="k-run"></span>
       <span class="dim">Last kernel update</span><span id="k-last"></span>
+      <span class="dim">Kernel update daily</span><span id="k-auto"></span>
     </div>
     <div><div class="big" id="k-avail">…</div><div class="dim" id="k-checked"></div></div>
     <div class="list" id="k-list"></div>
@@ -1886,6 +1965,8 @@ function render() {
   $('a-go').textContent = a.running ? 'Updating …' : 'Update now';
   // kernel
   $('k-run').textContent = `${k.running_kernel} (Slot ${k.running_slot || '?'})`;
+  $('k-auto').innerHTML = k.auto_update ? `<span class="ok">on</span> – daily at ${esc(k.update_time)}`
+    : '<span class="dim">off</span>';
   const lr = k.last_result;
   $('k-last').innerHTML = lr ? `${when(lr.time)} – ${esc(lr.from)} → ${esc(lr.to)}: ${lr.ok ? '<span class="ok">successful</span>'
     : `<span class="err">back to the previous kernel${lr.reason ? ' (' + esc(lr.reason) + ')' : ''}</span>`}` : '–';
@@ -2038,6 +2119,8 @@ const SVC = [
     {t: 'step', k: 'reboot_time', label: 'System reboot: time', list: TIMES, fmt: (v) => `${v}`},
     {t: 'switch', k: 'auto_update', label: 'Packages update daily', sub: 'all installed Alpine packages'},
     {t: 'step', k: 'update_time', label: 'Packages update: time', sub: 'not at the reboot time', list: TIMES, fmt: (v) => `${v}`},
+    {t: 'switch', k: 'auto_kernel_update', label: 'Kernel update daily', sub: 'signed release, A/B test and restart'},
+    {t: 'step', k: 'kernel_update_time', label: 'Kernel update: time', list: TIMES, fmt: (v) => `${v}`},
     {t: 'act', c: 'install_updates', label: 'Packages update now', sub: 'all installed Alpine packages'},
     {t: 'act', c: 'reboot', label: 'System reboot', cls: 'danger',
      confirm: ['Restart the panel?', 'The panel restarts and cannot be used for about a minute.', 'Restart']},

@@ -35,6 +35,8 @@ HA, System, Packages) makes HA's alphabetical list group them (*config*/*diagnos
 | *config* **Packages update daily** | update all installed Alpine packages once a day | `switch` | on/off (off) |
 | *config* **Packages update: time** | time of the daily update – keep it apart from the reboot time (a reboot due during an update waits for it) | `select` | 00:00–23:30 in 30-min steps (03:30) |
 | *config* **Packages update now** | update all installed Alpine packages now | `button` | – |
+| *config* **Kernel update daily** | install a signed kernel release automatically, with A/B test and restart | `switch` | on/off (off) |
+| *config* **Kernel update: time** | independent time of the daily kernel check/install | `select` | 00:00–23:30 in 30-min steps (04:30) |
 | *config* **System reboot** | reboot | `button` | – |
 | **Diagnose (diagnostic)** | | | |
 | *diagnostic* **CPU temperature**, **CPU usage** | CPU temperature, CPU usage | `sensor` | °C, % |
@@ -70,6 +72,14 @@ Opens no network port (MQTT client only); the update page listens on **127.0.0.1
 Version pins such as our cage and wallpanel-gamma remain in effect. Package updates do not replace the
 separately managed Linux kernel. *Package updates available* counts all pending package upgrades.
 
+**Kernel update daily** is a separate opt-in switch, available in Home Assistant and under *Settings & service*.
+At **Kernel update: time** (04:30 by default), the panel checks for a newer signed release and runs the same
+`wallpanel-update install-release` flow as a manual update: verify signature and hashes, write slot B, test
+boot, health check, promote to slot A or fall back. It only starts from slot A with no pending test or other
+update running. If package and kernel updates share a time, packages finish first; a failed package update
+skips that kernel attempt. The kernel updater owns its reboot. Package and kernel auto-update switches are
+independent and both default to off. Existing MQTT topics/entity IDs remain unchanged for package settings.
+
 **On-screen update page** – opened by the switch *Maintenance page*, the button *Maintenance page toggle* (page ↔ dashboard) or by **tapping the top-left 64×64 pixel corner of the lit screen 10 times
 within 4 s** (short stationary taps, maximum 16 px movement and 0.6 s per tap). Swipes, multitouch and
 touches elsewhere reset the sequence; the taps also reach the dashboard below. Two columns: *Apps & System* (pending
@@ -78,16 +88,16 @@ packages old → new from `apk upgrade --simulate`, Packages update daily status
 release with changelog, last result from `wallpanel-update check --json`, **Install kernel** with an on-screen
 confirmation, then `wallpanel-update install-release` detached, output in `/var/log/wallpanel-kernel-update.log`).
 **Close** (top right) or 10 min without touch returns to the previous page and turns the switch off.
-A kernel install can only be started by touch on this page: no MQTT topic or HA entity triggers it, the POST
+A manual kernel install can only be started by touch on this page: the POST
 needs a per-start random token that only the served page contains (and our `Host` header), and the api
 additionally requires a real finger-down from the touchscreen within the last 20 s.
 The api looks for a new kernel release on GitHub once a day (and whenever the page opens or *Check again* is
-tapped), so the page already shows it; installing still needs that touch.
+tapped), so the page already shows it. With automatic kernel updates off, installing still needs that touch.
 Second tab **Settings & service**, grouped by topic; the three sections marked *also in Home Assistant*
 mirror the HA entities with the same names – **Screen** (Brightness, Colour temperature, Screen colour, Screen fade
 (: touch), Screen off after, Screen lock), **Browser & audio** (Audio volume, HA zoom, HA hide header, HA Assist auto-listen,
 HA home page after; HA reload page, HA restart browser) and **System** (System reboot daily / : time, Packages update daily /
-: time; Packages update now, System reboot) – and a dashed box **Device only** (Shut down). URLs are set from HA only. **HA zoom** shows the resulting resolution
+: time, Kernel update daily / : time; Packages update now, System reboot) – and a dashed box **Device only** (Shut down). URLs are set from HA only. **HA zoom** shows the resulting resolution
 (e.g. 125 % = 1536×864); *Adjust* opens a live preview of the dashboard in a frame – *Apply* restarts the
 browser, the update page itself stays at 100 %.
 They run through the same `command()` as the MQTT messages (HA state follows at once); settings need the page

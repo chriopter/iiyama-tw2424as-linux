@@ -281,6 +281,8 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 {
   "auto_off": 5,
   "auto_update": false,
+  "auto_kernel_update": false,
+  "kernel_update_time": "04:30",
   "ct_scale": 74,
   "ct_red": 96,
   "ct_blue": 100,
@@ -305,6 +307,7 @@ colour temperature and volume are not in it (RAM only, Adaptive Lighting/AirPlay
 |---|---|---|
 | `auto_off` | Screen off after | minutes, 0 = never |
 | `auto_update`, `update_time` | Packages update daily, Packages update: time | true/false; `HH:MM` in 30-min steps (03:30) |
+| `auto_kernel_update`, `kernel_update_time` | Kernel update daily, Kernel update: time | true/false (off); `HH:MM` in 30-min steps (04:30) |
 | `ct_scale` | Screen kelvin | 50–150 (%) |
 | `ct_red`, `ct_blue` | Screen red, Screen blue | 50–100 (%) |
 | `display_lock`, `standby` | Screen lock, Screen on/off | true/false |
@@ -332,7 +335,9 @@ rescue keys), test-boots slot B with an automatic health check and promotes it �
 ([`system/rootfs/`](system/rootfs/) → "Kernel updates").
 Alpine itself updates from the update page or with `wallpanel-rw run apk upgrade`. New kernel version: see [`system/kernel/`](system/kernel/).
 On the panel: the **update page** (HA switch *Maintenance page* or button *Maintenance page toggle*, or tap the top-left 64×64 pixel corner 10× within 4 s (short taps, no swiping)) shows
-pending packages and kernel releases; the kernel is only ever installed from there, by touch. *Packages update daily*
+pending packages and kernel releases. A manual kernel installation starts there, by touch;
+**Kernel update daily** optionally installs signed releases at **Kernel update: time** (default 04:30).
+This separate MQTT/admin setting is off by default and uses the same A/B test, health check and fallback. *Packages update daily*
 and *Packages update now* upgrade all installed Alpine packages while respecting version pins;
 the Linux kernel is managed separately
 ([`apps/wallpanel-api/`](apps/wallpanel-api/)).
