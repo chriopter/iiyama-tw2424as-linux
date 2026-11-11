@@ -1,0 +1,28 @@
+<!doctype html><body><input id="plain"><input id="password" type="password"><input id="number" type="number"><textarea></textarea><div id="shadow"></div><pre id="result">RUNNING</pre><script src="../apps/wallpanel-kiosk/rootfs/usr/lib/wallpanel/extension/keyboard.js"></script><script>
+(async () => {
+ const check=(ok,msg)=>{if(!ok)throw Error(msg)};
+ const host=document.querySelector('#wallpanel-keyboard');
+ const key=k=>{const b=[...host.shadowRoot.querySelectorAll('button')].find(x=>x.textContent===k);check(b,'key '+k);b.click()};
+ let count=0;const plain=document.querySelector('#plain');plain.addEventListener('input',()=>count++);
+ plain.focus();key('h');key('ü');key('⇧');key('A');check(plain.value==='hüA','text '+plain.value);check(count===3,'input events');
+ plain.setSelectionRange(1,2);key('x');check(plain.value==='hxA','selection');key('⌫');check(plain.value==='hA','backspace');
+ const pw=document.querySelector('#password');pw.focus();key('a');check(pw.value==='a'&&pw.type==='password','password');
+ const number=document.querySelector('#number');number.focus();key('1');key('2');check(number.value==='12','numeric');
+ const ta=document.querySelector('textarea');ta.focus();key('a');key('↵');key('b');check(ta.value==='a\nb','multiline '+JSON.stringify(ta.value));
+ const nested=document.querySelector('#shadow').attachShadow({mode:'open'});nested.innerHTML='<input>';
+ const input=nested.querySelector('input');input.focus();key('z');check(input.value==='z','shadow input');
+ key('Schließen');check(!host.matches(':popover-open'),'close');
+ const dialog=document.createElement('dialog');dialog.innerHTML='<input aria-label="Modal search">';document.body.append(dialog);dialog.showModal();dialog.firstChild.focus();
+ await new Promise(r=>setTimeout(r,100));
+ check(host.matches(':popover-open')&&host.parentNode===dialog,'modal top layer');
+ let rect=host.getBoundingClientRect();check(document.elementFromPoint(rect.x+20,rect.y+20)===host,'keyboard above modal');
+ key('a');check(dialog.firstChild.value==='a','modal editing');
+ const dropdown=document.createElement('div');dropdown.popover='auto';dropdown.innerHTML='<input>';dialog.append(dropdown);dropdown.showPopover();dropdown.firstChild.focus();
+ await new Promise(r=>setTimeout(r,100));
+ check(host.parentNode===dropdown&&dropdown.matches(':popover-open'),'nested dropdown remains open');
+ rect=host.getBoundingClientRect();check(document.elementFromPoint(rect.x+20,rect.y+20)===host,'keyboard above dropdown');
+ key('b');check(dropdown.firstChild.value==='b','dropdown editing');
+ key('Schließen');dropdown.hidePopover();dialog.close();dialog.remove();
+ document.querySelector('#result').textContent='PASS modal, nested dropdown, top-layer ordering,  text, input events, selection, backspace, password, numeric, multiline, shadow DOM, close';
+})().catch(e=>document.querySelector('#result').textContent='FAIL '+e.stack);
+</script>

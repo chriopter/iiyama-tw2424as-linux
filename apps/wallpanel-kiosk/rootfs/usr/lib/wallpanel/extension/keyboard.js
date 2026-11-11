@@ -4,7 +4,8 @@
   if (document.getElementById('wallpanel-keyboard')) return;
   const host = document.createElement('div');
   host.id = 'wallpanel-keyboard';
-  host.style.cssText = 'position:fixed;inset:auto 0 0;z-index:2147483647;display:none';
+  host.popover = 'manual';
+  host.style.cssText = 'position:fixed;inset:auto 0 0;width:auto;max-width:none;margin:0;padding:0;border:0;background:transparent;overflow:visible';
   const root = host.attachShadow({mode: 'open'});
   root.innerHTML = `<style>
     :host { color-scheme: dark; }
@@ -28,13 +29,31 @@
     while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement;
     return el;
   };
-  function hide() { host.style.display = 'none'; target = null; }
+  function hide() { host.hidePopover(); target = null; }
+  function front() {
+    if (!target?.isConnected) return hide();
+    // Keep the keyboard inside an open dialog/popover's composed subtree. This
+    // avoids modal inertness and an auto dropdown treating key taps as outside.
+    let container = document.documentElement;
+    for (let el = target; el; el = el.assignedSlot || el.parentNode || el.host) {
+      if (el instanceof HTMLElement && el.matches('dialog[open], :popover-open')) {
+        container = el; break;
+      }
+    }
+    if (host.parentNode !== container) container.append(host);
+    if (!host.matches(':popover-open')) host.showPopover();
+  }
   function show(el) {
+    if (target === el) { front(); return; }
     target = el;
     numeric = el.type === 'number' || el.type === 'tel' || /^(numeric|decimal|tel)$/.test(el.inputMode);
     shift = false; symbols = false;
-    render(); host.style.display = 'block';
-    requestAnimationFrame(() => el.scrollIntoView({block:'center', inline:'nearest', behavior:'smooth'}));
+    render(); front();
+    requestAnimationFrame(() => {
+      if (target !== el) return;
+      front(); // the dropdown may have opened after the field received focus
+      el.scrollIntoView({block:'center', inline:'nearest', behavior:'smooth'});
+    });
   }
   function edit(text, backward = false) {
     if (!target?.isConnected || !editable(target)) return hide();
@@ -101,8 +120,11 @@
   document.addEventListener('pointerdown', e => {
     if (e.composedPath().includes(host)) return;
     if (!e.composedPath().some(editable)) hide();
+    else setTimeout(() => { const el = active(); if (editable(el)) show(el); }, 0);
   }, true);
   document.addEventListener('focusout', () => setTimeout(() => {
     if (target && active() !== target) hide();
   }, 0), true);
+  // Also handle fields already focused when the extension is loaded.
+  if (editable(active())) show(active());
 })();

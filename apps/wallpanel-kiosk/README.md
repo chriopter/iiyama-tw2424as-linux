@@ -21,3 +21,7 @@ Home Assistant's shadow DOM. It supports shift, umlauts, symbols, a numeric layo
 tap outside or **Schließen** to dismiss it. Passwords are edited in their existing masked field and are
 never stored by the keyboard. This works within the kiosk pages without a separate Wayland input-method
 service (cage does not implement the necessary text-input protocols).
+The keyboard uses a manual HTML popover in the browser's top layer and stays inside the focused
+field's dialog/dropdown, so Home Assistant pickers neither cover it nor close when a key is tapped.
+Tapping an already focused field opens it again. Browser regression checks (including nested modal
+dialogs and dropdowns): open `tests/keyboard.html`; the result should start with `PASS`.
